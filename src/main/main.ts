@@ -6,6 +6,7 @@ import { promisify } from 'node:util';
 import { createFloatingWindow, updateFloatingState } from './floatingWindow.js';
 import { pasteTextToCursor } from './inputController.js';
 import { cleanupText, testCleanupProvider, type FetchLike } from './providers.js';
+import { runRecordingPipeline } from './recorderCoordinator.js';
 import { createElectronStoreAdapter, createSettingsStore, type SettingsStore } from './settingsStore.js';
 
 type RendererSettings = {
@@ -17,13 +18,23 @@ type RendererSettings = {
   baseURL: string;
   model: string;
   apiKey: string;
+  prompt: string;
   outputMode: string;
   dataDir: string;
 };
 
 let mainWindow: BrowserWindow | undefined;
 let settingsStore: SettingsStore | undefined;
+let isRecording = false;
 const execFileAsync = promisify(execFile);
+
+app.setPath('userData', join('D:\\Antigravity', 'tailkall', 'data', 'electron'));
+app.setPath('logs', join('D:\\Antigravity', 'tailkall', 'logs'));
+try {
+  app.setPath('sessionData', join('D:\\Antigravity', 'tailkall', 'cache', 'electron-session'));
+} catch {
+  // Older Electron versions may not expose sessionData; userData/logs are still moved off C:.
+}
 
 function rendererUrl(page: 'index.html' | 'floating.html'): string {
   const devServerUrl = process.env.VITE_DEV_SERVER_URL;
@@ -84,18 +95,21 @@ async function createFloating(): Promise<void> {
 function toRendererSettings(): RendererSettings {
   const settings = settingsStore?.getSettings();
   return {
-    triggerKey: settings?.input.trigger.modifiers.length
-      ? `${settings.input.trigger.modifiers.join(' + ')} + ${settings.input.trigger.key}`
-      : settings?.input.trigger.key ?? 'F8',
-    recordMode: '按住说话',
-    asr: '本地 ASR',
-    localModelDir: join('D:\\Antigravity', 'tailkall', 'models'),
+    triggerKey:
+      settings?.input.triggerLabel ??
+      (settings?.input.trigger.modifiers.length
+        ? `${settings.input.trigger.modifiers.join(' + ')} + ${settings.input.trigger.key}`
+        : settings?.input.trigger.key ?? 'F8'),
+    recordMode: settings?.input.recordMode ?? '按住说话',
+    asr: settings?.input.asr ?? '未配置 ASR',
+    localModelDir: settings?.input.localModelDir ?? join('D:\\Antigravity', 'tailkall', 'models'),
     provider: settings?.cleanup.provider?.name ?? 'DeepSeek',
     baseURL: settings?.cleanup.provider?.baseUrl ?? 'https://api.deepseek.com/v1',
     model: settings?.cleanup.provider?.model ?? 'deepseek-chat',
     apiKey: settings?.cleanup.provider?.apiKey ?? '',
-    outputMode: '粘贴到当前光标',
-    dataDir: defaultDataRoot()
+    prompt: settings?.cleanup.prompt ?? '请在不改变原意的前提下整理语音输入文本，修正错别字和标点，直接返回整理后的文本。',
+    outputMode: settings?.input.outputMode ?? '粘贴到当前光标',
+    dataDir: settings?.input.dataDir ?? defaultDataRoot()
   };
 }
 
@@ -111,7 +125,11 @@ function installIpcHandlers(): void {
       }),
       original: record.transcript,
       refined: record.cleanedText ?? record.transcript,
-      status: record.status === 'completed' ? '已输入' : '失败'
+      status: record.status === 'completed' ? '已输入' : '失败',
+      asr: [record.asrProvider, record.asrModel].filter(Boolean).join(' / '),
+      cleanup: [record.cleanupProvider, record.cleanupModel].filter(Boolean).join(' / '),
+      durationMs: record.durationMs,
+      pasteSucceeded: record.pasteSucceeded
     }));
 
     return {
@@ -131,10 +149,61 @@ function installIpcHandlers(): void {
           apiKey: settings.apiKey,
           model: settings.model || 'deepseek-chat'
         },
-        prompt: '请在不改变原意的前提下整理语音输入文本，修正错别字和标点，直接返回整理后的文本。'
+        prompt: settings.prompt || '请在不改变原意的前提下整理语音输入文本，修正错别字和标点，直接返回整理后的文本。'
+      },
+      input: {
+        trigger: { key: settings.triggerKey || 'F8', modifiers: [] },
+        triggerLabel: settings.triggerKey || 'F8',
+        recordMode: settings.recordMode,
+        asr: settings.asr,
+        localModelDir: settings.localModelDir,
+        outputMode: settings.outputMode,
+        dataDir: settings.dataDir
       }
     });
     return settings;
+  });
+
+  ipcMain.handle('tailkall:submit-recording', async (_event, audio: ArrayBuffer, durationMs: number) => {
+    updateFloatingState({ visible: true, recording: false, status: 'recognizing' });
+    const settings = settingsStore?.getSettings();
+    if (!settingsStore || !settings) {
+      return { ok: false, message: '设置存储不可用' };
+    }
+
+    const record = await runRecordingPipeline({
+      audio,
+      asrProvider: createConfiguredAsrProvider(settings.input.asr, settings.input.localModelDir, durationMs),
+      cleanupText: async (transcript) => {
+        if (!settings.cleanup.enabled || !settings.cleanup.provider) {
+          return transcript;
+        }
+        updateFloatingState({ visible: true, recording: false, status: 'rewriting' });
+        return cleanupText({
+          provider: settings.cleanup.provider,
+          transcript,
+          prompt: settings.cleanup.prompt,
+          fetch: fetch as FetchLike
+        });
+      },
+      pasteText: async (text) => {
+        if (settings.input.outputMode === '仅保存记录') {
+          return { status: 'saved' };
+        }
+        await pasteTextToCursor(text, { clipboard, keyboard: { pressPasteShortcut: pressSystemPasteShortcut } });
+        return { status: 'pasted' };
+      },
+      settingsStore
+    });
+
+    updateFloatingState({
+      visible: true,
+      recording: false,
+      status: record.status === 'completed' ? 'done' : 'failed',
+      error: record.error
+    });
+    setTimeout(() => updateFloatingState({ visible: false, recording: false }), 1200);
+    return { ok: record.status === 'completed', record };
   });
 
   ipcMain.handle('tailkall:copy-text', (_event, text: string) => {
@@ -192,6 +261,21 @@ function installIpcHandlers(): void {
   ipcMain.handle('tailkall:capture-trigger-key', () => 'F8');
 }
 
+function createConfiguredAsrProvider(asrName: string, localModelDir: string, durationMs: number) {
+  return {
+    name: asrName || '未配置 ASR',
+    async transcribe(): Promise<{ text: string; provider: string }> {
+      if (!asrName || /占位|未配置/.test(asrName)) {
+        throw new Error('ASR 尚未配置，请在设置页选择本地或云端语音识别引擎。');
+      }
+      return {
+        text: `已收到 ${Math.round(durationMs / 1000)} 秒录音。当前 ASR 适配器为 ${asrName}，模型目录 ${localModelDir}。请接入真实 ASR 后替换此占位文本。`,
+        provider: asrName
+      };
+    }
+  };
+}
+
 async function pressSystemPasteShortcut(): Promise<void> {
   if (process.platform !== 'win32') {
     mainWindow?.webContents.paste();
@@ -220,8 +304,14 @@ app.whenReady().then(async () => {
   updateFloatingState({ visible: false, recording: false });
 
   globalShortcut.register('F8', () => {
-    updateFloatingState({ visible: true, recording: true });
-    setTimeout(() => updateFloatingState({ visible: false, recording: false }), 1200);
+    isRecording = !isRecording;
+    if (isRecording) {
+      updateFloatingState({ visible: true, recording: true, status: 'recording' });
+      mainWindow?.webContents.send('tailkall:recording-start');
+    } else {
+      updateFloatingState({ visible: true, recording: false, status: 'recognizing' });
+      mainWindow?.webContents.send('tailkall:recording-stop');
+    }
   });
 
   app.on('activate', () => {

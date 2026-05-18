@@ -17,6 +17,12 @@ export type AppSettings = {
       key: string;
       modifiers: string[];
     };
+    triggerLabel: string;
+    recordMode: string;
+    asr: string;
+    localModelDir: string;
+    outputMode: string;
+    dataDir: string;
   };
 };
 
@@ -28,6 +34,12 @@ export type TranscriptionRecord = {
   cleanedText?: string;
   status: TranscriptionRecordStatus;
   error?: string;
+  asrProvider?: string;
+  asrModel?: string;
+  cleanupProvider?: string;
+  cleanupModel?: string;
+  durationMs?: number;
+  pasteSucceeded?: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -64,7 +76,13 @@ export const defaultSettings: AppSettings = {
     trigger: {
       key: 'f9',
       modifiers: []
-    }
+    },
+    triggerLabel: 'F8',
+    recordMode: '按住说话',
+    asr: '本地 ASR',
+    localModelDir: 'D:\\Antigravity\\tailkall\\models',
+    outputMode: '粘贴到当前光标',
+    dataDir: 'D:\\Antigravity\\tailkall\\data'
   }
 };
 
@@ -189,10 +207,10 @@ function mergeSettings(settings?: Partial<AppSettings>): AppSettings {
       ...defaultSettings.cleanup,
       ...settings?.cleanup
     },
-    input: {
-      ...defaultSettings.input,
-      ...settings?.input,
-      trigger: {
+      input: {
+        ...defaultSettings.input,
+        ...settings?.input,
+        trigger: {
         ...defaultSettings.input.trigger,
         ...settings?.input?.trigger
       }

@@ -100,6 +100,24 @@ describe('recorderCoordinator', () => {
     expect(record.error).toContain('cleanup failed');
     expect(store.listRecords()[0]).toEqual(record);
   });
+
+  it('preserves cleaned text when paste fails', async () => {
+    const store = createSettingsStore({ store: createMemoryStore() });
+
+    const record = await runRecordingPipeline({
+      audio: new ArrayBuffer(0),
+      asrProvider: createMockAsrProvider('raw text'),
+      cleanupText: vi.fn().mockResolvedValue('clean text'),
+      pasteText: vi.fn().mockRejectedValue(new Error('paste failed')),
+      settingsStore: store
+    });
+
+    expect(record.status).toBe('failed');
+    expect(record.transcript).toBe('raw text');
+    expect(record.cleanedText).toBe('clean text');
+    expect(record.pasteSucceeded).toBe(false);
+    expect(store.listRecords()[0]).toEqual(record);
+  });
 });
 
 describe('floatingWindow', () => {
@@ -120,6 +138,7 @@ describe('floatingWindow', () => {
       expect.objectContaining({
         alwaysOnTop: true,
         frame: false,
+        focusable: false,
         show: false
       })
     );

@@ -22,11 +22,26 @@ describe('settingsStore', () => {
           model: 'deepseek-chat'
         },
         prompt: 'Clean this transcript'
+      },
+      input: {
+        trigger: {
+          key: 'Mouse Middle',
+          modifiers: []
+        },
+        triggerLabel: 'Mouse Middle',
+        recordMode: '点击开始/停止',
+        asr: '豆包 ASR',
+        localModelDir: 'D:\\Antigravity\\tailkall\\models\\sensevoice',
+        outputMode: '仅保存记录',
+        dataDir: 'D:\\Antigravity\\tailkall\\data'
       }
     });
 
     expect(saved.cleanup.enabled).toBe(true);
     expect(store.getSettings().cleanup.provider?.model).toBe('deepseek-chat');
+    expect(store.getSettings().input.recordMode).toBe('点击开始/停止');
+    expect(store.getSettings().input.asr).toBe('豆包 ASR');
+    expect(store.getSettings().input.outputMode).toBe('仅保存记录');
   });
 
   it('adds, updates, lists, and deletes transcription records', () => {
@@ -35,7 +50,13 @@ describe('settingsStore', () => {
     const first = store.addRecord({
       transcript: 'raw text',
       cleanedText: 'clean text',
-      status: 'completed'
+      status: 'completed',
+      asrProvider: 'local',
+      asrModel: 'SenseVoice',
+      cleanupProvider: 'DeepSeek',
+      cleanupModel: 'deepseek-chat',
+      durationMs: 1200,
+      pasteSucceeded: true
     });
     const second = store.addRecord({
       transcript: 'failed raw',
@@ -44,6 +65,8 @@ describe('settingsStore', () => {
     });
 
     expect(first.id).toBeTruthy();
+    expect(first.asrModel).toBe('SenseVoice');
+    expect(first.durationMs).toBe(1200);
     expect(store.listRecords()).toEqual([second, first]);
 
     const updated = store.updateRecord(first.id, { cleanedText: 'updated clean' });

@@ -1,6 +1,7 @@
 export type FloatingState = {
   visible: boolean;
   recording: boolean;
+  status?: 'recording' | 'recognizing' | 'rewriting' | 'done' | 'failed';
   transcript?: string;
   error?: string;
 };
@@ -23,6 +24,7 @@ export type FloatingWindowFactory = (options: {
   skipTaskbar: boolean;
   transparent: boolean;
   show: boolean;
+  focusable: boolean;
 }) => FloatingBrowserWindow;
 
 let floatingWindow: FloatingBrowserWindow | undefined;
@@ -40,7 +42,8 @@ export function createFloatingWindow(factory: FloatingWindowFactory): FloatingBr
     alwaysOnTop: true,
     skipTaskbar: true,
     transparent: true,
-    show: false
+    show: false,
+    focusable: false
   });
 
   return floatingWindow;

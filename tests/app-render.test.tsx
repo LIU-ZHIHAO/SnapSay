@@ -34,6 +34,7 @@ describe('TailKall main renderer', () => {
     expect(screen.getByLabelText('Base URL')).toHaveValue('https://api.example.com/v1');
     expect(screen.getByLabelText('Model')).toHaveValue('gpt-4.1-mini');
     expect(screen.getByLabelText('API Key')).toHaveAttribute('type', 'password');
+    expect(screen.getByLabelText('Prompt 模板')).toHaveValue('请整理语音输入文本，修正错别字和标点，直接返回整理后的文本。');
     expect(screen.getByRole('button', { name: /测试连接/ })).toBeInTheDocument();
     expect(screen.getByLabelText('输出模式')).toHaveValue('粘贴到当前光标');
     expect(screen.getByLabelText('数据目录')).toHaveValue('D:\\Antigravity\\tailkall\\data');

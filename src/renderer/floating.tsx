@@ -1,9 +1,23 @@
 import { createRoot } from 'react-dom/client';
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { CheckCircle2, LoaderCircle, Mic, WandSparkles, XCircle } from 'lucide-react';
 import './styles.css';
 
 export type FloatingState = 'recording' | 'recognizing' | 'rewriting' | 'done' | 'failed';
+
+type FloatingPayload = {
+  visible?: boolean;
+  recording?: boolean;
+  status?: FloatingState;
+};
+
+declare global {
+  interface Window {
+    tailkallFloating?: {
+      onState?: (callback: (state: FloatingPayload) => void) => () => void;
+    };
+  }
+}
 
 const stateMeta: Record<FloatingState, { label: string; icon: ReactNode }> = {
   recording: { label: '语音输入', icon: <Mic size={18} /> },
@@ -30,8 +44,26 @@ export function FloatingWindow({ state = 'recognizing' }: { state?: FloatingStat
   );
 }
 
+function FloatingRoot() {
+  const [state, setState] = useState<FloatingState>('recognizing');
+
+  useEffect(() => {
+    return window.tailkallFloating?.onState?.((payload) => {
+      if (payload.status) {
+        setState(payload.status);
+        return;
+      }
+      if (payload.recording) {
+        setState('recording');
+      }
+    });
+  }, []);
+
+  return <FloatingWindow state={state} />;
+}
+
 const rootElement = document.getElementById('root');
 
 if (rootElement) {
-  createRoot(rootElement).render(<FloatingWindow />);
+  createRoot(rootElement).render(<FloatingRoot />);
 }

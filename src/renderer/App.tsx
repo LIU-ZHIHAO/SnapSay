@@ -20,6 +20,10 @@ type RecordItem = {
   original: string;
   refined: string;
   status: '已输入' | '整理中' | '失败';
+  asr?: string;
+  cleanup?: string;
+  durationMs?: number;
+  pasteSucceeded?: boolean;
 };
 
 type SettingsState = {
@@ -31,6 +35,7 @@ type SettingsState = {
   baseURL: string;
   model: string;
   apiKey: string;
+  prompt: string;
   outputMode: string;
   dataDir: string;
 };
@@ -38,12 +43,15 @@ type SettingsState = {
 type TailKallFacade = {
   getDashboard?: () => Promise<{ settings: SettingsState; records: RecordItem[] }>;
   saveSettings?: (settings: SettingsState) => Promise<SettingsState>;
+  submitRecording?: (audio: ArrayBuffer, durationMs: number) => Promise<{ ok: boolean }>;
   copyText?: (text: string) => Promise<void>;
   rewriteRecord?: (id: string) => Promise<void>;
   pasteRecord?: (id: string) => Promise<void>;
   deleteRecord?: (id: string) => Promise<void>;
   testRewriteApi?: (settings: SettingsState) => Promise<{ ok: boolean; message: string }>;
   captureTriggerKey?: () => Promise<string>;
+  onRecordingStart?: (callback: () => void) => () => void;
+  onRecordingStop?: (callback: () => void) => () => void;
 };
 
 declare global {
@@ -61,6 +69,7 @@ const demoSettings: SettingsState = {
   baseURL: 'https://api.example.com/v1',
   model: 'gpt-4.1-mini',
   apiKey: 'demo-api-key',
+  prompt: '请整理语音输入文本，修正错别字和标点，直接返回整理后的文本。',
   outputMode: '粘贴到当前光标',
   dataDir: 'D:\\Antigravity\\tailkall\\data'
 };
@@ -72,7 +81,11 @@ const demoRecords: RecordItem[] = [
     original:
       '请帮我整理今天会议关于登录体验、首屏性能和快捷键冲突处理的讨论，保留结论、负责人和下次跟进时间。',
     refined: '会议结论：优化登录体验与首屏性能，排查快捷键冲突。负责人分别跟进，下次例会同步结果。',
-    status: '已输入'
+    status: '已输入',
+    asr: '本地 Whisper / small',
+    cleanup: 'OpenAI Compatible / gpt-4.1-mini',
+    durationMs: 8200,
+    pasteSucceeded: true
   },
   {
     id: 'rec-2',
@@ -93,6 +106,7 @@ export default function App() {
   const [records, setRecords] = useState<RecordItem[]>(demoRecords);
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [testStatus, setTestStatus] = useState('未测试');
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
   useEffect(() => {
     getFacade()
@@ -103,6 +117,40 @@ export default function App() {
       })
       .catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    const facade = getFacade();
+    const offStart = facade.onRecordingStart?.(() => {
+      void startBrowserRecording();
+    });
+    const offStop = facade.onRecordingStop?.(() => {
+      mediaRecorder?.stop();
+    });
+    return () => {
+      offStart?.();
+      offStop?.();
+    };
+  }, [mediaRecorder]);
+
+  const startBrowserRecording = async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const chunks: BlobPart[] = [];
+    const recorder = new MediaRecorder(stream);
+    const startedAt = Date.now();
+    recorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        chunks.push(event.data);
+      }
+    };
+    recorder.onstop = async () => {
+      stream.getTracks().forEach((track) => track.stop());
+      const audio = await new Blob(chunks, { type: recorder.mimeType }).arrayBuffer();
+      await getFacade().submitRecording?.(audio, Date.now() - startedAt);
+      setMediaRecorder(null);
+    };
+    recorder.start();
+    setMediaRecorder(recorder);
+  };
 
   const recentRecords = useMemo(() => records.slice(0, 3), [records]);
 
@@ -386,6 +434,10 @@ function SettingsView(props: {
           <label>
             API Key
             <input onChange={(event) => onUpdate('apiKey', event.target.value)} type="password" value={settings.apiKey} />
+          </label>
+          <label className="wide">
+            Prompt 模板
+            <textarea onChange={(event) => onUpdate('prompt', event.target.value)} value={settings.prompt} />
           </label>
           <div className="field-action">
             <button onClick={props.onTestRewriteApi} type="button">
