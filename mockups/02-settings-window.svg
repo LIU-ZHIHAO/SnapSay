@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="960" viewBox="0 0 1440 960">
+  <rect width="1440" height="960" fill="#f5f7f4"/>
+  <rect x="0" y="0" width="1440" height="72" fill="#12382d"/>
+  <text x="36" y="46" fill="#ffffff" font-family="Segoe UI, Arial" font-size="24" font-weight="700">TailKall</text>
+  <text x="156" y="46" fill="#bfe8d1" font-family="Segoe UI, Arial" font-size="15">设置</text>
+
+  <rect x="0" y="72" width="248" height="888" fill="#ffffff"/>
+  <text x="56" y="140" fill="#5f6b66" font-family="Segoe UI, Arial" font-size="15">仪表盘</text>
+  <text x="56" y="198" fill="#5f6b66" font-family="Segoe UI, Arial" font-size="15">语音记录</text>
+  <rect x="24" y="218" width="200" height="44" rx="8" fill="#e7f6ee"/>
+  <text x="56" y="246" fill="#176342" font-family="Segoe UI, Arial" font-size="15" font-weight="700">设置</text>
+
+  <text x="296" y="132" fill="#18251f" font-family="Segoe UI, Arial" font-size="30" font-weight="700">输入与模型设置</text>
+  <text x="296" y="164" fill="#65736d" font-family="Segoe UI, Arial" font-size="15">配置触发键、录音方式、语音识别和 API 文案整理。</text>
+
+  <rect x="296" y="204" width="488" height="286" rx="8" fill="#ffffff" stroke="#d9e4de"/>
+  <text x="324" y="244" fill="#18251f" font-family="Segoe UI, Arial" font-size="20" font-weight="700">触发方式</text>
+  <text x="324" y="286" fill="#60716a" font-family="Segoe UI, Arial" font-size="14">启动键</text>
+  <rect x="324" y="304" width="236" height="44" rx="6" fill="#f7faf8" stroke="#cfdcd5"/>
+  <text x="346" y="332" fill="#18251f" font-family="Segoe UI, Arial" font-size="15">鼠标中键</text>
+  <rect x="576" y="304" width="156" height="44" rx="6" fill="#1f8f5f"/>
+  <text x="618" y="332" fill="#ffffff" font-family="Segoe UI, Arial" font-size="15" font-weight="700">重新捕获</text>
+
+  <text x="324" y="390" fill="#60716a" font-family="Segoe UI, Arial" font-size="14">录音模式</text>
+  <rect x="324" y="408" width="172" height="42" rx="21" fill="#1f8f5f"/>
+  <text x="378" y="435" fill="#ffffff" font-family="Segoe UI, Arial" font-size="14" font-weight="700">点击切换</text>
+  <rect x="508" y="408" width="172" height="42" rx="21" fill="#edf2ef"/>
+  <text x="562" y="435" fill="#4d5d55" font-family="Segoe UI, Arial" font-size="14">长按录音</text>
+
+  <rect x="816" y="204" width="512" height="286" rx="8" fill="#ffffff" stroke="#d9e4de"/>
+  <text x="844" y="244" fill="#18251f" font-family="Segoe UI, Arial" font-size="20" font-weight="700">语音识别</text>
+  <text x="844" y="286" fill="#60716a" font-family="Segoe UI, Arial" font-size="14">识别引擎</text>
+  <rect x="844" y="304" width="428" height="44" rx="6" fill="#f7faf8" stroke="#cfdcd5"/>
+  <text x="866" y="332" fill="#18251f" font-family="Segoe UI, Arial" font-size="15">本地 SenseVoice</text>
+  <text x="844" y="390" fill="#60716a" font-family="Segoe UI, Arial" font-size="14">模型目录</text>
+  <rect x="844" y="408" width="312" height="44" rx="6" fill="#f7faf8" stroke="#cfdcd5"/>
+  <text x="866" y="436" fill="#18251f" font-family="Segoe UI, Arial" font-size="15">D:\Antigravity\tailkall\models</text>
+  <rect x="1172" y="408" width="100" height="44" rx="6" fill="#edf2ef"/>
+  <text x="1202" y="436" fill="#294238" font-family="Segoe UI, Arial" font-size="15">选择</text>
+
+  <rect x="296" y="522" width="488" height="298" rx="8" fill="#ffffff" stroke="#d9e4de"/>
+  <text x="324" y="562" fill="#18251f" font-family="Segoe UI, Arial" font-size="20" font-weight="700">文案整理 API</text>
+  <text x="324" y="604" fill="#60716a" font-family="Segoe UI, Arial" font-size="14">提供商</text>
+  <rect x="324" y="622" width="408" height="44" rx="6" fill="#f7faf8" stroke="#cfdcd5"/>
+  <text x="346" y="650" fill="#18251f" font-family="Segoe UI, Arial" font-size="15">DeepSeek</text>
+  <text x="324" y="708" fill="#60716a" font-family="Segoe UI, Arial" font-size="14">Base URL</text>
+  <rect x="324" y="726" width="408" height="44" rx="6" fill="#f7faf8" stroke="#cfdcd5"/>
+  <text x="346" y="754" fill="#18251f" font-family="Segoe UI, Arial" font-size="15">https://api.deepseek.com</text>
+
+  <rect x="816" y="522" width="512" height="298" rx="8" fill="#ffffff" stroke="#d9e4de"/>
+  <text x="844" y="562" fill="#18251f" font-family="Segoe UI, Arial" font-size="20" font-weight="700">输出与记录</text>
+  <text x="844" y="604" fill="#60716a" font-family="Segoe UI, Arial" font-size="14">输出模式</text>
+  <rect x="844" y="622" width="156" height="42" rx="21" fill="#edf2ef"/>
+  <text x="894" y="649" fill="#4d5d55" font-family="Segoe UI, Arial" font-size="14">直接输入</text>
+  <rect x="1012" y="622" width="180" height="42" rx="21" fill="#1f8f5f"/>
+  <text x="1050" y="649" fill="#ffffff" font-family="Segoe UI, Arial" font-size="14" font-weight="700">整理后输入</text>
+  <text x="844" y="708" fill="#60716a" font-family="Segoe UI, Arial" font-size="14">数据目录</text>
+  <rect x="844" y="726" width="312" height="44" rx="6" fill="#f7faf8" stroke="#cfdcd5"/>
+  <text x="866" y="754" fill="#18251f" font-family="Segoe UI, Arial" font-size="15">D:\Antigravity\tailkall\data</text>
+  <rect x="1172" y="726" width="100" height="44" rx="6" fill="#edf2ef"/>
+  <text x="1202" y="754" fill="#294238" font-family="Segoe UI, Arial" font-size="15">选择</text>
+</svg>
+

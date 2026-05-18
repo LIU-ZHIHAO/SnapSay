@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="960" viewBox="0 0 1440 960">
+  <rect width="1440" height="960" fill="#f5f7f4"/>
+  <rect x="0" y="0" width="1440" height="72" fill="#12382d"/>
+  <text x="36" y="46" fill="#ffffff" font-family="Segoe UI, Arial" font-size="24" font-weight="700">TailKall</text>
+  <text x="156" y="46" fill="#bfe8d1" font-family="Segoe UI, Arial" font-size="15">Windows 语音输入助手</text>
+  <rect x="1210" y="20" width="160" height="34" rx="17" fill="#1f8f5f"/>
+  <text x="1241" y="42" fill="#ffffff" font-family="Segoe UI, Arial" font-size="14">正在监听快捷键</text>
+
+  <rect x="0" y="72" width="248" height="888" fill="#ffffff"/>
+  <rect x="24" y="112" width="200" height="44" rx="8" fill="#e7f6ee"/>
+  <text x="56" y="140" fill="#176342" font-family="Segoe UI, Arial" font-size="15" font-weight="700">仪表盘</text>
+  <text x="56" y="198" fill="#5f6b66" font-family="Segoe UI, Arial" font-size="15">语音记录</text>
+  <text x="56" y="248" fill="#5f6b66" font-family="Segoe UI, Arial" font-size="15">模型与 API</text>
+  <text x="56" y="298" fill="#5f6b66" font-family="Segoe UI, Arial" font-size="15">快捷键</text>
+  <text x="56" y="348" fill="#5f6b66" font-family="Segoe UI, Arial" font-size="15">存储路径</text>
+
+  <text x="296" y="132" fill="#18251f" font-family="Segoe UI, Arial" font-size="30" font-weight="700">语音输入控制台</text>
+  <text x="296" y="164" fill="#65736d" font-family="Segoe UI, Arial" font-size="15">配置触发方式、识别引擎、整理模型，并查看每次语音输入记录。</text>
+
+  <rect x="296" y="204" width="328" height="142" rx="8" fill="#ffffff" stroke="#d9e4de"/>
+  <text x="324" y="242" fill="#6a7771" font-family="Segoe UI, Arial" font-size="14">当前触发键</text>
+  <text x="324" y="286" fill="#173c31" font-family="Segoe UI, Arial" font-size="30" font-weight="700">鼠标中键</text>
+  <rect x="324" y="306" width="96" height="28" rx="14" fill="#e7f6ee"/>
+  <text x="346" y="325" fill="#1d734f" font-family="Segoe UI, Arial" font-size="13">点击切换</text>
+
+  <rect x="648" y="204" width="328" height="142" rx="8" fill="#ffffff" stroke="#d9e4de"/>
+  <text x="676" y="242" fill="#6a7771" font-family="Segoe UI, Arial" font-size="14">语音识别</text>
+  <text x="676" y="286" fill="#173c31" font-family="Segoe UI, Arial" font-size="30" font-weight="700">本地 SenseVoice</text>
+  <text x="676" y="325" fill="#60716a" font-family="Segoe UI, Arial" font-size="13">离线优先，中文识别</text>
+
+  <rect x="1000" y="204" width="328" height="142" rx="8" fill="#ffffff" stroke="#d9e4de"/>
+  <text x="1028" y="242" fill="#6a7771" font-family="Segoe UI, Arial" font-size="14">文案整理</text>
+  <text x="1028" y="286" fill="#173c31" font-family="Segoe UI, Arial" font-size="30" font-weight="700">DeepSeek API</text>
+  <text x="1028" y="325" fill="#60716a" font-family="Segoe UI, Arial" font-size="13">整理后自动粘贴</text>
+
+  <rect x="296" y="386" width="1032" height="470" rx="8" fill="#ffffff" stroke="#d9e4de"/>
+  <text x="324" y="428" fill="#18251f" font-family="Segoe UI, Arial" font-size="20" font-weight="700">最近语音记录</text>
+  <rect x="1172" y="402" width="124" height="38" rx="6" fill="#1f8f5f"/>
+  <text x="1202" y="427" fill="#ffffff" font-family="Segoe UI, Arial" font-size="14" font-weight="700">复制选中</text>
+
+  <rect x="324" y="464" width="972" height="44" fill="#f1f5f2"/>
+  <text x="344" y="492" fill="#64716b" font-family="Segoe UI, Arial" font-size="13">时间</text>
+  <text x="492" y="492" fill="#64716b" font-family="Segoe UI, Arial" font-size="13">内容预览</text>
+  <text x="930" y="492" fill="#64716b" font-family="Segoe UI, Arial" font-size="13">处理方式</text>
+  <text x="1130" y="492" fill="#64716b" font-family="Segoe UI, Arial" font-size="13">状态</text>
+
+  <g font-family="Segoe UI, Arial" font-size="14">
+    <text x="344" y="548" fill="#1e2d26">14:32</text>
+    <text x="492" y="548" fill="#20312a">请帮我整理一下今天会议里面关于语音输入软件...</text>
+    <text x="930" y="548" fill="#20312a">本地 ASR + API 整理</text>
+    <rect x="1130" y="526" width="72" height="28" rx="14" fill="#dcf7e7"/>
+    <text x="1148" y="546" fill="#167246">已输入</text>
+    <text x="1228" y="548" fill="#1f8f5f">复制</text>
+
+    <line x1="324" y1="578" x2="1296" y2="578" stroke="#e5ece8"/>
+    <text x="344" y="626" fill="#1e2d26">14:18</text>
+    <text x="492" y="626" fill="#20312a">本地模型可不可以呢另外我想要快捷键和鼠标...</text>
+    <text x="930" y="626" fill="#20312a">豆包 ASR + DeepSeek</text>
+    <rect x="1130" y="604" width="72" height="28" rx="14" fill="#fff3d8"/>
+    <text x="1148" y="624" fill="#8a5a00">已保存</text>
+    <text x="1228" y="626" fill="#1f8f5f">复制</text>
+
+    <line x1="324" y1="656" x2="1296" y2="656" stroke="#e5ece8"/>
+    <text x="344" y="704" fill="#1e2d26">13:55</text>
+    <text x="492" y="704" fill="#20312a">输入失败但记录已保留，用户可以在这里再次复制...</text>
+    <text x="930" y="704" fill="#20312a">本地 ASR</text>
+    <rect x="1130" y="682" width="88" height="28" rx="14" fill="#ffe6e3"/>
+    <text x="1148" y="702" fill="#a33a2d">粘贴失败</text>
+    <text x="1228" y="704" fill="#1f8f5f">重试</text>
+  </g>
+</svg>
+

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="540" viewBox="0 0 1440 540">
+  <rect width="1440" height="540" fill="#d8e8e1"/>
+  <rect x="0" y="0" width="1440" height="540" fill="url(#bg)"/>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#dfeee8"/>
+      <stop offset="1" stop-color="#b7d4c8"/>
+    </linearGradient>
+  </defs>
+  <rect x="328" y="96" width="784" height="300" rx="12" fill="#ffffff" opacity="0.66"/>
+  <rect x="360" y="130" width="720" height="34" rx="4" fill="#edf3f0"/>
+  <rect x="360" y="188" width="520" height="18" rx="4" fill="#edf3f0"/>
+  <rect x="360" y="224" width="660" height="18" rx="4" fill="#edf3f0"/>
+  <rect x="360" y="260" width="610" height="18" rx="4" fill="#edf3f0"/>
+
+  <g transform="translate(581 426)">
+    <rect width="278" height="58" rx="29" fill="#0f6d45"/>
+    <text x="34" y="36" fill="#ffffff" font-family="Segoe UI, Arial" font-size="18" font-weight="700">语音输入</text>
+    <line x1="132" y1="15" x2="132" y2="43" stroke="#3d9a72" stroke-width="1"/>
+    <rect x="158" y="27" width="4" height="10" rx="2" fill="#e3fff0"/>
+    <rect x="170" y="20" width="4" height="24" rx="2" fill="#9df4bf"/>
+    <rect x="182" y="24" width="4" height="16" rx="2" fill="#e3fff0"/>
+    <rect x="194" y="16" width="4" height="32" rx="2" fill="#9df4bf"/>
+    <rect x="206" y="22" width="4" height="20" rx="2" fill="#e3fff0"/>
+    <rect x="218" y="28" width="4" height="8" rx="2" fill="#9df4bf"/>
+    <rect x="230" y="19" width="4" height="26" rx="2" fill="#e3fff0"/>
+    <rect x="242" y="25" width="4" height="14" rx="2" fill="#9df4bf"/>
+  </g>
+
+  <text x="566" y="514" fill="#315346" font-family="Segoe UI, Arial" font-size="14">固定悬浮在屏幕正中下方，不抢占当前输入焦点</text>
+</svg>
