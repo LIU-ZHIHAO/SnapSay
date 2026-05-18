@@ -172,6 +172,7 @@ export type WhisperCppProviderOptions = {
   tmpDir: string;
   ffmpegPath?: string;
   language?: string;
+  acceleration?: 'auto-gpu' | 'cpu';
   idFactory?: () => string;
   writeFile?: (path: string, data: Buffer) => Promise<void>;
   readTextFile?: (path: string) => Promise<string>;
@@ -210,6 +211,7 @@ export function createWhisperCppAsrProvider(options: WhisperCppProviderOptions):
         audioPath,
         '-l',
         options.language ?? 'zh',
+        ...(options.acceleration === 'cpu' ? ['-ng'] : []),
         '-otxt',
         '-of',
         outputBase

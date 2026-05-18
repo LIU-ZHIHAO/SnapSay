@@ -20,6 +20,7 @@ export type AppSettings = {
     triggerLabel: string;
     recordMode: string;
     asr: string;
+    asrAcceleration: string;
     localModelDir: string;
     localAsrExePath: string;
     localAsrModelPath: string;
@@ -82,9 +83,10 @@ export const defaultSettings: AppSettings = {
     },
     triggerLabel: 'F8',
     recordMode: '按住说话',
-    asr: '本地 ASR',
+    asr: 'whisper.cpp',
+    asrAcceleration: 'GPU 优先',
     localModelDir: 'D:\\Antigravity\\tailkall\\models',
-    localAsrExePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\whisper-cli.exe',
+    localAsrExePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\Release\\whisper-cli.exe',
     localAsrModelPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin',
     ffmpegPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ffmpeg.exe',
     outputMode: '粘贴到当前光标',

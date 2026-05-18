@@ -30,6 +30,7 @@ type SettingsState = {
   triggerKey: string;
   recordMode: string;
   asr: string;
+  asrAcceleration: string;
   localModelDir: string;
   localAsrExePath: string;
   localAsrModelPath: string;
@@ -66,9 +67,10 @@ declare global {
 const demoSettings: SettingsState = {
   triggerKey: 'Ctrl + Alt + Space',
   recordMode: '按住说话',
-  asr: '本地 Whisper',
+  asr: 'whisper.cpp',
+  asrAcceleration: 'GPU 优先',
   localModelDir: 'D:\\Antigravity\\tailkall\\models',
-  localAsrExePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\whisper-cli.exe',
+  localAsrExePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\Release\\whisper-cli.exe',
   localAsrModelPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin',
   ffmpegPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ffmpeg.exe',
   provider: 'OpenAI Compatible',
@@ -410,9 +412,17 @@ function SettingsView(props: {
           <label>
             ASR 引擎
             <select onChange={(event) => onUpdate('asr', event.target.value)} value={settings.asr}>
-              <option>本地 Whisper</option>
+              <option>SenseVoice / FunASR</option>
+              <option>faster-whisper</option>
+              <option>whisper.cpp</option>
               <option>云端 ASR</option>
-              <option>系统语音识别</option>
+            </select>
+          </label>
+          <label>
+            加速策略
+            <select onChange={(event) => onUpdate('asrAcceleration', event.target.value)} value={settings.asrAcceleration}>
+              <option>GPU 优先</option>
+              <option>CPU</option>
             </select>
           </label>
           <label className="wide">

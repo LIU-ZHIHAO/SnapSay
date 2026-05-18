@@ -30,9 +30,10 @@ describe('settingsStore', () => {
         },
         triggerLabel: 'Mouse Middle',
         recordMode: '点击开始/停止',
-        asr: '豆包 ASR',
+        asr: 'faster-whisper',
+        asrAcceleration: 'GPU 优先',
         localModelDir: 'D:\\Antigravity\\tailkall\\models\\sensevoice',
-        localAsrExePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\whisper-cli.exe',
+        localAsrExePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\Release\\whisper-cli.exe',
         localAsrModelPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin',
         ffmpegPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ffmpeg.exe',
         outputMode: '仅保存记录',
@@ -43,7 +44,8 @@ describe('settingsStore', () => {
     expect(saved.cleanup.enabled).toBe(true);
     expect(store.getSettings().cleanup.provider?.model).toBe('deepseek-chat');
     expect(store.getSettings().input.recordMode).toBe('点击开始/停止');
-    expect(store.getSettings().input.asr).toBe('豆包 ASR');
+    expect(store.getSettings().input.asr).toBe('faster-whisper');
+    expect(store.getSettings().input.asrAcceleration).toBe('GPU 优先');
     expect(store.getSettings().input.outputMode).toBe('仅保存记录');
   });
 

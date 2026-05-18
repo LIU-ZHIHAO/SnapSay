@@ -13,6 +13,7 @@ type RendererSettings = {
   triggerKey: string;
   recordMode: string;
   asr: string;
+  asrAcceleration: string;
   localModelDir: string;
   localAsrExePath: string;
   localAsrModelPath: string;
@@ -104,10 +105,11 @@ function toRendererSettings(): RendererSettings {
         ? `${settings.input.trigger.modifiers.join(' + ')} + ${settings.input.trigger.key}`
         : settings?.input.trigger.key ?? 'F8'),
     recordMode: settings?.input.recordMode ?? '按住说话',
-    asr: settings?.input.asr ?? '未配置 ASR',
+    asr: settings?.input.asr ?? 'whisper.cpp',
+    asrAcceleration: settings?.input.asrAcceleration ?? 'GPU 优先',
     localModelDir: settings?.input.localModelDir ?? join('D:\\Antigravity', 'tailkall', 'models'),
     localAsrExePath:
-      settings?.input.localAsrExePath ?? join('D:\\Antigravity', 'tailkall', 'models', 'whisper', 'whisper-cli.exe'),
+      settings?.input.localAsrExePath ?? join('D:\\Antigravity', 'tailkall', 'models', 'whisper', 'Release', 'whisper-cli.exe'),
     localAsrModelPath:
       settings?.input.localAsrModelPath ?? join('D:\\Antigravity', 'tailkall', 'models', 'whisper', 'ggml-small.bin'),
     ffmpegPath: settings?.input.ffmpegPath ?? join('D:\\Antigravity', 'tailkall', 'models', 'whisper', 'ffmpeg.exe'),
@@ -164,6 +166,7 @@ function installIpcHandlers(): void {
         triggerLabel: settings.triggerKey || 'F8',
         recordMode: settings.recordMode,
         asr: settings.asr,
+        asrAcceleration: settings.asrAcceleration,
         localModelDir: settings.localModelDir,
         localAsrExePath: settings.localAsrExePath,
         localAsrModelPath: settings.localAsrModelPath,
@@ -279,7 +282,8 @@ function createConfiguredAsrProvider(settings: ReturnType<SettingsStore['getSett
       executablePath: settings.input.localAsrExePath,
       modelPath: settings.input.localAsrModelPath,
       tmpDir: join('D:\\Antigravity', 'tailkall', 'tmp'),
-      ffmpegPath: settings.input.ffmpegPath || undefined
+      ffmpegPath: settings.input.ffmpegPath || undefined,
+      acceleration: settings.input.asrAcceleration === 'CPU' ? 'cpu' : 'auto-gpu'
     });
   }
 

@@ -10,7 +10,7 @@ describe('TailKall main renderer', () => {
     expect(screen.getByText('当前触发键')).toBeInTheDocument();
     expect(screen.getByText('Ctrl + Alt + Space')).toBeInTheDocument();
     expect(screen.getByText('ASR')).toBeInTheDocument();
-    expect(screen.getByText('本地 Whisper')).toBeInTheDocument();
+    expect(screen.getByText('whisper.cpp')).toBeInTheDocument();
     expect(screen.getByText('文案整理 API')).toBeInTheDocument();
     expect(screen.getByText('OpenAI Compatible / gpt-4.1-mini')).toBeInTheDocument();
 
@@ -28,9 +28,10 @@ describe('TailKall main renderer', () => {
     expect(screen.getByLabelText('当前触发键')).toHaveValue('Ctrl + Alt + Space');
     expect(screen.getByRole('button', { name: /重新捕获/ })).toBeInTheDocument();
     expect(screen.getByLabelText('录音模式')).toHaveValue('按住说话');
-    expect(screen.getByLabelText('ASR 引擎')).toHaveValue('本地 Whisper');
+    expect(screen.getByLabelText('ASR 引擎')).toHaveValue('whisper.cpp');
+    expect(screen.getByLabelText('加速策略')).toHaveValue('GPU 优先');
     expect(screen.getByLabelText('本地模型目录')).toHaveValue('D:\\Antigravity\\tailkall\\models');
-    expect(screen.getByLabelText('whisper.cpp 程序')).toHaveValue('D:\\Antigravity\\tailkall\\models\\whisper\\whisper-cli.exe');
+    expect(screen.getByLabelText('whisper.cpp 程序')).toHaveValue('D:\\Antigravity\\tailkall\\models\\whisper\\Release\\whisper-cli.exe');
     expect(screen.getByLabelText('whisper 模型文件')).toHaveValue('D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin');
     expect(screen.getByLabelText('ffmpeg 程序')).toHaveValue('D:\\Antigravity\\tailkall\\models\\whisper\\ffmpeg.exe');
     expect(screen.getByLabelText('Provider')).toHaveValue('OpenAI Compatible');

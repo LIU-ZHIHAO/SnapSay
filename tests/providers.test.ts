@@ -149,4 +149,25 @@ describe('providers', () => {
       ]
     });
   });
+
+  it('can disable GPU for whisper.cpp when CPU mode is selected', async () => {
+    const commands: Array<{ file: string; args: string[] }> = [];
+    const asr = createWhisperCppAsrProvider({
+      executablePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\Release\\whisper-cli.exe',
+      modelPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin',
+      tmpDir: 'D:\\Antigravity\\tailkall\\tmp',
+      acceleration: 'cpu',
+      idFactory: () => 'cpu-1',
+      writeFile: async () => undefined,
+      readTextFile: async () => 'cpu text',
+      fileExists: async () => true,
+      runCommand: async (file, args) => {
+        commands.push({ file, args });
+      }
+    });
+
+    await asr.transcribe(new ArrayBuffer(0));
+
+    expect(commands[0].args).toContain('-ng');
+  });
 });
