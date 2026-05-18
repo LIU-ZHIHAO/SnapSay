@@ -31,6 +31,9 @@ type SettingsState = {
   recordMode: string;
   asr: string;
   localModelDir: string;
+  localAsrExePath: string;
+  localAsrModelPath: string;
+  ffmpegPath: string;
   provider: string;
   baseURL: string;
   model: string;
@@ -65,6 +68,9 @@ const demoSettings: SettingsState = {
   recordMode: '按住说话',
   asr: '本地 Whisper',
   localModelDir: 'D:\\Antigravity\\tailkall\\models',
+  localAsrExePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\whisper-cli.exe',
+  localAsrModelPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin',
+  ffmpegPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ffmpeg.exe',
   provider: 'OpenAI Compatible',
   baseURL: 'https://api.example.com/v1',
   model: 'gpt-4.1-mini',
@@ -412,6 +418,18 @@ function SettingsView(props: {
           <label className="wide">
             本地模型目录
             <input onChange={(event) => onUpdate('localModelDir', event.target.value)} value={settings.localModelDir} />
+          </label>
+          <label className="wide">
+            whisper.cpp 程序
+            <input onChange={(event) => onUpdate('localAsrExePath', event.target.value)} value={settings.localAsrExePath} />
+          </label>
+          <label className="wide">
+            whisper 模型文件
+            <input onChange={(event) => onUpdate('localAsrModelPath', event.target.value)} value={settings.localAsrModelPath} />
+          </label>
+          <label className="wide">
+            ffmpeg 程序
+            <input onChange={(event) => onUpdate('ffmpegPath', event.target.value)} value={settings.ffmpegPath} />
           </label>
         </div>
       </section>

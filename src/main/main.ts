@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { createFloatingWindow, updateFloatingState } from './floatingWindow.js';
 import { pasteTextToCursor } from './inputController.js';
-import { cleanupText, testCleanupProvider, type FetchLike } from './providers.js';
+import { cleanupText, createWhisperCppAsrProvider, testCleanupProvider, type FetchLike } from './providers.js';
 import { runRecordingPipeline } from './recorderCoordinator.js';
 import { createElectronStoreAdapter, createSettingsStore, type SettingsStore } from './settingsStore.js';
 
@@ -14,6 +14,9 @@ type RendererSettings = {
   recordMode: string;
   asr: string;
   localModelDir: string;
+  localAsrExePath: string;
+  localAsrModelPath: string;
+  ffmpegPath: string;
   provider: string;
   baseURL: string;
   model: string;
@@ -103,6 +106,11 @@ function toRendererSettings(): RendererSettings {
     recordMode: settings?.input.recordMode ?? '按住说话',
     asr: settings?.input.asr ?? '未配置 ASR',
     localModelDir: settings?.input.localModelDir ?? join('D:\\Antigravity', 'tailkall', 'models'),
+    localAsrExePath:
+      settings?.input.localAsrExePath ?? join('D:\\Antigravity', 'tailkall', 'models', 'whisper', 'whisper-cli.exe'),
+    localAsrModelPath:
+      settings?.input.localAsrModelPath ?? join('D:\\Antigravity', 'tailkall', 'models', 'whisper', 'ggml-small.bin'),
+    ffmpegPath: settings?.input.ffmpegPath ?? join('D:\\Antigravity', 'tailkall', 'models', 'whisper', 'ffmpeg.exe'),
     provider: settings?.cleanup.provider?.name ?? 'DeepSeek',
     baseURL: settings?.cleanup.provider?.baseUrl ?? 'https://api.deepseek.com/v1',
     model: settings?.cleanup.provider?.model ?? 'deepseek-chat',
@@ -157,6 +165,9 @@ function installIpcHandlers(): void {
         recordMode: settings.recordMode,
         asr: settings.asr,
         localModelDir: settings.localModelDir,
+        localAsrExePath: settings.localAsrExePath,
+        localAsrModelPath: settings.localAsrModelPath,
+        ffmpegPath: settings.ffmpegPath,
         outputMode: settings.outputMode,
         dataDir: settings.dataDir
       }
@@ -173,7 +184,7 @@ function installIpcHandlers(): void {
 
     const record = await runRecordingPipeline({
       audio,
-      asrProvider: createConfiguredAsrProvider(settings.input.asr, settings.input.localModelDir, durationMs),
+      asrProvider: createConfiguredAsrProvider(settings, durationMs),
       cleanupText: async (transcript) => {
         if (!settings.cleanup.enabled || !settings.cleanup.provider) {
           return transcript;
@@ -261,7 +272,17 @@ function installIpcHandlers(): void {
   ipcMain.handle('tailkall:capture-trigger-key', () => 'F8');
 }
 
-function createConfiguredAsrProvider(asrName: string, localModelDir: string, durationMs: number) {
+function createConfiguredAsrProvider(settings: ReturnType<SettingsStore['getSettings']>, durationMs: number) {
+  const asrName = settings.input.asr;
+  if (/whisper|本地/i.test(asrName)) {
+    return createWhisperCppAsrProvider({
+      executablePath: settings.input.localAsrExePath,
+      modelPath: settings.input.localAsrModelPath,
+      tmpDir: join('D:\\Antigravity', 'tailkall', 'tmp'),
+      ffmpegPath: settings.input.ffmpegPath || undefined
+    });
+  }
+
   return {
     name: asrName || '未配置 ASR',
     async transcribe(): Promise<{ text: string; provider: string }> {
@@ -269,7 +290,7 @@ function createConfiguredAsrProvider(asrName: string, localModelDir: string, dur
         throw new Error('ASR 尚未配置，请在设置页选择本地或云端语音识别引擎。');
       }
       return {
-        text: `已收到 ${Math.round(durationMs / 1000)} 秒录音。当前 ASR 适配器为 ${asrName}，模型目录 ${localModelDir}。请接入真实 ASR 后替换此占位文本。`,
+        text: `已收到 ${Math.round(durationMs / 1000)} 秒录音。当前 ASR 适配器为 ${asrName}。请接入真实云端 ASR 后替换此占位文本。`,
         provider: asrName
       };
     }

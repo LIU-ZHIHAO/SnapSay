@@ -21,6 +21,9 @@ export type AppSettings = {
     recordMode: string;
     asr: string;
     localModelDir: string;
+    localAsrExePath: string;
+    localAsrModelPath: string;
+    ffmpegPath: string;
     outputMode: string;
     dataDir: string;
   };
@@ -81,6 +84,9 @@ export const defaultSettings: AppSettings = {
     recordMode: '按住说话',
     asr: '本地 ASR',
     localModelDir: 'D:\\Antigravity\\tailkall\\models',
+    localAsrExePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\whisper-cli.exe',
+    localAsrModelPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin',
+    ffmpegPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ffmpeg.exe',
     outputMode: '粘贴到当前光标',
     dataDir: 'D:\\Antigravity\\tailkall\\data'
   }

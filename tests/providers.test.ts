@@ -3,6 +3,7 @@ import {
   buildChatCompletionPayload,
   cleanupText,
   createMockAsrProvider,
+  createWhisperCppAsrProvider,
   maskApiKey,
   testCleanupProvider
 } from '../src/main/providers';
@@ -100,6 +101,52 @@ describe('providers', () => {
     await expect(asr.transcribe(new ArrayBuffer(0))).resolves.toEqual({
       text: 'recognized text',
       provider: 'mock'
+    });
+  });
+
+  it('transcribes audio through a local whisper.cpp CLI adapter', async () => {
+    const writes: Array<{ path: string; data: Buffer }> = [];
+    const commands: Array<{ file: string; args: string[] }> = [];
+    const asr = createWhisperCppAsrProvider({
+      executablePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\whisper-cli.exe',
+      modelPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin',
+      tmpDir: 'D:\\Antigravity\\tailkall\\tmp',
+      ffmpegPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ffmpeg.exe',
+      idFactory: () => 'rec-1',
+      writeFile: async (path, data) => {
+        writes.push({ path, data });
+      },
+      readTextFile: async (path) => {
+        expect(path).toBe('D:\\Antigravity\\tailkall\\tmp\\rec-1.txt');
+        return '  本地识别文本  ';
+      },
+      fileExists: async () => true,
+      runCommand: async (file, args) => {
+        commands.push({ file, args });
+      }
+    });
+
+    const result = await asr.transcribe(new Uint8Array([1, 2, 3]).buffer);
+
+    expect(result).toEqual({ text: '本地识别文本', provider: 'whisper.cpp' });
+    expect(writes[0].path).toBe('D:\\Antigravity\\tailkall\\tmp\\rec-1.webm');
+    expect(commands[0]).toEqual({
+      file: 'D:\\Antigravity\\tailkall\\models\\whisper\\ffmpeg.exe',
+      args: ['-y', '-i', 'D:\\Antigravity\\tailkall\\tmp\\rec-1.webm', 'D:\\Antigravity\\tailkall\\tmp\\rec-1.wav']
+    });
+    expect(commands[1]).toEqual({
+      file: 'D:\\Antigravity\\tailkall\\models\\whisper\\whisper-cli.exe',
+      args: [
+        '-m',
+        'D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin',
+        '-f',
+        'D:\\Antigravity\\tailkall\\tmp\\rec-1.wav',
+        '-l',
+        'zh',
+        '-otxt',
+        '-of',
+        'D:\\Antigravity\\tailkall\\tmp\\rec-1'
+      ]
     });
   });
 });

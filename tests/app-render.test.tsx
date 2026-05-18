@@ -30,6 +30,9 @@ describe('TailKall main renderer', () => {
     expect(screen.getByLabelText('录音模式')).toHaveValue('按住说话');
     expect(screen.getByLabelText('ASR 引擎')).toHaveValue('本地 Whisper');
     expect(screen.getByLabelText('本地模型目录')).toHaveValue('D:\\Antigravity\\tailkall\\models');
+    expect(screen.getByLabelText('whisper.cpp 程序')).toHaveValue('D:\\Antigravity\\tailkall\\models\\whisper\\whisper-cli.exe');
+    expect(screen.getByLabelText('whisper 模型文件')).toHaveValue('D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin');
+    expect(screen.getByLabelText('ffmpeg 程序')).toHaveValue('D:\\Antigravity\\tailkall\\models\\whisper\\ffmpeg.exe');
     expect(screen.getByLabelText('Provider')).toHaveValue('OpenAI Compatible');
     expect(screen.getByLabelText('Base URL')).toHaveValue('https://api.example.com/v1');
     expect(screen.getByLabelText('Model')).toHaveValue('gpt-4.1-mini');

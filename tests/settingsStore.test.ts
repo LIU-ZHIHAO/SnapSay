@@ -32,6 +32,9 @@ describe('settingsStore', () => {
         recordMode: '点击开始/停止',
         asr: '豆包 ASR',
         localModelDir: 'D:\\Antigravity\\tailkall\\models\\sensevoice',
+        localAsrExePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\whisper-cli.exe',
+        localAsrModelPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin',
+        ffmpegPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ffmpeg.exe',
         outputMode: '仅保存记录',
         dataDir: 'D:\\Antigravity\\tailkall\\data'
       }
