@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { createFloatingWindow, updateFloatingState } from './floatingWindow.js';
 import { pasteTextToCursor } from './inputController.js';
-import { cleanupText, createWhisperCppAsrProvider, testCleanupProvider, type FetchLike } from './providers.js';
+import { cleanupText, createPythonAsrProvider, createWhisperCppAsrProvider, testCleanupProvider, type FetchLike } from './providers.js';
 import { runRecordingPipeline } from './recorderCoordinator.js';
 import { createElectronStoreAdapter, createSettingsStore, type SettingsStore } from './settingsStore.js';
 
@@ -18,6 +18,9 @@ type RendererSettings = {
   localAsrExePath: string;
   localAsrModelPath: string;
   ffmpegPath: string;
+  fasterWhisperModelPath: string;
+  senseVoiceModelPath: string;
+  pythonPath: string;
   provider: string;
   baseURL: string;
   model: string;
@@ -113,6 +116,11 @@ function toRendererSettings(): RendererSettings {
     localAsrModelPath:
       settings?.input.localAsrModelPath ?? join('D:\\Antigravity', 'tailkall', 'models', 'whisper', 'ggml-small.bin'),
     ffmpegPath: settings?.input.ffmpegPath ?? join('D:\\Antigravity', 'tailkall', 'models', 'whisper', 'ffmpeg.exe'),
+    fasterWhisperModelPath:
+      settings?.input.fasterWhisperModelPath ?? join('D:\\Antigravity', 'tailkall', 'models', 'faster-whisper', 'small'),
+    senseVoiceModelPath:
+      settings?.input.senseVoiceModelPath ?? join('D:\\Antigravity', 'tailkall', 'models', 'sensevoice', 'SenseVoiceSmall'),
+    pythonPath: settings?.input.pythonPath ?? join('D:\\Antigravity', 'tailkall', '.venv', 'Scripts', 'python.exe'),
     provider: settings?.cleanup.provider?.name ?? 'DeepSeek',
     baseURL: settings?.cleanup.provider?.baseUrl ?? 'https://api.deepseek.com/v1',
     model: settings?.cleanup.provider?.model ?? 'deepseek-chat',
@@ -171,6 +179,9 @@ function installIpcHandlers(): void {
         localAsrExePath: settings.localAsrExePath,
         localAsrModelPath: settings.localAsrModelPath,
         ffmpegPath: settings.ffmpegPath,
+        fasterWhisperModelPath: settings.fasterWhisperModelPath,
+        senseVoiceModelPath: settings.senseVoiceModelPath,
+        pythonPath: settings.pythonPath,
         outputMode: settings.outputMode,
         dataDir: settings.dataDir
       }
@@ -277,6 +288,28 @@ function installIpcHandlers(): void {
 
 function createConfiguredAsrProvider(settings: ReturnType<SettingsStore['getSettings']>, durationMs: number) {
   const asrName = settings.input.asr;
+  const commonPythonOptions = {
+    pythonPath: settings.input.pythonPath,
+    tmpDir: join('D:\\Antigravity', 'tailkall', 'tmp'),
+    ffmpegPath: settings.input.ffmpegPath || undefined,
+    acceleration: settings.input.asrAcceleration === 'CPU' ? ('cpu' as const) : ('auto-gpu' as const)
+  };
+  if (/sensevoice|funasr/i.test(asrName)) {
+    return createPythonAsrProvider({
+      ...commonPythonOptions,
+      engine: 'sensevoice-funasr',
+      scriptPath: join('D:\\Antigravity', 'tailkall', 'scripts', 'asr-sensevoice.py'),
+      modelPath: settings.input.senseVoiceModelPath
+    });
+  }
+  if (/faster-whisper/i.test(asrName)) {
+    return createPythonAsrProvider({
+      ...commonPythonOptions,
+      engine: 'faster-whisper',
+      scriptPath: join('D:\\Antigravity', 'tailkall', 'scripts', 'asr-faster-whisper.py'),
+      modelPath: settings.input.fasterWhisperModelPath
+    });
+  }
   if (/whisper|本地/i.test(asrName)) {
     return createWhisperCppAsrProvider({
       executablePath: settings.input.localAsrExePath,

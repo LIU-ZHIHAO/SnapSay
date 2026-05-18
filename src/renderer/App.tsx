@@ -35,6 +35,9 @@ type SettingsState = {
   localAsrExePath: string;
   localAsrModelPath: string;
   ffmpegPath: string;
+  fasterWhisperModelPath: string;
+  senseVoiceModelPath: string;
+  pythonPath: string;
   provider: string;
   baseURL: string;
   model: string;
@@ -73,6 +76,9 @@ const demoSettings: SettingsState = {
   localAsrExePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\Release\\whisper-cli.exe',
   localAsrModelPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin',
   ffmpegPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ffmpeg.exe',
+  fasterWhisperModelPath: 'D:\\Antigravity\\tailkall\\models\\faster-whisper\\small',
+  senseVoiceModelPath: 'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
+  pythonPath: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
   provider: 'OpenAI Compatible',
   baseURL: 'https://api.example.com/v1',
   model: 'gpt-4.1-mini',
@@ -440,6 +446,18 @@ function SettingsView(props: {
           <label className="wide">
             ffmpeg 程序
             <input onChange={(event) => onUpdate('ffmpegPath', event.target.value)} value={settings.ffmpegPath} />
+          </label>
+          <label className="wide">
+            faster-whisper 模型目录
+            <input onChange={(event) => onUpdate('fasterWhisperModelPath', event.target.value)} value={settings.fasterWhisperModelPath} />
+          </label>
+          <label className="wide">
+            SenseVoice 模型目录
+            <input onChange={(event) => onUpdate('senseVoiceModelPath', event.target.value)} value={settings.senseVoiceModelPath} />
+          </label>
+          <label className="wide">
+            Python 运行时
+            <input onChange={(event) => onUpdate('pythonPath', event.target.value)} value={settings.pythonPath} />
           </label>
         </div>
       </section>

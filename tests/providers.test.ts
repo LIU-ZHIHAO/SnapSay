@@ -3,6 +3,7 @@ import {
   buildChatCompletionPayload,
   cleanupText,
   createMockAsrProvider,
+  createPythonAsrProvider,
   createWhisperCppAsrProvider,
   maskApiKey,
   testCleanupProvider
@@ -169,5 +170,47 @@ describe('providers', () => {
     await asr.transcribe(new ArrayBuffer(0));
 
     expect(commands[0].args).toContain('-ng');
+  });
+
+  it('transcribes through Python ASR providers with GPU auto device', async () => {
+    const commands: Array<{ file: string; args: string[] }> = [];
+    const asr = createPythonAsrProvider({
+      engine: 'faster-whisper',
+      pythonPath: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
+      scriptPath: 'D:\\Antigravity\\tailkall\\scripts\\asr-faster-whisper.py',
+      modelPath: 'D:\\Antigravity\\tailkall\\models\\faster-whisper\\small',
+      tmpDir: 'D:\\Antigravity\\tailkall\\tmp',
+      ffmpegPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ffmpeg.exe',
+      acceleration: 'auto-gpu',
+      idFactory: () => 'py-1',
+      writeFile: async () => undefined,
+      readTextFile: async () => 'python text',
+      fileExists: async () => true,
+      runCommand: async (file, args) => {
+        commands.push({ file, args });
+      }
+    });
+
+    await expect(asr.transcribe(new ArrayBuffer(0))).resolves.toEqual({
+      text: 'python text',
+      provider: 'faster-whisper'
+    });
+
+    expect(commands[1]).toEqual({
+      file: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
+      args: [
+        'D:\\Antigravity\\tailkall\\scripts\\asr-faster-whisper.py',
+        '--audio',
+        'D:\\Antigravity\\tailkall\\tmp\\py-1.wav',
+        '--model',
+        'D:\\Antigravity\\tailkall\\models\\faster-whisper\\small',
+        '--out',
+        'D:\\Antigravity\\tailkall\\tmp\\py-1.faster-whisper.txt',
+        '--device',
+        'auto',
+        '--language',
+        'zh'
+      ]
+    });
   });
 });

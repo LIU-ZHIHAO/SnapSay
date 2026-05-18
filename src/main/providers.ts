@@ -180,6 +180,22 @@ export type WhisperCppProviderOptions = {
   runCommand?: (file: string, args: string[]) => Promise<void>;
 };
 
+export type PythonAsrProviderOptions = {
+  engine: 'faster-whisper' | 'sensevoice-funasr';
+  pythonPath: string;
+  scriptPath: string;
+  modelPath: string;
+  tmpDir: string;
+  ffmpegPath?: string;
+  acceleration?: 'auto-gpu' | 'cpu';
+  language?: string;
+  idFactory?: () => string;
+  writeFile?: (path: string, data: Buffer) => Promise<void>;
+  readTextFile?: (path: string) => Promise<string>;
+  fileExists?: (path: string) => Promise<boolean>;
+  runCommand?: (file: string, args: string[]) => Promise<void>;
+};
+
 export function createWhisperCppAsrProvider(options: WhisperCppProviderOptions): AsrProvider {
   return {
     name: `whisper.cpp ${basename(options.modelPath)}`,
@@ -222,6 +238,53 @@ export function createWhisperCppAsrProvider(options: WhisperCppProviderOptions):
         throw new Error('本地 whisper.cpp 没有返回识别文本');
       }
       return { text, provider: 'whisper.cpp' };
+    }
+  };
+}
+
+export function createPythonAsrProvider(options: PythonAsrProviderOptions): AsrProvider {
+  return {
+    name: `${options.engine} ${basename(options.modelPath)}`,
+    async transcribe(audio: ArrayBuffer): Promise<AsrResult> {
+      await assertFileExists(options.pythonPath, options.fileExists, 'Python 运行时不存在');
+      await assertFileExists(options.scriptPath, options.fileExists, 'ASR runner 脚本不存在');
+      await assertFileExists(options.modelPath, options.fileExists, 'ASR 模型目录不存在');
+
+      const id = options.idFactory?.() ?? `voice-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const inputPath = join(options.tmpDir, `${id}.webm`);
+      const wavPath = join(options.tmpDir, `${id}.wav`);
+      const outputTextPath = join(options.tmpDir, `${id}.${options.engine}.txt`);
+      const writer = options.writeFile ?? writeFile;
+      const reader = options.readTextFile ?? ((path: string) => readFile(path, 'utf8'));
+      const runner = options.runCommand ?? runExecFile;
+
+      await writer(inputPath, Buffer.from(audio));
+
+      const audioPath = options.ffmpegPath ? wavPath : inputPath;
+      if (options.ffmpegPath) {
+        await assertFileExists(options.ffmpegPath, options.fileExists, 'ffmpeg.exe 不存在，无法转换浏览器录音格式');
+        await runner(options.ffmpegPath, ['-y', '-i', inputPath, wavPath]);
+      }
+
+      await runner(options.pythonPath, [
+        options.scriptPath,
+        '--audio',
+        audioPath,
+        '--model',
+        options.modelPath,
+        '--out',
+        outputTextPath,
+        '--device',
+        options.acceleration === 'cpu' ? 'cpu' : 'auto',
+        '--language',
+        options.language ?? 'zh'
+      ]);
+
+      const text = (await reader(outputTextPath)).trim();
+      if (!text) {
+        throw new Error(`${options.engine} 没有返回识别文本`);
+      }
+      return { text, provider: options.engine };
     }
   };
 }
