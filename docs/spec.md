@@ -1,234 +1,233 @@
-# TailKall Windows Voice Input Assistant SPEC
+# TailKall Windows 语音输入助手产品规格
 
-## 1. Product Positioning
+## 1. 产品定位
 
-TailKall is a Windows desktop voice input assistant. It is designed as an alternative to network-dependent and subscription-heavy voice typing tools. The first version focuses on fast voice capture, configurable keyboard or mouse triggers, local or cloud speech recognition, API-based text cleanup, reliable cursor insertion, and a visible in-app history fallback.
+TailKall 是一个 Windows 桌面语音输入助手，用于替代网络依赖强、订阅成本高、偶发不可用的语音输入工具。第一版目标是完成从“快捷键或鼠标触发录音”到“语音识别、可选 API 文案整理、粘贴到当前光标位置、保存记录兜底”的完整闭环。
 
-The app must be a normal Windows desktop application with a main window for configuration, history, and model settings. It can also expose a tray entry, but it must not be tray-only.
+软件必须是一个正常的 Windows 桌面应用，有主窗口用于配置模型、快捷键、鼠标按键、提示样式、输出方式和历史记录。软件后续可以支持托盘，但第一版不能只做成托盘程序。
 
-## 2. MVP Scope
+## 2. MVP 范围
 
-The first version includes:
+第一版包含以下能力：
 
-- Global trigger configuration for keyboard shortcuts, single keyboard keys, mouse middle button, and mouse side buttons.
-- Two recording modes: press-to-toggle and hold-to-record.
-- A floating recording indicator fixed at the lower center of the screen.
-- Local speech recognition and cloud speech recognition provider support.
-- API-only text cleanup providers. Local LLM cleanup is excluded from MVP because of latency.
-- Automatic paste into the current cursor position.
-- Voice input history with raw transcript, cleaned text, status, model metadata, and copy actions.
-- Settings pages for ASR providers, text cleanup API providers, prompts, shortcuts, storage paths, and behavior.
+- 支持全局触发配置：键盘组合键、键盘单键、鼠标中键、鼠标侧键。
+- 支持两种录音模式：点击切换、长按录音。
+- 支持屏幕正中下方的绿色悬浮录音提示条。
+- 支持本地语音识别和云端语音识别。
+- 支持 API 文案整理，不做本地 LLM 文案整理。
+- 支持自动粘贴到当前光标所在位置。
+- 支持语音输入记录，保存原始识别文本、整理后文本、状态、模型信息和复制操作。
+- 支持设置页：ASR 服务、文案整理 API、Prompt 模板、快捷键、鼠标按键、存储路径和输出行为。
 
-## 3. Trigger System
+## 3. 触发系统
 
-The trigger system must support:
+触发系统需要支持：
 
-- Keyboard combinations, such as `Ctrl + Alt + V`.
-- Single keyboard keys, such as `F8`, `F9`, or `Pause`.
-- Mouse middle button.
-- Mouse side buttons, including Mouse4 and Mouse5.
+- 键盘组合键，例如 `Ctrl + Alt + V`。
+- 键盘单键，例如 `F8`、`F9`、`Pause`。
+- 鼠标中键。
+- 鼠标侧键，例如 Mouse4、Mouse5。
 
-The user can bind one primary trigger for voice input. Future versions may support multiple bindings.
+第一版只需要一个主触发键。后续版本可以支持多个触发键。
 
-If the user binds a high-conflict key such as letters, numbers, space, enter, escape, or common editing shortcuts, the UI must show a risk warning. The app may allow the binding after confirmation, but it must make the conflict visible.
+如果用户绑定了高冲突按键，例如普通字母、数字、空格、回车、Esc 或常见编辑快捷键，界面必须给出风险提醒。功能上可以允许用户确认后继续使用，但不能静默接受。
 
-## 4. Recording Modes
+## 4. 录音模式
 
-The app supports two recording modes:
+软件支持两种录音模式：
 
-- Toggle mode: press once to start recording, press again to stop recording and process.
-- Hold mode: press and hold to record, release to stop recording and process.
+- 点击切换：按一下开始录音，再按一下结束录音并进入处理流程。
+- 长按录音：按下开始录音，松开结束录音并进入处理流程。
 
-The recording mode is configurable in settings. The floating indicator must appear immediately after recording starts.
+录音模式可以在设置页切换。录音一旦开始，悬浮提示条必须立即显示。
 
-## 5. Floating Recording Indicator
+## 5. 悬浮录音提示条
 
-The floating recording indicator is a compact green pill displayed at the lower center of the screen.
+悬浮录音提示条固定显示在屏幕正中下方，视觉为绿色胶囊形态。
 
-States:
+状态包括：
 
-- Recording: shows `语音输入` and a real-time audio level animation.
-- Recognizing: shows `识别中` with a subtle loading animation.
-- Cleaning: shows `整理中` with a subtle loading animation.
-- Inserted: briefly shows `已输入`, then hides.
-- Saved only: briefly shows `已保存`, then hides.
-- Failed: briefly shows `输入失败，已保存`, then hides.
+- 录音中：显示 `语音输入` 和实时音量波形动画。
+- 识别中：显示 `识别中` 和轻量 loading。
+- 整理中：显示 `整理中` 和轻量 loading。
+- 已输入：短暂显示 `已输入` 后隐藏。
+- 已保存：短暂显示 `已保存` 后隐藏。
+- 失败：短暂显示 `输入失败，已保存` 后隐藏。
 
-The indicator must stay above normal windows while recording and processing. It should not steal focus from the active input target.
+提示条必须显示在普通窗口上方，但不能抢占当前输入焦点。
 
-## 6. Speech Recognition
+## 6. 语音识别
 
-The first version supports two ASR categories:
+第一版支持两类 ASR：
 
-- Local ASR: used for offline and privacy-friendly voice recognition.
-- Cloud ASR: used for providers such as Doubao or other speech recognition APIs.
+- 本地 ASR：用于离线、隐私友好、网络不可用时的语音识别。
+- 云端 ASR：用于接入豆包或其他语音识别 API。
 
-Recommended local ASR candidates:
+推荐本地 ASR 候选：
 
-- SenseVoice or FunASR for Chinese-first recognition.
-- whisper.cpp or faster-whisper as a mature cross-platform fallback.
+- SenseVoice 或 FunASR：中文优先。
+- whisper.cpp 或 faster-whisper：成熟通用 fallback。
 
-Provider configuration must not be hardcoded. The user must be able to configure provider type, endpoint or local model path, model name, and related options from the desktop app.
+供应商配置不能硬编码。用户必须能在桌面软件中配置提供商类型、接口地址或本地模型路径、模型名称和相关选项。
 
-Large model files, caches, logs, audio recordings, temporary chunks, and runtime data must not default to the C drive user directory or system drive. Default storage should be under the project/app data directory on `D:\Antigravity`, `D:\SoftInstall`, a project-local directory, or a user-selected non-C drive path.
+大模型文件、缓存、日志、录音、临时音频片段和运行数据不能默认写入 C 盘用户目录或系统盘。默认目录应优先放在项目或应用数据目录下的 `D:\Antigravity`、`D:\SoftInstall`、项目内目录，或用户明确选择的非 C 盘目录。
 
-## 7. Text Cleanup
+## 7. 文案整理
 
-Text cleanup is API-only in MVP. Local LLM cleanup is excluded.
+MVP 的文案整理只支持 API，不做本地 LLM 整理。
 
-Supported cleanup options:
+支持的整理模式：
 
-- No cleanup: paste the ASR transcript directly.
-- API cleanup: send the transcript to a configured model provider such as DeepSeek or another OpenAI-compatible API.
+- 不整理：ASR 识别完成后直接粘贴原文。
+- API 整理：将识别文本发送给配置好的模型提供商，例如 DeepSeek 或其他 OpenAI-compatible API。
 
-The app must support provider settings:
+API 配置必须支持：
 
-- Provider preset.
-- Display name.
-- Base URL.
-- API key.
-- Model name.
-- Test connection button.
-- Prompt template editor.
+- 提供商预设。
+- 显示名称。
+- Base URL。
+- API Key。
+- 模型名称。
+- 测试连接按钮。
+- Prompt 模板编辑器。
 
-API keys must never be hardcoded, committed, or logged in full. UI and logs may only show masked keys.
+API Key 禁止硬编码、禁止提交、禁止完整写入日志。界面和日志最多只能展示脱敏后的 Key。
 
-Prompt templates must be editable and stored as configuration, not embedded directly in feature code.
+Prompt 模板必须可编辑并保存为配置，不能散落硬编码在业务逻辑中。
 
-## 8. Input Pipeline
+## 8. 输入流水线
 
-The normal processing flow is:
+正常处理流程：
 
 ```text
-Trigger detected
-  -> Start recording
-  -> Stop recording
-  -> Run ASR
-  -> Optional API cleanup
-  -> Paste into current cursor position
-  -> Save voice input record
+检测到触发键
+  -> 开始录音
+  -> 结束录音
+  -> 执行 ASR
+  -> 可选 API 文案整理
+  -> 粘贴到当前光标位置
+  -> 保存语音输入记录
 ```
 
-Paste behavior:
+粘贴策略：
 
-- The first version should use clipboard insertion for maximum compatibility.
-- The app writes the final text to the clipboard, simulates paste, and records whether insertion appears to succeed.
-- The app should preserve and restore the previous clipboard when feasible, but correctness of the user-facing inserted text has priority.
+- 第一版优先使用剪贴板粘贴，兼容性最高。
+- 软件将最终文本写入剪贴板，模拟粘贴快捷键，并记录插入状态。
+- 在可行时恢复用户原剪贴板内容，但用户文本成功插入优先级更高。
 
-If the cursor is lost, the target app blocks paste, permissions are insufficient, or insertion fails, the app must still save the record and expose copy actions in the main window.
+如果光标丢失、目标软件阻止粘贴、权限不足或插入失败，软件仍必须保存记录，用户可以回到主窗口手动复制。
 
-## 9. Voice Input History
+## 9. 语音记录
 
-The main window includes a history list. Each record includes:
+主窗口包含语音记录列表。每条记录包含：
 
-- Created time.
-- Raw transcript.
-- Cleaned text when available.
-- ASR provider and model.
-- Cleanup provider and model when used.
-- Duration.
-- Status: inserted, saved only, failed, or canceled.
-- Failure reason when available.
+- 创建时间。
+- 原始识别文本。
+- 整理后文本。
+- ASR 提供商和模型。
+- 文案整理提供商和模型。
+- 音频时长。
+- 状态：已输入、仅保存、失败、已取消。
+- 失败原因。
 
-Record actions:
+记录操作：
 
-- Copy raw transcript.
-- Copy cleaned text.
-- Re-clean with current API settings.
-- Paste again into current cursor position.
-- Delete record.
+- 复制原始识别文本。
+- 复制整理后文本。
+- 使用当前 API 配置重新整理。
+- 再次粘贴到当前光标。
+- 删除记录。
 
-Long text in table or list cells must be collapsed by default, must not overflow the layout, and must reveal full content on hover. Editable fields should support inline editing when applicable.
+表格或列表中的长文本默认必须精简显示，禁止溢出布局。鼠标悬停需要能查看完整内容。如果字段可编辑，点击应支持就地修改。
 
-## 10. Main Window Structure
+## 10. 主窗口结构
 
-The desktop app should include:
+桌面应用包含：
 
-- Dashboard: quick status, selected ASR provider, selected cleanup provider, active trigger, and recent inputs.
-- History: searchable voice input records with copy and retry actions.
-- Settings: trigger binding, recording mode, floating indicator behavior, insertion behavior, providers, prompts, and storage paths.
+- 仪表盘：首页显示当前状态、ASR 提供商、整理 API、触发键和最近输入记录。
+- 语音记录：可搜索的记录列表，支持复制、重试和删除。
+- 设置页：触发键、录音模式、悬浮提示、粘贴行为、模型供应商、Prompt 和存储路径。
 
-The app should be usable as a normal desktop window and should also support minimizing to tray later.
+应用必须可以作为普通窗口使用，后续可以补充最小化到托盘。
 
-## 11. Settings Requirements
+## 11. 设置要求
 
-Settings page sections:
+设置页分区：
 
-- Trigger: keyboard/mouse binding capture, conflict warning, recording mode.
-- ASR providers: local ASR and cloud ASR configuration.
-- Cleanup API: OpenAI-compatible provider settings and connection test.
-- Prompt templates: editable cleanup prompt.
-- Output: direct paste, cleanup then paste, or save only.
-- Storage: app data, logs, cache, model, and temporary audio paths.
+- 触发方式：键盘或鼠标按键捕获、冲突提醒、录音模式。
+- ASR 提供商：本地 ASR 和云端 ASR 配置。
+- 文案整理 API：OpenAI-compatible 提供商配置和连接测试。
+- Prompt 模板：可编辑的整理 Prompt。
+- 输出方式：直接输入、整理后输入、仅保存。
+- 存储路径：应用数据、日志、缓存、模型和临时音频目录。
 
-Numeric settings must only accept manual digit input `0-9`. Browser or native spinner controls must be disabled in any numeric input UI.
+所有数值设置项必须仅支持手动输入数字 `0-9`。数值输入框禁止浏览器或系统原生上下按钮。
 
-## 12. Data and Storage Rules
+## 12. 数据和存储规则
 
-Runtime data must not default to the C drive user directory or system drive. This includes:
+运行数据禁止默认写入 C 盘用户目录或系统盘，包括：
 
-- Logs.
-- Databases.
-- Audio recordings.
-- Temporary audio chunks.
-- Cache files.
-- Model files.
-- Download intermediates.
+- 日志。
+- 数据库。
+- 音频录音。
+- 临时音频片段。
+- 缓存文件。
+- 模型文件。
+- 下载中间文件。
 
-Only small configuration files that do not contain logs, databases, large caches, models, or media may follow OS configuration conventions. If the user chooses a directory explicitly, the app must respect that directory.
+只有极小型配置文件，并且不包含日志、数据库、大缓存、模型或媒体文件时，才可以按系统规范放到用户配置目录。如果用户明确选择了目录，软件必须尊重用户选择。
 
-## 13. Error Handling
+## 13. 错误处理
 
-Required error states:
+必须处理以下错误：
 
-- Trigger conflict.
-- Microphone unavailable.
-- ASR provider unavailable.
-- Local model missing.
-- API provider unavailable.
-- API key missing or invalid.
-- Cleanup timeout.
-- Clipboard or paste failure.
-- Cursor target lost.
+- 触发键冲突。
+- 麦克风不可用。
+- ASR 提供商不可用。
+- 本地模型缺失。
+- API 提供商不可用。
+- API Key 缺失或无效。
+- 文案整理超时。
+- 剪贴板或粘贴失败。
+- 光标目标丢失。
 
-All failed voice input attempts should save a record when any transcript or final text is available.
+只要已经有识别文本或最终文本，即使输入失败，也必须保存语音记录。
 
-## 14. Development Phases
+## 14. 开发阶段
 
-Phase 1: Product shell and UI prototype.
+阶段 1：产品壳和 UI 原型。
 
-- Main window.
-- Settings pages.
-- History list.
-- Floating indicator.
+- 主窗口。
+- 设置页。
+- 语音记录列表。
+- 悬浮提示条。
 
-Phase 2: Trigger and recording.
+阶段 2：触发和录音。
 
-- Global keyboard binding.
-- Mouse middle and side button binding.
-- Toggle and hold modes.
-- Microphone capture.
+- 全局键盘绑定。
+- 鼠标中键和侧键绑定。
+- 点击切换和长按录音。
+- 麦克风采集。
 
-Phase 3: Recognition and cleanup.
+阶段 3：识别和整理。
 
-- Local ASR integration.
-- Cloud ASR provider interface.
-- OpenAI-compatible cleanup provider interface.
-- DeepSeek preset.
-- Connection testing.
+- 本地 ASR 接口。
+- 云端 ASR 接口。
+- OpenAI-compatible 文案整理接口。
+- DeepSeek 预设。
+- 连接测试。
 
-Phase 4: Insertion and history.
+阶段 4：插入和记录。
 
-- Clipboard paste insertion.
-- Failure fallback.
-- Record persistence.
-- Copy and retry actions.
+- 剪贴板粘贴。
+- 失败兜底。
+- 记录持久化。
+- 复制和重试。
 
-Phase 5: Hardening.
+阶段 5：加固。
 
-- Provider timeouts.
-- Storage path validation.
-- Conflict warnings.
-- Packaging.
-- Manual Windows compatibility testing.
-
+- 提供商超时。
+- 存储路径校验。
+- 触发冲突提醒。
+- 打包。
+- Windows 兼容性人工测试。

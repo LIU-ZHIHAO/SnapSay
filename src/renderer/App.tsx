@@ -37,6 +37,7 @@ type SettingsState = {
 
 type TailKallFacade = {
   getDashboard?: () => Promise<{ settings: SettingsState; records: RecordItem[] }>;
+  saveSettings?: (settings: SettingsState) => Promise<SettingsState>;
   copyText?: (text: string) => Promise<void>;
   rewriteRecord?: (id: string) => Promise<void>;
   pasteRecord?: (id: string) => Promise<void>;
@@ -106,7 +107,11 @@ export default function App() {
   const recentRecords = useMemo(() => records.slice(0, 3), [records]);
 
   const updateSetting = (key: keyof SettingsState, value: string) => {
-    setSettings((current) => ({ ...current, [key]: value }));
+    setSettings((current) => {
+      const next = { ...current, [key]: value };
+      void getFacade().saveSettings?.(next).catch(() => undefined);
+      return next;
+    });
   };
 
   const copyText = async (text: string) => {
