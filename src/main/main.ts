@@ -377,7 +377,31 @@ function installIpcHandlers(): void {
     });
     setTimeout(() => updateFloatingState({ visible: false, recording: false }), 1200);
 
-    mainWindow?.webContents.send('tailkall:record-added', record);
+    // Auto-delete short accidental recordings (< 5 chars)
+    const transcript = record.transcript ?? '';
+    if (transcript.length < 5) {
+      settingsStore?.deleteRecord(record.id);
+    } else {
+      // Send full records list to avoid race condition with getDashboard
+      const allRecords = settingsStore?.listRecords() ?? [];
+      mainWindow?.webContents.send('tailkall:records-synced', allRecords.map((r) => ({
+        id: r.id,
+        time: new Date(r.createdAt).toLocaleString('zh-CN', {
+          year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
+        }),
+        original: r.transcript,
+        refined: r.cleanedText ?? r.transcript,
+        userCorrection: r.userCorrection,
+        status: r.status === 'completed' ? '已输入' : '失败',
+        asr: [r.asrProvider, r.asrModel].filter(Boolean).join(' / '),
+        cleanup: [r.cleanupProvider, r.cleanupModel].filter(Boolean).join(' / '),
+        durationMs: r.durationMs,
+        asrDurationMs: r.asrDurationMs,
+        cleanupDurationMs: r.cleanupDurationMs,
+        pasteSucceeded: r.pasteSucceeded
+      })));
+    }
+
     return { ok: record.status === 'completed', record };
   });
 

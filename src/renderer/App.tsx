@@ -104,6 +104,7 @@ type TailKallFacade = {
   onRecordUpdated?: (callback: (record: RecordItem) => void) => () => void;
   onRecordDeleted?: (callback: (id: string) => void) => () => void;
   onRecordsCleared?: (callback: () => void) => () => void;
+  onRecordsSynced?: (callback: (records: RecordItem[]) => void) => () => void;
 };
 
 declare global {
@@ -205,11 +206,15 @@ export default function App() {
     const offRecordsCleared = facade.onRecordsCleared?.(() => {
       setRecords([]);
     });
+    const offRecordsSynced = facade.onRecordsSynced?.((records) => {
+      setRecords(records);
+    });
     return () => {
       offRecordAdded?.();
       offRecordUpdated?.();
       offRecordDeleted?.();
       offRecordsCleared?.();
+      offRecordsSynced?.();
     };
   }, []);
 

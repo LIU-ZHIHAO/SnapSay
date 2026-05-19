@@ -41,6 +41,11 @@ contextBridge.exposeInMainWorld('tailkall', {
   onRecordsCleared: (callback: () => void) => {
     ipcRenderer.on('tailkall:records-cleared', callback);
     return () => ipcRenderer.removeListener('tailkall:records-cleared', callback);
+  },
+  onRecordsSynced: (callback: (records: unknown) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, records: unknown) => callback(records);
+    ipcRenderer.on('tailkall:records-synced', listener);
+    return () => ipcRenderer.removeListener('tailkall:records-synced', listener);
   }
 });
 
