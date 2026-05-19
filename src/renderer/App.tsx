@@ -308,7 +308,7 @@ export default function App() {
             <Mic size={24} />
             <span>TailKall</span>
           </div>
-          <NavButton active={view === 'dashboard'} icon={<Gauge size={18} />} label="仪表盘" onClick={() => setView('dashboard')} />
+          <NavButton active={view === 'dashboard'} icon={<Gauge size={18} />} label="主页" onClick={() => setView('dashboard')} />
           <NavButton active={view === 'settings'} icon={<Settings size={18} />} label="设置" onClick={() => setView('settings')} />
           <ThemeSwitcher current={theme} onChange={setTheme} />
         </aside>
@@ -423,7 +423,7 @@ function Dashboard(props: {
 }) {
   return (
     <div className="view-stack">
-      <h1>仪表盘</h1>
+      <h1>主页</h1>
       <div className="metric-grid">
         <Metric icon={<Keyboard />} label="当前触发键" value={props.settings.triggerKey} />
         <Metric icon={<Mic />} label="ASR" value={props.settings.asr} />
