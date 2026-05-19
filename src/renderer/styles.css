@@ -1,33 +1,106 @@
-/* ─── Design tokens ─────────────────────────────────────────────────────── */
+/* ─── Design tokens — default: dark teal ────────────────────────────────── */
 :root {
-  /* Base surfaces */
   --bg-base:    #0f1117;
   --bg-raised:  #161b27;
   --bg-overlay: #1c2333;
   --bg-subtle:  #222840;
 
-  /* Borders */
   --border:       rgb(255 255 255 / 7%);
   --border-focus: #2dd4bf;
 
-  /* Accent — teal */
-  --accent:       #2dd4bf;
-  --accent-dim:   rgb(45 212 191 / 15%);
-  --accent-glow:  rgb(45 212 191 / 25%);
+  --accent:      #2dd4bf;
+  --accent-dim:  rgb(45 212 191 / 15%);
+  --accent-glow: rgb(45 212 191 / 25%);
 
-  /* Text */
   --text-primary:   #e8edf5;
   --text-secondary: #8b95a8;
   --text-muted:     #4e5668;
 
-  /* Status */
-  --green:  #10b981;
-  --red:    #ef4444;
-  --amber:  #f59e0b;
+  --green: #10b981;
+  --red:   #ef4444;
+  --amber: #f59e0b;
+
+  /* Floating capsule colours (recording / processing / done / failed) */
+  --cap-rec-from:  #0d9488; --cap-rec-to:  #0f766e; --cap-rec-border:  rgb(45 212 191 / 30%); --cap-rec-glow:  rgb(13 148 136 / 40%);
+  --cap-proc-from: #0891b2; --cap-proc-to: #0e7490; --cap-proc-border: rgb(14 165 233 / 30%); --cap-proc-glow: rgb(8 145 178 / 40%);
+  --cap-done-from: #059669; --cap-done-to: #047857; --cap-done-border: rgb(16 185 129 / 30%); --cap-done-glow: rgb(5 150 105 / 40%);
+  --cap-fail-from: #dc2626; --cap-fail-to: #b91c1c; --cap-fail-border: rgb(239 68 68 / 30%);  --cap-fail-glow: rgb(220 38 38 / 40%);
 
   font-family: Inter, "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--text-primary);
   background: var(--bg-base);
+}
+
+/* ─── Theme: light ───────────────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg-base:    #f4f6f9;
+  --bg-raised:  #ffffff;
+  --bg-overlay: #f0f2f6;
+  --bg-subtle:  #e8ecf2;
+
+  --border:       rgb(0 0 0 / 8%);
+  --border-focus: #0ea5e9;
+
+  --accent:      #0ea5e9;
+  --accent-dim:  rgb(14 165 233 / 10%);
+  --accent-glow: rgb(14 165 233 / 20%);
+
+  --text-primary:   #111827;
+  --text-secondary: #4b5563;
+  --text-muted:     #9ca3af;
+
+  --cap-rec-from:  #0d9488; --cap-rec-to:  #0f766e; --cap-rec-border:  rgb(45 212 191 / 40%); --cap-rec-glow:  rgb(13 148 136 / 35%);
+  --cap-proc-from: #0284c7; --cap-proc-to: #0369a1; --cap-proc-border: rgb(14 165 233 / 40%); --cap-proc-glow: rgb(2 132 199 / 35%);
+  --cap-done-from: #059669; --cap-done-to: #047857; --cap-done-border: rgb(16 185 129 / 40%); --cap-done-glow: rgb(5 150 105 / 35%);
+  --cap-fail-from: #dc2626; --cap-fail-to: #b91c1c; --cap-fail-border: rgb(239 68 68 / 40%);  --cap-fail-glow: rgb(220 38 38 / 35%);
+}
+
+/* ─── Theme: pink ────────────────────────────────────────────────────────── */
+[data-theme="pink"] {
+  --bg-base:    #1a0f18;
+  --bg-raised:  #261520;
+  --bg-overlay: #301a2a;
+  --bg-subtle:  #3a2035;
+
+  --border:       rgb(255 255 255 / 7%);
+  --border-focus: #f472b6;
+
+  --accent:      #f472b6;
+  --accent-dim:  rgb(244 114 182 / 15%);
+  --accent-glow: rgb(244 114 182 / 25%);
+
+  --text-primary:   #fce7f3;
+  --text-secondary: #c084a8;
+  --text-muted:     #7c4d6a;
+
+  --cap-rec-from:  #be185d; --cap-rec-to:  #9d174d; --cap-rec-border:  rgb(244 114 182 / 35%); --cap-rec-glow:  rgb(190 24 93 / 45%);
+  --cap-proc-from: #9333ea; --cap-proc-to: #7e22ce; --cap-proc-border: rgb(192 132 252 / 35%); --cap-proc-glow: rgb(147 51 234 / 40%);
+  --cap-done-from: #059669; --cap-done-to: #047857; --cap-done-border: rgb(16 185 129 / 35%);  --cap-done-glow: rgb(5 150 105 / 40%);
+  --cap-fail-from: #dc2626; --cap-fail-to: #b91c1c; --cap-fail-border: rgb(239 68 68 / 35%);   --cap-fail-glow: rgb(220 38 38 / 40%);
+}
+
+/* ─── Theme: green ───────────────────────────────────────────────────────── */
+[data-theme="green"] {
+  --bg-base:    #0a1410;
+  --bg-raised:  #0f1e17;
+  --bg-overlay: #152a1e;
+  --bg-subtle:  #1c3527;
+
+  --border:       rgb(255 255 255 / 7%);
+  --border-focus: #4ade80;
+
+  --accent:      #4ade80;
+  --accent-dim:  rgb(74 222 128 / 15%);
+  --accent-glow: rgb(74 222 128 / 25%);
+
+  --text-primary:   #ecfdf5;
+  --text-secondary: #6ee7b7;
+  --text-muted:     #2d6a4f;
+
+  --cap-rec-from:  #16a34a; --cap-rec-to:  #15803d; --cap-rec-border:  rgb(74 222 128 / 35%); --cap-rec-glow:  rgb(22 163 74 / 45%);
+  --cap-proc-from: #0891b2; --cap-proc-to: #0e7490; --cap-proc-border: rgb(14 165 233 / 35%); --cap-proc-glow: rgb(8 145 178 / 40%);
+  --cap-done-from: #059669; --cap-done-to: #047857; --cap-done-border: rgb(16 185 129 / 35%); --cap-done-glow: rgb(5 150 105 / 40%);
+  --cap-fail-from: #dc2626; --cap-fail-to: #b91c1c; --cap-fail-border: rgb(239 68 68 / 35%);  --cap-fail-glow: rgb(220 38 38 / 40%);
 }
 
 * { box-sizing: border-box; }
@@ -590,10 +663,10 @@ select option { background: var(--bg-overlay); }
   gap: 8px;
   padding: 0 12px;
   color: #ffffff;
-  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
-  border: 1px solid rgb(45 212 191 / 30%);
+  background: linear-gradient(135deg, var(--cap-rec-from) 0%, var(--cap-rec-to) 100%);
+  border: 1px solid var(--cap-rec-border);
   border-radius: 20px;
-  box-shadow: 0 8px 32px rgb(13 148 136 / 40%), inset 0 1px 0 rgb(255 255 255 / 12%);
+  box-shadow: 0 8px 32px var(--cap-rec-glow), inset 0 1px 0 rgb(255 255 255 / 12%);
   white-space: nowrap;
   -webkit-app-region: drag;
   app-region: drag;
@@ -632,26 +705,57 @@ select option { background: var(--bg-overlay); }
 }
 
 .state-done {
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
-  border-color: rgb(16 185 129 / 30%);
-  box-shadow: 0 8px 32px rgb(5 150 105 / 40%), inset 0 1px 0 rgb(255 255 255 / 12%);
+  background: linear-gradient(135deg, var(--cap-done-from) 0%, var(--cap-done-to) 100%);
+  border-color: var(--cap-done-border);
+  box-shadow: 0 8px 32px var(--cap-done-glow), inset 0 1px 0 rgb(255 255 255 / 12%);
 }
 
 .state-failed {
-  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-  border-color: rgb(239 68 68 / 30%);
-  box-shadow: 0 8px 32px rgb(220 38 38 / 40%), inset 0 1px 0 rgb(255 255 255 / 12%);
+  background: linear-gradient(135deg, var(--cap-fail-from) 0%, var(--cap-fail-to) 100%);
+  border-color: var(--cap-fail-border);
+  box-shadow: 0 8px 32px var(--cap-fail-glow), inset 0 1px 0 rgb(255 255 255 / 12%);
 }
 
 .state-recognizing,
 .state-rewriting {
-  background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
-  border-color: rgb(14 165 233 / 30%);
-  box-shadow: 0 8px 32px rgb(8 145 178 / 40%), inset 0 1px 0 rgb(255 255 255 / 12%);
+  background: linear-gradient(135deg, var(--cap-proc-from) 0%, var(--cap-proc-to) 100%);
+  border-color: var(--cap-proc-border);
+  box-shadow: 0 8px 32px var(--cap-proc-glow), inset 0 1px 0 rgb(255 255 255 / 12%);
 }
 
 /* ─── Animations ─────────────────────────────────────────────────────────── */
-@keyframes wave {
+/* ─── Theme switcher ─────────────────────────────────────────────────────── */
+.theme-switcher {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 8px 4px;
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+}
+
+.theme-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 120ms, border-color 120ms;
+  flex-shrink: 0;
+}
+
+.theme-dot:hover { transform: scale(1.15); }
+
+.theme-dot.active {
+  border-color: var(--text-primary);
+  transform: scale(1.1);
+}
+
+.theme-dot[data-t="dark"]  { background: linear-gradient(135deg, #161b27, #2dd4bf); }
+.theme-dot[data-t="light"] { background: linear-gradient(135deg, #f4f6f9, #0ea5e9); }
+.theme-dot[data-t="pink"]  { background: linear-gradient(135deg, #261520, #f472b6); }
+.theme-dot[data-t="green"] { background: linear-gradient(135deg, #0f1e17, #4ade80); }
+
   0%, 100% { height: 4px; }
   50%       { height: 20px; }
 }
@@ -661,3 +765,117 @@ select option { background: var(--bg-overlay); }
 }
 
 .spin { animation: spin 900ms linear infinite; }
+
+/* ─── Wordbook ───────────────────────────────────────────────────────────── */
+.wordbook-desc {
+  margin: 0 0 14px;
+  color: #5d6f67;
+  font-size: 13px;
+}
+
+.wordbook-table-wrap {
+  margin-bottom: 14px;
+}
+
+.wordbook-table {
+  table-layout: fixed;
+}
+
+.wordbook-target {
+  font-weight: 600;
+  color: #0f6b50;
+}
+
+.wordbook-variants-input {
+  width: 100%;
+  min-height: 32px;
+  padding: 0 8px;
+  font-size: 13px;
+  border: 1px solid #cfdcd6;
+  border-radius: 6px;
+}
+
+.wordbook-delete {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: #8f1d1d;
+  background: #fff0f0;
+  border: 1px solid #f1c8c8;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.wordbook-add-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.wordbook-add-row input {
+  min-height: 36px;
+}
+
+.wordbook-add-row button {
+  min-height: 36px;
+  padding: 0 16px;
+  color: #12352d;
+  background: #edf7f2;
+  border: 1px solid #cae1d7;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* ─── Correction ─────────────────────────────────────────────────────────── */
+.correction-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 0 10px;
+  color: #12352d;
+  background: #edf7f2;
+  border: 1px solid #cae1d7;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.correction-btn.has-correction {
+  color: #0f6b50;
+  background: #d4f0e4;
+  border-color: #78d5ae;
+}
+
+.correction-row td {
+  padding: 0;
+  background: #f7faf8;
+}
+
+.correction-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+}
+
+.correction-label {
+  color: #5d6f67;
+  font-size: 13px;
+}
+
+.correction-textarea {
+  width: 100%;
+  min-height: 72px;
+  padding: 8px 10px;
+  color: #172026;
+  background: #fff;
+  border: 1px solid #cfdcd6;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+

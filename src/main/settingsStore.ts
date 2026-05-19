@@ -6,6 +6,12 @@ export type CleanupProviderConfig = {
   model: string;
 };
 
+export type WordbookEntry = {
+  id: string;
+  target: string;
+  variants: string[];
+};
+
 export type AppSettings = {
   cleanup: {
     enabled: boolean;
@@ -33,6 +39,8 @@ export type AppSettings = {
     shortPressAction: string;
     longPressAction: string;
     smartMouseMode: boolean;
+    wordbook: WordbookEntry[];
+    wordbookLearnedAt?: string;
   };
 };
 
@@ -42,6 +50,7 @@ export type TranscriptionRecord = {
   id: string;
   transcript: string;
   cleanedText?: string;
+  userCorrection?: string;
   status: TranscriptionRecordStatus;
   error?: string;
   asrProvider?: string;
@@ -102,7 +111,9 @@ export const defaultSettings: AppSettings = {
     dataDir: 'D:\\Antigravity\\tailkall\\data',
     shortPressAction: '语音输入',
     longPressAction: '语音助手',
-    smartMouseMode: true
+    smartMouseMode: true,
+    wordbook: [],
+    wordbookLearnedAt: undefined
   }
 };
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   BookOpen,
   ClipboardCopy,
@@ -13,6 +13,23 @@ import {
   WandSparkles
 } from 'lucide-react';
 import './styles.css';
+
+type Theme = 'dark' | 'light' | 'pink' | 'green';
+
+function useTheme(): [Theme, (t: Theme) => void] {
+  const [theme, setThemeState] = useState<Theme>(() => {
+    return (localStorage.getItem('tailkall-theme') as Theme) ?? 'dark';
+  });
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('tailkall-theme', theme);
+  }, [theme]);
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', (localStorage.getItem('tailkall-theme') as Theme) ?? 'dark');
+  }, []);
+  return [theme, setThemeState];
+}
+
 
 type View = 'dashboard' | 'records' | 'settings';
 
@@ -85,7 +102,7 @@ declare global {
 const demoSettings: SettingsState = {
   triggerKey: 'Ctrl + Alt + Space',
   recordMode: '按住说话',
-  asr: 'SenseVoice',
+  asr: 'whisper.cpp',
   asrAcceleration: 'GPU 优先',
   localModelDir: 'D:\\Antigravity\\tailkall\\models',
   localAsrExePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\Release\\whisper-cli.exe',
@@ -134,6 +151,7 @@ function getFacade(): TailKallFacade {
 }
 
 export default function App() {
+  const [theme, setTheme] = useTheme();
   const [view, setView] = useState<View>('dashboard');
   const [settings, setSettings] = useState<SettingsState>(demoSettings);
   const [records, setRecords] = useState<RecordItem[]>(demoRecords);
@@ -380,6 +398,7 @@ function RecordsView(props: {
   onEdit: (record: RecordItem) => void;
   onPaste: (record: RecordItem) => void;
   onRewrite: (record: RecordItem) => void;
+  onSaveCorrection: (id: string, text: string) => void;
   onUpdateOriginal: (record: RecordItem, value: string) => void;
 }) {
   return (
@@ -400,8 +419,24 @@ function RecordTable(props: {
   onEdit?: (record: RecordItem) => void;
   onPaste?: (record: RecordItem) => void;
   onRewrite?: (record: RecordItem) => void;
+  onSaveCorrection?: (id: string, text: string) => void;
   onUpdateOriginal?: (record: RecordItem, value: string) => void;
 }) {
+  const [expandedCorrectionId, setExpandedCorrectionId] = useState<string | null>(null);
+  const [correctionDraft, setCorrectionDraft] = useState('');
+
+  const openCorrection = (record: RecordItem) => {
+    setExpandedCorrectionId(record.id);
+    setCorrectionDraft(record.userCorrection ?? '');
+  };
+
+  const commitCorrection = (record: RecordItem) => {
+    if (correctionDraft.trim()) {
+      props.onSaveCorrection?.(record.id, correctionDraft.trim());
+    }
+    setExpandedCorrectionId(null);
+  };
+
   return (
     <div className="table-wrap">
       <table>
@@ -416,56 +451,85 @@ function RecordTable(props: {
         </thead>
         <tbody>
           {props.records.map((record) => (
-            <tr key={record.id}>
-              <td className="time-cell">{record.time}</td>
-              <td>
-                {props.editingRecordId === record.id ? (
-                  <input
-                    aria-label="编辑原文"
-                    className="inline-editor"
-                    onBlur={() => props.onEdit?.({ ...record, id: '' })}
-                    onChange={(event) => props.onUpdateOriginal?.(record, event.target.value)}
-                    value={record.original}
-                  />
-                ) : (
-                  <button className="truncate-cell cell-button" onClick={() => props.onEdit?.(record)} title={record.original} type="button">
-                    {record.original}
-                  </button>
-                )}
-              </td>
-              <td>
-                <span className="truncate-cell" title={record.refined}>
-                  {record.refined}
-                </span>
-              </td>
-              <td>{record.status}</td>
-              {!props.compact && (
+            <Fragment key={record.id}>
+              <tr>
+                <td className="time-cell">{record.time}</td>
                 <td>
-                  <div className="row-actions">
-                    <button onClick={() => props.onCopyOriginal?.(record)} type="button">
-                      <ClipboardCopy size={14} />
-                      复制原文
+                  {props.editingRecordId === record.id ? (
+                    <input
+                      aria-label="编辑原文"
+                      className="inline-editor"
+                      onBlur={() => props.onEdit?.({ ...record, id: '' })}
+                      onChange={(event) => props.onUpdateOriginal?.(record, event.target.value)}
+                      value={record.original}
+                    />
+                  ) : (
+                    <button className="truncate-cell cell-button" onClick={() => props.onEdit?.(record)} title={record.original} type="button">
+                      {record.original}
                     </button>
-                    <button onClick={() => props.onCopyRefined?.(record)} type="button">
-                      <ClipboardCopy size={14} />
-                      复制整理
-                    </button>
-                    <button onClick={() => props.onRewrite?.(record)} type="button">
-                      <RefreshCcw size={14} />
-                      重新整理
-                    </button>
-                    <button onClick={() => props.onPaste?.(record)} type="button">
-                      <WandSparkles size={14} />
-                      再次粘贴
-                    </button>
-                    <button className="danger" onClick={() => props.onDelete?.(record)} type="button">
-                      <Trash2 size={14} />
-                      删除
-                    </button>
-                  </div>
+                  )}
                 </td>
+                <td>
+                  <span className="truncate-cell" title={record.refined}>
+                    {record.refined}
+                  </span>
+                </td>
+                <td>{record.status}</td>
+                {!props.compact && (
+                  <td>
+                    <div className="row-actions">
+                      <button onClick={() => props.onCopyOriginal?.(record)} type="button">
+                        <ClipboardCopy size={14} />
+                        复制原文
+                      </button>
+                      <button onClick={() => props.onCopyRefined?.(record)} type="button">
+                        <ClipboardCopy size={14} />
+                        复制整理
+                      </button>
+                      <button onClick={() => props.onRewrite?.(record)} type="button">
+                        <RefreshCcw size={14} />
+                        重新整理
+                      </button>
+                      <button onClick={() => props.onPaste?.(record)} type="button">
+                        <WandSparkles size={14} />
+                        再次粘贴
+                      </button>
+                      <button
+                        className={record.userCorrection ? 'correction-btn has-correction' : 'correction-btn'}
+                        onClick={() => openCorrection(record)}
+                        title={record.userCorrection ? `已有修正：${record.userCorrection}` : '提交修正，用于词库学习'}
+                        type="button"
+                      >
+                        <PenLine size={14} />
+                        {record.userCorrection ? '修正已提交' : '提交修正'}
+                      </button>
+                      <button className="danger" onClick={() => props.onDelete?.(record)} type="button">
+                        <Trash2 size={14} />
+                        删除
+                      </button>
+                    </div>
+                  </td>
+                )}
+              </tr>
+              {!props.compact && expandedCorrectionId === record.id && (
+                <tr key={`${record.id}-correction`} className="correction-row">
+                  <td colSpan={5}>
+                    <div className="correction-area">
+                      <span className="correction-label">粘贴你修正后的完整文本，软件将从中学习词库规律：</span>
+                      <textarea
+                        aria-label="修正文本"
+                        autoFocus
+                        className="correction-textarea"
+                        onBlur={() => commitCorrection(record)}
+                        onChange={(e) => setCorrectionDraft(e.target.value)}
+                        placeholder="粘贴修正后的文本…"
+                        value={correctionDraft}
+                      />
+                    </div>
+                  </td>
+                </tr>
               )}
-            </tr>
+            </Fragment>
           ))}
         </tbody>
       </table>
@@ -482,6 +546,43 @@ function SettingsView(props: {
   onUpdate: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void;
 }) {
   const { settings, onUpdate } = props;
+  const [learnStatus, setLearnStatus] = useState('');
+  const [newTarget, setNewTarget] = useState('');
+  const [newVariants, setNewVariants] = useState('');
+
+  const addWordbookEntry = () => {
+    const target = newTarget.trim();
+    if (!target) return;
+    const variants = newVariants.split(',').map((v) => v.trim()).filter(Boolean);
+    const entry: WordbookEntry = {
+      id: `wb_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+      target,
+      variants
+    };
+    onUpdate('wordbook', [...(settings.wordbook ?? []), entry]);
+    setNewTarget('');
+    setNewVariants('');
+  };
+
+  const removeWordbookEntry = (id: string) => {
+    onUpdate('wordbook', (settings.wordbook ?? []).filter((e) => e.id !== id));
+  };
+
+  const updateVariants = (id: string, value: string) => {
+    onUpdate('wordbook', (settings.wordbook ?? []).map((e) =>
+      e.id === id ? { ...e, variants: value.split(',').map((v) => v.trim()).filter(Boolean) } : e
+    ));
+  };
+
+  const learnWordbook = async () => {
+    setLearnStatus('学习中…');
+    const result = await getFacade().learnWordbook?.();
+    if (result?.ok) {
+      setLearnStatus(`完成：新增 ${result.added} 条，更新 ${result.updated} 条`);
+    } else {
+      setLearnStatus('学习失败');
+    }
+  };
 
   return (
     <div className="view-stack settings-view">
@@ -639,6 +740,77 @@ function SettingsView(props: {
             数据目录
             <input onChange={(event) => onUpdate('dataDir', event.target.value)} value={settings.dataDir} />
           </label>
+        </div>
+      </section>
+
+      <section className="panel">
+        <h2>
+          <BookOpen size={18} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 8 }} />
+          自定义词库
+        </h2>
+        <p className="wordbook-desc">词库用于矫正 ASR 识别错误。目标词是正确写法，发音变体是 ASR 可能识别出的错误形式（逗号分隔）。</p>
+        {(settings.wordbook ?? []).length > 0 && (
+          <div className="table-wrap wordbook-table-wrap">
+            <table className="wordbook-table">
+              <thead>
+                <tr>
+                  <th style={{ width: 160 }}>目标词</th>
+                  <th>发音变体（逗号分隔）</th>
+                  <th style={{ width: 60 }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {(settings.wordbook ?? []).map((entry) => (
+                  <tr key={entry.id}>
+                    <td className="wordbook-target">{entry.target}</td>
+                    <td>
+                      <input
+                        aria-label={`${entry.target} 的发音变体`}
+                        className="wordbook-variants-input"
+                        onBlur={(e) => updateVariants(entry.id, e.target.value)}
+                        onChange={(e) => updateVariants(entry.id, e.target.value)}
+                        value={entry.variants.join(', ')}
+                      />
+                    </td>
+                    <td>
+                      <button
+                        aria-label={`删除 ${entry.target}`}
+                        className="wordbook-delete"
+                        onClick={() => removeWordbookEntry(entry.id)}
+                        type="button"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <div className="wordbook-add-row">
+          <input
+            aria-label="新词库目标词"
+            onChange={(e) => setNewTarget(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') addWordbookEntry(); }}
+            placeholder="目标词，如 Codex"
+            value={newTarget}
+          />
+          <input
+            aria-label="新词库发音变体"
+            onChange={(e) => setNewVariants(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') addWordbookEntry(); }}
+            placeholder="变体，如 code x, codec"
+            value={newVariants}
+          />
+          <button onClick={addWordbookEntry} type="button">添加</button>
+        </div>
+        <div className="field-action" style={{ marginTop: 16 }}>
+          <button onClick={() => void learnWordbook()} type="button">
+            <BookOpen size={16} />
+            从修正记录中学习
+          </button>
+          {learnStatus && <span className="test-status">{learnStatus}</span>}
         </div>
       </section>
     </div>

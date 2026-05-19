@@ -174,6 +174,7 @@ export type WhisperCppProviderOptions = {
   ffmpegPath?: string;
   language?: string;
   acceleration?: 'auto-gpu' | 'cpu';
+  prompt?: string;
   idFactory?: () => string;
   writeFile?: (path: string, data: Buffer) => Promise<void>;
   readTextFile?: (path: string) => Promise<string>;
@@ -190,6 +191,7 @@ export type PythonAsrProviderOptions = {
   ffmpegPath?: string;
   acceleration?: 'auto-gpu' | 'cpu';
   language?: string;
+  prompt?: string;
   idFactory?: () => string;
   writeFile?: (path: string, data: Buffer) => Promise<void>;
   readTextFile?: (path: string) => Promise<string>;
@@ -222,6 +224,7 @@ export function createWhisperCppAsrProvider(options: WhisperCppProviderOptions):
       }
 
       await runner(options.executablePath, [
+        ...(options.prompt ? ['--prompt', options.prompt] : []),
         '-m',
         options.modelPath,
         '-f',
@@ -278,7 +281,8 @@ export function createPythonAsrProvider(options: PythonAsrProviderOptions): AsrP
         '--device',
         options.acceleration === 'cpu' ? 'cpu' : 'auto',
         '--language',
-        options.language ?? 'zh'
+        options.language ?? 'zh',
+        ...(options.engine === 'faster-whisper' && options.prompt ? ['--prompt', options.prompt] : [])
       ]);
 
       const text = (await reader(outputTextPath)).trim();

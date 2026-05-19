@@ -9,6 +9,7 @@ def main() -> None:
     parser.add_argument("--out", required=True)
     parser.add_argument("--device", default="auto")
     parser.add_argument("--language", default="zh")
+    parser.add_argument("--prompt", default="")
     args = parser.parse_args()
 
     os.environ.setdefault("HF_HOME", r"D:\Antigravity\tailkall\cache\huggingface")
@@ -25,7 +26,7 @@ def main() -> None:
             raise
         model = WhisperModel(args.model, device="cpu", compute_type="int8", local_files_only=True)
 
-    segments, _info = model.transcribe(args.audio, language=args.language, vad_filter=True)
+    segments, _info = model.transcribe(args.audio, language=args.language, vad_filter=True, initial_prompt=args.prompt or None)
     text = "".join(segment.text for segment in segments).strip()
     with open(args.out, "w", encoding="utf-8") as file:
         file.write(text)

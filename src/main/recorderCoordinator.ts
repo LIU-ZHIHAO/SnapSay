@@ -4,6 +4,7 @@ import type { SettingsStore, TranscriptionRecord } from './settingsStore';
 export type RecordingPipelineOptions = {
   audio: ArrayBuffer;
   asrProvider: AsrProvider;
+  applyWordbook?: (text: string) => string;
   cleanupText: (transcript: string) => Promise<string>;
   pasteText: (text: string) => Promise<unknown>;
   settingsStore: SettingsStore;
@@ -17,7 +18,7 @@ export async function runRecordingPipeline(
 
   try {
     const asr = await options.asrProvider.transcribe(options.audio);
-    transcript = asr.text;
+    transcript = options.applyWordbook ? options.applyWordbook(asr.text) : asr.text;
 
     cleanedText = await options.cleanupText(transcript);
     await options.pasteText(cleanedText);

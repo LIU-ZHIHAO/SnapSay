@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('tailkall', {
   pasteRecord: (id: string) => ipcRenderer.invoke('tailkall:paste-record', id),
   deleteRecord: (id: string) => ipcRenderer.invoke('tailkall:delete-record', id),
   testRewriteApi: (settings: unknown) => ipcRenderer.invoke('tailkall:test-rewrite-api', settings),
+  saveCorrection: (id: string, text: string) => ipcRenderer.invoke('tailkall:save-correction', id, text),
+  learnWordbook: () => ipcRenderer.invoke('tailkall:learn-wordbook'),
   windowControl: (action: 'minimize' | 'toggle-maximize' | 'close') =>
     ipcRenderer.invoke('tailkall:window-control', action),
   onRecordingStart: (callback: () => void) => {
