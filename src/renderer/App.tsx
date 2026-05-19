@@ -59,6 +59,7 @@ type TailKallFacade = {
   pasteRecord?: (id: string) => Promise<void>;
   deleteRecord?: (id: string) => Promise<void>;
   testRewriteApi?: (settings: SettingsState) => Promise<{ ok: boolean; message: string }>;
+  windowControl?: (action: 'minimize' | 'toggle-maximize' | 'close') => Promise<boolean>;
   onRecordingStart?: (callback: () => void) => () => void;
   onRecordingStop?: (callback: () => void) => () => void;
 };
@@ -239,46 +240,75 @@ export default function App() {
   };
 
   return (
-    <main className="app-shell">
-      <aside className="sidebar" aria-label="主导航">
-        <div className="brand">
-          <Mic size={24} />
-          <span>TailKall</span>
-        </div>
-        <NavButton active={view === 'dashboard'} icon={<Gauge size={18} />} label="仪表盘" onClick={() => setView('dashboard')} />
-        <NavButton active={view === 'records'} icon={<ClipboardCopy size={18} />} label="语音记录" onClick={() => setView('records')} />
-        <NavButton active={view === 'settings'} icon={<Settings size={18} />} label="设置" onClick={() => setView('settings')} />
-      </aside>
+    <div className="window-shell">
+      <WindowTitlebar />
+      <main className="app-shell">
+        <aside className="sidebar" aria-label="主导航">
+          <div className="brand">
+            <Mic size={24} />
+            <span>TailKall</span>
+          </div>
+          <NavButton active={view === 'dashboard'} icon={<Gauge size={18} />} label="仪表盘" onClick={() => setView('dashboard')} />
+          <NavButton active={view === 'records'} icon={<ClipboardCopy size={18} />} label="语音记录" onClick={() => setView('records')} />
+          <NavButton active={view === 'settings'} icon={<Settings size={18} />} label="设置" onClick={() => setView('settings')} />
+        </aside>
 
-      <section className="content">
-        {view === 'dashboard' && <Dashboard settings={settings} records={recentRecords} />}
-        {view === 'records' && (
-          <RecordsView
-            editingRecordId={editingRecordId}
-            records={records}
-            onCopyOriginal={(record) => copyText(record.original)}
-            onCopyRefined={(record) => copyText(record.refined)}
-            onDelete={(record) => deleteRecord(record.id)}
-            onEdit={(record) => setEditingRecordId(record.id)}
-            onPaste={(record) => getFacade().pasteRecord?.(record.id)}
-            onRewrite={(record) => getFacade().rewriteRecord?.(record.id)}
-            onUpdateOriginal={(record, value) => {
-              setRecords((current) => current.map((item) => (item.id === record.id ? { ...item, original: value } : item)));
-            }}
-          />
-        )}
-        {view === 'settings' && (
-          <SettingsView
-            settings={settings}
-            testStatus={testStatus}
-            onCaptureTriggerKey={captureTriggerKey}
-            isCapturingTrigger={isCapturingTrigger}
-            onTestRewriteApi={testRewriteApi}
-            onUpdate={updateSetting}
-          />
-        )}
-      </section>
-    </main>
+        <section className="content">
+          {view === 'dashboard' && <Dashboard settings={settings} records={recentRecords} />}
+          {view === 'records' && (
+            <RecordsView
+              editingRecordId={editingRecordId}
+              records={records}
+              onCopyOriginal={(record) => copyText(record.original)}
+              onCopyRefined={(record) => copyText(record.refined)}
+              onDelete={(record) => deleteRecord(record.id)}
+              onEdit={(record) => setEditingRecordId(record.id)}
+              onPaste={(record) => getFacade().pasteRecord?.(record.id)}
+              onRewrite={(record) => getFacade().rewriteRecord?.(record.id)}
+              onUpdateOriginal={(record, value) => {
+                setRecords((current) => current.map((item) => (item.id === record.id ? { ...item, original: value } : item)));
+              }}
+            />
+          )}
+          {view === 'settings' && (
+            <SettingsView
+              settings={settings}
+              testStatus={testStatus}
+              onCaptureTriggerKey={captureTriggerKey}
+              isCapturingTrigger={isCapturingTrigger}
+              onTestRewriteApi={testRewriteApi}
+              onUpdate={updateSetting}
+            />
+          )}
+        </section>
+      </main>
+    </div>
+  );
+}
+
+function WindowTitlebar() {
+  const control = (action: 'minimize' | 'toggle-maximize' | 'close') => {
+    void getFacade().windowControl?.(action);
+  };
+
+  return (
+    <header aria-label="TailKall 窗口栏" className="window-titlebar">
+      <div className="window-title">
+        <Mic size={15} />
+        <span>TailKall</span>
+      </div>
+      <div className="window-controls">
+        <button aria-label="最小化" onClick={() => control('minimize')} type="button">
+          <span aria-hidden="true">-</span>
+        </button>
+        <button aria-label="最大化或还原" onClick={() => control('toggle-maximize')} type="button">
+          <span aria-hidden="true">□</span>
+        </button>
+        <button aria-label="关闭" className="close" onClick={() => control('close')} type="button">
+          <span aria-hidden="true">×</span>
+        </button>
+      </div>
+    </header>
   );
 }
 

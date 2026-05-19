@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('tailkall', {
   pasteRecord: (id: string) => ipcRenderer.invoke('tailkall:paste-record', id),
   deleteRecord: (id: string) => ipcRenderer.invoke('tailkall:delete-record', id),
   testRewriteApi: (settings: unknown) => ipcRenderer.invoke('tailkall:test-rewrite-api', settings),
+  windowControl: (action: 'minimize' | 'toggle-maximize' | 'close') =>
+    ipcRenderer.invoke('tailkall:window-control', action),
   onRecordingStart: (callback: () => void) => {
     ipcRenderer.on('tailkall:recording-start', callback);
     return () => ipcRenderer.removeListener('tailkall:recording-start', callback);

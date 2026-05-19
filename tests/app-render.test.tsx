@@ -6,6 +6,10 @@ describe('TailKall main renderer', () => {
   it('renders the dashboard with trigger, ASR, rewrite API, and recent records', async () => {
     render(<App />);
 
+    expect(screen.getByRole('banner', { name: 'TailKall 窗口栏' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '最小化' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '最大化或还原' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '关闭' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '仪表盘' })).toBeInTheDocument();
     expect(screen.getByText('当前触发键')).toBeInTheDocument();
     expect(screen.getByText('Ctrl + Alt + Space')).toBeInTheDocument();

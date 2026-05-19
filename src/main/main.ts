@@ -75,6 +75,9 @@ async function createMainWindow(): Promise<void> {
     minWidth: 1040,
     minHeight: 680,
     title: 'TailKall',
+    frame: false,
+    autoHideMenuBar: true,
+    titleBarStyle: 'hidden',
     icon: nativeImage.createEmpty(),
     webPreferences: {
       preload: join(app.getAppPath(), 'dist-electron', 'main', 'preload.js'),
@@ -303,6 +306,28 @@ function installIpcHandlers(): void {
     return { ok: true, text: cleaned };
   });
 
+  ipcMain.handle('tailkall:window-control', (_event, action: 'minimize' | 'toggle-maximize' | 'close') => {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      return false;
+    }
+    if (action === 'minimize') {
+      mainWindow.minimize();
+      return true;
+    }
+    if (action === 'toggle-maximize') {
+      if (mainWindow.isMaximized()) {
+        mainWindow.unmaximize();
+      } else {
+        mainWindow.maximize();
+      }
+      return true;
+    }
+    if (action === 'close') {
+      mainWindow.close();
+      return true;
+    }
+    return false;
+  });
 }
 
 function setRecording(next: boolean): void {
