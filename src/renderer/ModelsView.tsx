@@ -183,7 +183,7 @@ export default function ModelsView(props: {
                 <PlugZap size={16} />
                 测试连接
               </button>
-              {cloudTestStatus && <span className="test-status">{cloudTestStatus}</span>}
+              {cloudTestStatus && <span className={`test-status${cloudTestStatus.includes('成功') ? ' success' : ''}`}>{cloudTestStatus}</span>}
             </div>
           </div>
         )}
@@ -236,7 +236,7 @@ export default function ModelsView(props: {
               <PlugZap size={16} />
               测试连接
             </button>
-            {props.testStatus && <span className="test-status">{props.testStatus}</span>}
+            {props.testStatus && <span className={`test-status${props.testStatus.includes('成功') ? ' success' : ''}`}>{props.testStatus}</span>}
           </div>
         </div>
       </section>

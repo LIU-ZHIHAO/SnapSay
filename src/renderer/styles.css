@@ -746,6 +746,10 @@ button:focus-visible {
   font-size: 12px;
 }
 
+.test-status.success {
+  color: var(--success);
+}
+
 .shortcut-config {
   display: flex;
   flex-direction: column;
