@@ -1,6 +1,12 @@
 import { useState, type ReactNode } from 'react';
 import { Brain, Cloud, Server, PlugZap } from 'lucide-react';
 
+type WordbookEntry = {
+  id: string;
+  target: string;
+  variants: string[];
+};
+
 type SettingsState = {
   triggerKey: string;
   recordMode: string;
@@ -24,6 +30,7 @@ type SettingsState = {
   shortPressAction: string;
   longPressAction: string;
   smartMouseMode: boolean;
+  wordbook: WordbookEntry[];
   cloudAsrType: string;
   cloudAsrBaseUrl: string;
   cloudAsrApiKey: string;
