@@ -5,7 +5,7 @@
   <text x="156" y="46" fill="#bfe8d1" font-family="Segoe UI, Arial" font-size="15">设置</text>
 
   <rect x="0" y="72" width="248" height="888" fill="#ffffff"/>
-  <text x="56" y="140" fill="#5f6b66" font-family="Segoe UI, Arial" font-size="15">仪表盘</text>
+  <text x="56" y="140" fill="#5f6b66" font-family="Segoe UI, Arial" font-size="15">主页</text>
   <text x="56" y="198" fill="#5f6b66" font-family="Segoe UI, Arial" font-size="15">语音记录</text>
   <rect x="24" y="218" width="200" height="44" rx="8" fill="#e7f6ee"/>
   <text x="56" y="246" fill="#176342" font-family="Segoe UI, Arial" font-size="15" font-weight="700">设置</text>

@@ -28,7 +28,7 @@ src/main/
 src/renderer/
   App.tsx                 主窗口应用
   components/             可复用组件
-  pages/                  仪表盘、记录、设置
+  pages/                  主页、记录、设置
   styles.css              全局样式
   floating.tsx            悬浮提示窗渲染入口
 
@@ -68,7 +68,7 @@ tests/
    - 悬浮窗创建、状态更新和隐藏。
 
 5. 前端界面
-   - 仪表盘。
+   - 主页。
    - 设置页。
    - 语音记录页。
    - 悬浮录音提示条。
