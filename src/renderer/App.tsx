@@ -66,6 +66,7 @@ type SettingsState = {
   fasterWhisperModelPath: string;
   senseVoiceModelPath: string;
   pythonPath: string;
+  cleanupEnabled: boolean;
   provider: string;
   baseURL: string;
   model: string;
@@ -118,6 +119,7 @@ const demoSettings: SettingsState = {
   fasterWhisperModelPath: 'D:\\Antigravity\\tailkall\\models\\faster-whisper\\small',
   senseVoiceModelPath: 'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
   pythonPath: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
+  cleanupEnabled: false,
   provider: 'OpenAI Compatible',
   baseURL: 'https://api.example.com/v1',
   model: 'gpt-4.1-mini',
@@ -772,6 +774,18 @@ function SettingsView(props: {
 
       <section className="panel">
         <h2>文案整理 API</h2>
+        <label className="smart-mouse-row">
+          <span>
+            <strong>启用文案整理</strong>
+            <small>关闭后将跳过大模型整理，直接使用 ASR 识别结果</small>
+          </span>
+          <input
+            aria-label="启用文案整理"
+            checked={settings.cleanupEnabled}
+            onChange={(event) => onUpdate('cleanupEnabled', event.target.checked)}
+            type="checkbox"
+          />
+        </label>
         <div className="form-grid">
           <label>
             Provider

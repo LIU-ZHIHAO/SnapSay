@@ -30,6 +30,7 @@ type RendererSettings = {
   fasterWhisperModelPath: string;
   senseVoiceModelPath: string;
   pythonPath: string;
+  cleanupEnabled: boolean;
   provider: string;
   baseURL: string;
   model: string;
@@ -240,6 +241,7 @@ function toRendererSettings(): RendererSettings {
     senseVoiceModelPath:
       settings?.input.senseVoiceModelPath ?? join('D:\\Antigravity', 'tailkall', 'models', 'sensevoice', 'SenseVoiceSmall'),
     pythonPath: settings?.input.pythonPath ?? join('D:\\Antigravity', 'tailkall', '.venv', 'Scripts', 'python.exe'),
+    cleanupEnabled: settings?.cleanup.enabled ?? false,
     provider: settings?.cleanup.provider?.name ?? 'DeepSeek',
     baseURL: settings?.cleanup.provider?.baseUrl ?? 'https://api.deepseek.com/v1',
     model: settings?.cleanup.provider?.model ?? 'deepseek-chat',
@@ -282,7 +284,7 @@ function installIpcHandlers(): void {
   ipcMain.handle('tailkall:save-settings', (_event, settings: RendererSettings) => {
     const saved = settingsStore?.saveSettings({
       cleanup: {
-        enabled: Boolean(settings.apiKey && settings.model),
+        enabled: settings.cleanupEnabled,
         provider: {
           type: 'openai-compatible',
           name: settings.provider || 'DeepSeek',
