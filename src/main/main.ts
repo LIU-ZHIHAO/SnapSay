@@ -1,4 +1,4 @@
-import { app, BrowserWindow, clipboard, globalShortcut, ipcMain, nativeImage, screen } from 'electron';
+import { app, BrowserWindow, clipboard, globalShortcut, ipcMain, Menu, nativeImage, screen } from 'electron';
 import { execFile, spawn } from 'node:child_process';
 import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
@@ -41,6 +41,7 @@ type RendererSettings = {
   shortPressAction: string;
   longPressAction: string;
   smartMouseMode: boolean;
+  mouseTrigger: string;
   cloudAsrType: string;
   cloudAsrBaseUrl: string;
   cloudAsrApiKey: string;
@@ -256,6 +257,7 @@ function toRendererSettings(): RendererSettings {
     shortPressAction: settings?.input.shortPressAction ?? '语音输入',
     longPressAction: settings?.input.longPressAction ?? '语音助手',
     smartMouseMode: settings?.input.smartMouseMode ?? true,
+    mouseTrigger: settings?.input.mouseTrigger ?? 'Mouse Middle',
     cloudAsrType: settings?.input.cloudAsr?.type ?? 'openai-whisper',
     cloudAsrBaseUrl: settings?.input.cloudAsr?.baseUrl ?? '',
     cloudAsrApiKey: settings?.input.cloudAsr?.apiKey ?? '',
@@ -322,6 +324,7 @@ function installIpcHandlers(): void {
         shortPressAction: settings.shortPressAction,
         longPressAction: settings.longPressAction,
         smartMouseMode: settings.smartMouseMode,
+        mouseTrigger: settings.mouseTrigger || 'Mouse Middle',
         wordbook: [],
         cloudAsr: settings.cloudAsrBaseUrl ? {
           type: (settings.cloudAsrType as 'openai-whisper' | 'openai-compatible') || 'openai-whisper',
@@ -331,7 +334,7 @@ function installIpcHandlers(): void {
         } : undefined
       }
     });
-    void registerConfiguredTrigger(saved?.input.triggerLabel ?? settings.triggerKey, saved?.input.smartMouseMode);
+    void registerConfiguredTrigger(saved?.input.triggerLabel ?? settings.triggerKey, saved?.input.mouseTrigger);
     return settings;
   });
 
@@ -534,7 +537,7 @@ function toggleRecording(): void {
   setRecording(!isRecording);
 }
 
-async function registerConfiguredTrigger(label: string | undefined, smartMouseMode = true): Promise<void> {
+async function registerConfiguredTrigger(keyboardLabel: string | undefined, mouseLabel: string | undefined): Promise<void> {
   stopLowLevelTrigger?.();
   stopLowLevelTrigger = undefined;
 
@@ -543,13 +546,13 @@ async function registerConfiguredTrigger(label: string | undefined, smartMouseMo
     activeTriggerAccelerator = undefined;
   }
 
-  const triggerLabels = smartMouseMode ? [label || 'F8', 'Mouse Middle'] : [label || 'F8'];
+  const triggerLabels = [keyboardLabel || 'F8', mouseLabel || 'Mouse Middle'].filter(Boolean);
   const hookRegistered = await registerLowLevelTriggers(triggerLabels);
   if (hookRegistered) {
     return;
   }
 
-  const accelerator = parseTriggerLabelToAccelerator(label || 'F8') ?? 'F8';
+  const accelerator = parseTriggerLabelToAccelerator(keyboardLabel || 'F8') ?? 'F8';
   if (globalShortcut.register(accelerator, toggleRecording)) {
     activeTriggerAccelerator = accelerator;
   }
@@ -796,6 +799,7 @@ async function pressSystemPasteShortcut(): Promise<void> {
 }
 
 app.whenReady().then(async () => {
+  Menu.setApplicationMenu(null);
   settingsStore = createSettingsStore({
     store: await createElectronStoreAdapter({
       cwd: defaultDataRoot()
@@ -809,7 +813,7 @@ app.whenReady().then(async () => {
   const startupSettings = settingsStore.getSettings();
   // Start ASR daemon in background — don't await, it loads while user interacts with the app
   void startAsrDaemon(startupSettings);
-  await registerConfiguredTrigger(startupSettings.input.triggerLabel, startupSettings.input.smartMouseMode);
+  await registerConfiguredTrigger(startupSettings.input.triggerLabel, startupSettings.input.mouseTrigger);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

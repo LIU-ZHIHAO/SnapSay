@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Brain, Cloud, Server, PlugZap } from 'lucide-react';
+import { Brain, Server, PlugZap } from 'lucide-react';
 
 type WordbookEntry = {
   id: string;
@@ -75,9 +75,9 @@ export default function ModelsView(props: {
       <h1>模型</h1>
 
       {/* ─── ASR Panel ─── */}
-      <section className="panel">
+      <section className="panel settings-card">
         <h2>
-          <Server size={18} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 8 }} />
+          <Server size={18} />
           语音识别（ASR）
         </h2>
         <div className="form-grid">
@@ -189,22 +189,25 @@ export default function ModelsView(props: {
       </section>
 
       {/* ─── LLM Panel ─── */}
-      <section className="panel">
+      <section className="panel settings-card">
         <h2>
-          <Brain size={18} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 8 }} />
+          <Brain size={18} />
           文案整理（LLM）
         </h2>
-        <label className="smart-mouse-row">
+        <label className="setting-row smart-mouse-row">
           <span>
             <strong>启用文案整理</strong>
             <small>关闭后将跳过大模型整理，直接使用 ASR 识别结果</small>
           </span>
-          <input
-            aria-label="启用文案整理"
-            checked={settings.cleanupEnabled}
-            onChange={(event) => onUpdate('cleanupEnabled', event.target.checked)}
-            type="checkbox"
-          />
+          <span className="switch-control">
+            <input
+              aria-label="启用文案整理"
+              checked={settings.cleanupEnabled}
+              onChange={(event) => onUpdate('cleanupEnabled', event.target.checked)}
+              type="checkbox"
+            />
+            <span aria-hidden="true" />
+          </span>
         </label>
         <div className="form-grid">
           <label>

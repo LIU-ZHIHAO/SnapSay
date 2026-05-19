@@ -49,6 +49,7 @@ export type AppSettings = {
     wordbook: WordbookEntry[];
     wordbookLearnedAt?: string;
     cloudAsr?: CloudAsrProviderConfig;
+    mouseTrigger?: string;
   };
 };
 

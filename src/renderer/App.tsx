@@ -15,23 +15,6 @@ import {
 import ModelsView from './ModelsView';
 import './styles.css';
 
-type Theme = 'dark' | 'light' | 'pink' | 'green';
-
-function useTheme(): [Theme, (t: Theme) => void] {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    return (localStorage.getItem('tailkall-theme') as Theme) ?? 'dark';
-  });
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('tailkall-theme', theme);
-  }, [theme]);
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', (localStorage.getItem('tailkall-theme') as Theme) ?? 'dark');
-  }, []);
-  return [theme, setThemeState];
-}
-
-
 type View = 'dashboard' | 'models' | 'settings';
 
 type WordbookEntry = {
@@ -78,6 +61,7 @@ type SettingsState = {
   shortPressAction: string;
   longPressAction: string;
   smartMouseMode: boolean;
+  mouseTrigger: string;
   wordbook: WordbookEntry[];
   cloudAsrType: string;
   cloudAsrBaseUrl: string;
@@ -136,6 +120,7 @@ const demoSettings: SettingsState = {
   shortPressAction: '语音输入',
   longPressAction: '语音助手',
   smartMouseMode: true,
+  mouseTrigger: 'Mouse Middle',
   wordbook: [],
   cloudAsrType: 'openai-whisper',
   cloudAsrBaseUrl: '',
@@ -173,14 +158,12 @@ function getFacade(): TailKallFacade {
 }
 
 export default function App() {
-  const [theme, setTheme] = useTheme();
   const [view, setView] = useState<View>('dashboard');
   const [settings, setSettings] = useState<SettingsState>(demoSettings);
   const [records, setRecords] = useState<RecordItem[]>(demoRecords);
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [testStatus, setTestStatus] = useState('未测试');
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
-  const [isCapturingTrigger, setIsCapturingTrigger] = useState(false);
 
   useEffect(() => {
     getFacade()
@@ -231,39 +214,6 @@ export default function App() {
       offStop?.();
     };
   }, [mediaRecorder]);
-
-  useEffect(() => {
-    if (!isCapturingTrigger) {
-      return undefined;
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      event.preventDefault();
-      event.stopPropagation();
-      const label = formatKeyboardTrigger(event);
-      if (label) {
-        updateSetting('triggerKey', label);
-        setIsCapturingTrigger(false);
-      }
-    };
-    const handleMouseDown = (event: MouseEvent) => {
-      const label = formatMouseTrigger(event);
-      if (!label) {
-        return;
-      }
-      event.preventDefault();
-      event.stopPropagation();
-      updateSetting('triggerKey', label);
-      setIsCapturingTrigger(false);
-    };
-
-    window.addEventListener('keydown', handleKeyDown, true);
-    window.addEventListener('mousedown', handleMouseDown, true);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown, true);
-      window.removeEventListener('mousedown', handleMouseDown, true);
-    };
-  }, [isCapturingTrigger, settings]);
 
   const startBrowserRecording = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -319,9 +269,6 @@ export default function App() {
     );
   };
 
-  const captureTriggerKey = async () => {
-    setIsCapturingTrigger(true);
-  };
 
   const testRewriteApi = async () => {
     const result = await getFacade().testRewriteApi?.(settings);
@@ -340,7 +287,6 @@ export default function App() {
           <NavButton active={view === 'dashboard'} icon={<Gauge size={18} />} label="主页" onClick={() => setView('dashboard')} />
           <NavButton active={view === 'models'} icon={<Brain size={18} />} label="模型" onClick={() => setView('models')} />
           <NavButton active={view === 'settings'} icon={<Settings size={18} />} label="设置" onClick={() => setView('settings')} />
-          <ThemeSwitcher current={theme} onChange={setTheme} />
         </aside>
 
         <section className="content">
@@ -370,8 +316,6 @@ export default function App() {
           {view === 'settings' && (
             <SettingsView
               settings={settings}
-              onCaptureTriggerKey={captureTriggerKey}
-              isCapturingTrigger={isCapturingTrigger}
               onUpdate={updateSetting}
             />
           )}
@@ -408,31 +352,6 @@ function WindowTitlebar() {
 }
 
 
-const THEMES: { id: Theme; label: string }[] = [
-  { id: 'dark',  label: '暗黑' },
-  { id: 'light', label: '浅色' },
-  { id: 'pink',  label: '粉色' },
-  { id: 'green', label: '绿色' },
-];
-
-function ThemeSwitcher({ current, onChange }: { current: Theme; onChange: (t: Theme) => void }) {
-  return (
-    <div className="theme-switcher" aria-label="切换主题">
-      {THEMES.map((t) => (
-        <button
-          aria-label={t.label}
-          className={`theme-dot${current === t.id ? ' active' : ''}`}
-          data-t={t.id}
-          key={t.id}
-          onClick={() => onChange(t.id)}
-          title={t.label}
-          type="button"
-        />
-      ))}
-    </div>
-  );
-}
-
 function NavButton(props: { active: boolean; icon: ReactNode; label: string; onClick: () => void }) {
   return (
     <button className={props.active ? 'nav-button active' : 'nav-button'} onClick={props.onClick} type="button">
@@ -461,7 +380,7 @@ function Dashboard(props: {
         <Metric icon={<Mic />} label="ASR" value={props.settings.asr} />
         <Metric icon={<PlugZap />} label="文案整理 API" value={`${props.settings.provider} / ${props.settings.model}`} />
       </div>
-      <section className="panel" aria-label="最近记录">
+      <section className="panel dashboard-panel" aria-label="最近记录">
         <div className="panel-header">
           <h2>最近记录</h2>
           {props.records.length > 0 && (
@@ -602,8 +521,6 @@ function FullRecordList(props: {
 
 function SettingsView(props: {
   settings: SettingsState;
-  isCapturingTrigger: boolean;
-  onCaptureTriggerKey: () => void;
   onUpdate: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void;
 }) {
   const { settings, onUpdate } = props;
@@ -648,66 +565,91 @@ function SettingsView(props: {
   return (
     <div className="view-stack settings-view">
       <h1>设置</h1>
-      <section className="panel">
-        <h2>语音输入</h2>
-        <div className="shortcut-config">
-          <button
-            className={props.isCapturingTrigger ? 'shortcut-capture active' : 'shortcut-capture'}
-            onClick={props.onCaptureTriggerKey}
-            type="button"
-          >
-            <Keyboard size={18} />
-            <span>{settings.triggerKey}</span>
-          </button>
-          <span className="shortcut-help">{props.isCapturingTrigger ? '按下键盘按键、组合键或鼠标中键/侧键' : '点击上方按钮修改'}</span>
-          <div className="press-mode-grid">
-            <div className="press-card">
-              <h3>短按</h3>
-              <p>按一下开始说话，再按一下结束</p>
-              <label>
-                <span className="sr-only">短按动作</span>
-                <select
-                  aria-label="短按动作"
-                  onChange={(event) => onUpdate('shortPressAction', event.target.value)}
-                  value={settings.shortPressAction}
-                >
-                  <option>语音输入</option>
-                  <option>语音助手</option>
-                </select>
-              </label>
-            </div>
-            <div className="press-card">
-              <h3>长按</h3>
-              <p>按住说话，松开结束</p>
-              <label>
-                <span className="sr-only">长按动作</span>
-                <select
-                  aria-label="长按动作"
-                  onChange={(event) => onUpdate('longPressAction', event.target.value)}
-                  value={settings.longPressAction}
-                >
-                  <option>语音助手</option>
-                  <option>语音输入</option>
-                </select>
-              </label>
-            </div>
-          </div>
-          <label className="smart-mouse-row">
-            <span>
-              <strong>智能鼠标模式</strong>
-              <small>鼠标中键将同步应用上述“短按”与“长按”逻辑</small>
-            </span>
+      <section className="panel settings-card">
+        <h2>快捷键</h2>
+        <div className="form-grid">
+          <label>
+            键盘快捷键
+            <select
+              aria-label="键盘快捷键"
+              onChange={(event) => onUpdate('triggerKey', event.target.value)}
+              value={settings.triggerKey}
+            >
+              <option value="F5">F5</option>
+              <option value="F6">F6</option>
+              <option value="F7">F7</option>
+              <option value="F8">F8</option>
+              <option value="F9">F9</option>
+              <option value="F10">F10</option>
+              <option value="F11">F11</option>
+              <option value="F12">F12</option>
+              <option value="Ctrl + Alt + Space">Ctrl + Alt + Space</option>
+              <option value="Ctrl + Alt + F9">Ctrl + Alt + F9</option>
+              <option value="Ctrl + Alt + F10">Ctrl + Alt + F10</option>
+              <option value="Ctrl + Shift + Space">Ctrl + Shift + Space</option>
+              <option value="Ctrl + Shift + F9">Ctrl + Shift + F9</option>
+            </select>
+          </label>
+          <label>
+            鼠标快捷键
+            <select
+              aria-label="鼠标快捷键"
+              onChange={(event) => onUpdate('mouseTrigger', event.target.value)}
+              value={settings.mouseTrigger}
+            >
+              <option value="Mouse Middle">鼠标中键</option>
+              <option value="Mouse Side 1">鼠标侧键 1</option>
+              <option value="Mouse Side 2">鼠标侧键 2</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section className="panel settings-card">
+        <h2>触发行为</h2>
+        <div className="form-grid">
+          <label>
+            短按动作
+            <select
+              aria-label="短按动作"
+              onChange={(event) => onUpdate('shortPressAction', event.target.value)}
+              value={settings.shortPressAction}
+            >
+              <option>语音输入</option>
+              <option>语音助手</option>
+            </select>
+          </label>
+          <label>
+            长按动作
+            <select
+              aria-label="长按动作"
+              onChange={(event) => onUpdate('longPressAction', event.target.value)}
+              value={settings.longPressAction}
+            >
+              <option>语音助手</option>
+              <option>语音输入</option>
+            </select>
+          </label>
+        </div>
+        <p className="setting-hint">短按：按一下开始，再按一下结束。长按：按住说话，松开结束。</p>
+        <label className="setting-row smart-mouse-row">
+          <span>
+            <strong>智能鼠标模式</strong>
+            <small>鼠标中键将同步应用上述短按与长按逻辑</small>
+          </span>
+          <span className="switch-control">
             <input
               aria-label="智能鼠标模式"
               checked={settings.smartMouseMode}
               onChange={(event) => onUpdate('smartMouseMode', event.target.checked)}
               type="checkbox"
             />
-          </label>
-        </div>
+            <span aria-hidden="true" />
+          </span>
+        </label>
       </section>
 
-      <section className="panel">
+      <section className="panel settings-card">
         <h2>输出与数据</h2>
         <div className="form-grid">
           <label>
@@ -725,9 +667,9 @@ function SettingsView(props: {
         </div>
       </section>
 
-      <section className="panel">
+      <section className="panel settings-card">
         <h2>
-          <BookOpen size={18} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 8 }} />
+          <BookOpen size={18} />
           自定义词库
         </h2>
         <p className="wordbook-desc">词库用于矫正 ASR 识别错误。目标词是正确写法，发音变体是 ASR 可能识别出的错误形式（逗号分隔）。</p>
@@ -787,7 +729,7 @@ function SettingsView(props: {
           />
           <button onClick={addWordbookEntry} type="button">添加</button>
         </div>
-        <div className="field-action" style={{ marginTop: 16 }}>
+        <div className="field-action learn-action">
           <button onClick={() => void learnWordbook()} type="button">
             <BookOpen size={16} />
             从修正记录中学习
@@ -797,36 +739,4 @@ function SettingsView(props: {
       </section>
     </div>
   );
-}
-
-function formatKeyboardTrigger(event: KeyboardEvent): string {
-  const modifiers = [
-    event.ctrlKey ? 'Ctrl' : '',
-    event.altKey ? 'Alt' : '',
-    event.shiftKey ? 'Shift' : '',
-    event.metaKey ? 'Win' : ''
-  ].filter(Boolean);
-  const key = normalizeKeyLabel(event.key);
-  if (!key) {
-    return '';
-  }
-  if (['Control', 'Alt', 'Shift', 'Win'].includes(key)) {
-    return modifiers.length ? modifiers.join(' + ') : key;
-  }
-  return [...modifiers, key].join(' + ');
-}
-
-function normalizeKeyLabel(key: string): string {
-  if (key === ' ') return 'Space';
-  if (key === 'Meta') return 'Win';
-  if (/^f\d{1,2}$/i.test(key)) return key.toUpperCase();
-  if (key.length === 1) return key.toUpperCase();
-  return key.charAt(0).toUpperCase() + key.slice(1);
-}
-
-function formatMouseTrigger(event: MouseEvent): string {
-  if (event.button === 1) return 'Mouse Middle';
-  if (event.button === 3) return 'Mouse Side 1';
-  if (event.button === 4) return 'Mouse Side 2';
-  return '';
 }

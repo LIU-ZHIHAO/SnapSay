@@ -9,6 +9,7 @@ describe('custom window chrome', () => {
     expect(mainSource).toMatch(/frame:\s*false/);
     expect(mainSource).toMatch(/autoHideMenuBar:\s*true/);
     expect(mainSource).toMatch(/titleBarStyle:\s*['"]hidden['"]/);
+    expect(mainSource).toContain('Menu.setApplicationMenu(null)');
   });
 
   it('exposes window control actions through the preload bridge', () => {
