@@ -3,7 +3,7 @@ import { access, readFile, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { createConnection, type Socket } from 'node:net';
 import { promisify } from 'node:util';
-import type { CleanupProviderConfig, CloudAsrProviderConfig } from './settingsStore';
+import type { AppSettings, AsrProfileConfig, CleanupProviderConfig, CloudAsrProviderConfig } from './settingsStore';
 import { DEFAULT_CLEANUP_PROMPT } from '../shared/cleanupPolicy.js';
 
 export const DEEPSEEK_BASE_URL = 'https://api.deepseek.com/v1';
@@ -140,6 +140,22 @@ export function maskApiKey(apiKey: string): string {
   }
   const prefix = apiKey.startsWith('sk-') ? 'sk-' : '';
   return `${prefix}***${apiKey.slice(-4)}`;
+}
+
+export function resolveActiveCleanupProvider(settings: AppSettings): CleanupProviderConfig | undefined {
+  const active = settings.cleanup.providers.find((provider) => provider.key === settings.cleanup.activeProviderKey)
+    ?? settings.cleanup.providers.find((provider) => provider.isDefault)
+    ?? settings.cleanup.providers[0];
+  if (!active) {
+    return settings.cleanup.provider;
+  }
+  return {
+    type: 'openai-compatible',
+    name: active.displayName,
+    baseUrl: active.baseUrl,
+    apiKey: active.apiKey,
+    model: active.model
+  };
 }
 
 export function createMockAsrProvider(text = ''): AsrProvider {
@@ -367,6 +383,19 @@ export function createCloudAsrProvider(options: CloudAsrProviderOptions): AsrPro
         throw new Error(`Cloud ASR ${p.model} returned no text`);
       }
       return { text, provider: `cloud-asr ${p.model}` };
+    }
+  };
+}
+
+export type CloudStreamingAsrProviderOptions = {
+  provider: AsrProfileConfig;
+};
+
+export function createCloudStreamingAsrProvider(options: CloudStreamingAsrProviderOptions): AsrProvider {
+  return {
+    name: `streaming-asr ${options.provider.model || options.provider.displayName}`,
+    async transcribe(): Promise<AsrResult> {
+      throw new Error('流式 ASR 需要实时音频采集通道，当前配置已保存，请在启用实时预览管线后使用。');
     }
   };
 }

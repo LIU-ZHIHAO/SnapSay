@@ -7,6 +7,27 @@ type WordbookEntry = {
   variants: string[];
 };
 
+type LlmProviderConfig = {
+  key: string;
+  displayName: string;
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+  enabled: boolean;
+  isDefault: boolean;
+};
+
+type AsrProfileConfig = {
+  id: string;
+  kind: 'local' | 'cloud-upload' | 'cloud-streaming';
+  displayName: string;
+  engine: string;
+  enabled: boolean;
+  baseUrl?: string;
+  apiKey?: string;
+  model?: string;
+};
+
 type SettingsState = {
   triggerKey: string;
   recordMode: string;
@@ -24,6 +45,8 @@ type SettingsState = {
   baseURL: string;
   model: string;
   apiKey: string;
+  llmProviders: LlmProviderConfig[];
+  activeLlmProviderKey: string;
   prompt: string;
   outputMode: string;
   dataDir: string;
@@ -36,6 +59,8 @@ type SettingsState = {
   cloudAsrBaseUrl: string;
   cloudAsrApiKey: string;
   cloudAsrModel: string;
+  asrProfiles: AsrProfileConfig[];
+  activeAsrProfileId: string;
 };
 
 function getFacade() {
@@ -51,8 +76,26 @@ export default function ModelsView(props: {
   onUpdate: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void;
 }) {
   const { settings, onUpdate } = props;
-  const isCloudAsr = settings.asr === '云端 ASR';
+  const activeAsrProfile = settings.asrProfiles.find((profile) => profile.id === settings.activeAsrProfileId) ?? settings.asrProfiles[0];
+  const isCloudAsr = activeAsrProfile?.kind === 'cloud-upload' || activeAsrProfile?.kind === 'cloud-streaming';
   const [cloudTestStatus, setCloudTestStatus] = useState('');
+  const [providerTestStatus, setProviderTestStatus] = useState<Record<string, string>>({});
+
+  const updateAsrProfile = <K extends keyof AsrProfileConfig>(id: string, key: K, value: AsrProfileConfig[K]) => {
+    onUpdate('asrProfiles', settings.asrProfiles.map((profile) => profile.id === id ? { ...profile, [key]: value } : profile));
+  };
+
+  const updateLlmProvider = <K extends keyof LlmProviderConfig>(keyName: string, key: K, value: LlmProviderConfig[K]) => {
+    onUpdate('llmProviders', settings.llmProviders.map((provider) => provider.key === keyName ? { ...provider, [key]: value } : provider));
+  };
+
+  const selectAsrProfile = (id: string) => {
+    const next = settings.asrProfiles.find((profile) => profile.id === id);
+    onUpdate('activeAsrProfileId', id);
+    if (next) {
+      onUpdate('asr', next.kind === 'local' ? next.engine : '云端 ASR');
+    }
+  };
 
   const testCloudAsr = async () => {
     setCloudTestStatus('测试中…');
@@ -71,6 +114,22 @@ export default function ModelsView(props: {
     }
   };
 
+  const testLlmProvider = async (provider: LlmProviderConfig) => {
+    setProviderTestStatus((current) => ({ ...current, [provider.key]: '测试中…' }));
+    try {
+      const result = await getFacade().testRewriteApi?.({
+        ...settings,
+        provider: provider.displayName,
+        baseURL: provider.baseUrl,
+        apiKey: provider.apiKey,
+        model: provider.model
+      });
+      setProviderTestStatus((current) => ({ ...current, [provider.key]: result?.message || '连接成功' }));
+    } catch {
+      setProviderTestStatus((current) => ({ ...current, [provider.key]: '连接失败' }));
+    }
+  };
+
   return (
     <div className="view-stack settings-view">
       <h1>模型</h1>
@@ -83,8 +142,24 @@ export default function ModelsView(props: {
         </h2>
         <div className="form-grid">
           <label>
+            当前 ASR 档案
+            <select onChange={(event) => selectAsrProfile(event.target.value)} value={settings.activeAsrProfileId}>
+              {settings.asrProfiles.map((profile) => (
+                <option key={profile.id} value={profile.id}>{profile.displayName}</option>
+              ))}
+            </select>
+          </label>
+          <label>
             ASR 引擎
-            <select onChange={(event) => onUpdate('asr', event.target.value)} value={settings.asr}>
+            <select
+              onChange={(event) => {
+                if (activeAsrProfile) {
+                  updateAsrProfile(activeAsrProfile.id, 'engine', event.target.value);
+                }
+                onUpdate('asr', event.target.value);
+              }}
+              value={activeAsrProfile?.kind === 'local' ? activeAsrProfile.engine : settings.asr}
+            >
               {LOCAL_ASR_ENGINES.map((e) => (
                 <option key={e} value={e}>{e}</option>
               ))}
@@ -100,6 +175,40 @@ export default function ModelsView(props: {
               </select>
             </label>
           )}
+        </div>
+
+        <div className="provider-card-grid asr-card-grid">
+          {settings.asrProfiles.map((profile) => (
+            <article className={profile.id === settings.activeAsrProfileId ? 'provider-card active' : 'provider-card'} key={profile.id}>
+              <div className="provider-card-header">
+                <div>
+                  <h3>{profile.displayName}</h3>
+                  <span>{profile.kind === 'local' ? '本地模型' : profile.kind === 'cloud-upload' ? '云端上传' : '云端流式'}</span>
+                </div>
+                <button onClick={() => selectAsrProfile(profile.id)} type="button">选择</button>
+              </div>
+              {profile.kind !== 'local' && (
+                <div className="provider-card-fields">
+                  <label>
+                    {profile.displayName} Base URL
+                    <input onChange={(event) => updateAsrProfile(profile.id, 'baseUrl', event.target.value)} value={profile.baseUrl ?? ''} />
+                  </label>
+                  <label>
+                    {profile.displayName} Model
+                    <input onChange={(event) => updateAsrProfile(profile.id, 'model', event.target.value)} value={profile.model ?? ''} />
+                  </label>
+                  <label>
+                    {profile.displayName} API Key
+                    <input onChange={(event) => updateAsrProfile(profile.id, 'apiKey', event.target.value)} type="password" value={profile.apiKey ?? ''} />
+                  </label>
+                  <button onClick={testCloudAsr} type="button">
+                    <PlugZap size={16} />
+                    测试连接
+                  </button>
+                </div>
+              )}
+            </article>
+          ))}
         </div>
 
         {/* Local ASR paths */}
@@ -210,34 +319,61 @@ export default function ModelsView(props: {
             <span aria-hidden="true" />
           </span>
         </label>
+        <div className="provider-card-grid">
+          {settings.llmProviders.map((provider) => (
+            <article className={provider.key === settings.activeLlmProviderKey ? 'provider-card active' : 'provider-card'} key={provider.key}>
+              <div className="provider-card-header">
+                <div>
+                  <h3>{provider.displayName}</h3>
+                  <span>OpenAI-compatible</span>
+                </div>
+                <button
+                  onClick={() => {
+                    onUpdate('activeLlmProviderKey', provider.key);
+                    onUpdate('provider', provider.displayName);
+                    onUpdate('baseURL', provider.baseUrl);
+                    onUpdate('model', provider.model);
+                    onUpdate('apiKey', provider.apiKey);
+                  }}
+                  type="button"
+                >
+                  设为默认
+                </button>
+              </div>
+              <div className="provider-card-fields">
+                <label>
+                  {provider.displayName} Base URL
+                  <input onChange={(event) => updateLlmProvider(provider.key, 'baseUrl', event.target.value)} value={provider.baseUrl} />
+                </label>
+                <label>
+                  {provider.displayName} Model
+                  <input onChange={(event) => updateLlmProvider(provider.key, 'model', event.target.value)} value={provider.model} />
+                </label>
+                <label>
+                  {provider.displayName} API Key
+                  <input onChange={(event) => updateLlmProvider(provider.key, 'apiKey', event.target.value)} type="password" value={provider.apiKey} />
+                </label>
+                <div className="field-action">
+                  <button onClick={() => void testLlmProvider(provider)} type="button">
+                    <PlugZap size={16} />
+                    测试连接
+                  </button>
+                  {providerTestStatus[provider.key] && (
+                    <span className={`test-status${providerTestStatus[provider.key].includes('成功') ? ' success' : ''}`}>
+                      {providerTestStatus[provider.key]}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
         <div className="form-grid">
-          <label>
-            Provider
-            <input onChange={(event) => onUpdate('provider', event.target.value)} value={settings.provider} />
-          </label>
-          <label className="wide">
-            Base URL
-            <input onChange={(event) => onUpdate('baseURL', event.target.value)} value={settings.baseURL} />
-          </label>
-          <label>
-            Model
-            <input onChange={(event) => onUpdate('model', event.target.value)} value={settings.model} />
-          </label>
-          <label>
-            API Key
-            <input onChange={(event) => onUpdate('apiKey', event.target.value)} type="password" value={settings.apiKey} />
-          </label>
           <label className="wide">
             Prompt 模板
             <textarea onChange={(event) => onUpdate('prompt', event.target.value)} value={settings.prompt} />
           </label>
-          <div className="field-action">
-            <button onClick={props.onTestRewriteApi} type="button">
-              <PlugZap size={16} />
-              测试连接
-            </button>
-            {props.testStatus && <span className={`test-status${props.testStatus.includes('成功') ? ' success' : ''}`}>{props.testStatus}</span>}
-          </div>
+          {props.testStatus && <span className={`test-status${props.testStatus.includes('成功') ? ' success' : ''}`}>{props.testStatus}</span>}
         </div>
       </section>
     </div>

@@ -52,6 +52,10 @@ describe('TailKall main renderer', () => {
     fireEvent.click(screen.getByRole('button', { name: '模型' }));
 
     expect(screen.getByRole('heading', { name: '模型' })).toBeInTheDocument();
+    expect(screen.getByLabelText('当前 ASR 档案')).toHaveValue('local-whisper-cpp');
+    expect(screen.getAllByText('本地 SenseVoice / FunASR').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('云端上传转写 API').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('云端流式转写 API').length).toBeGreaterThan(0);
     expect(screen.getByLabelText('ASR 引擎')).toHaveValue('whisper.cpp');
     expect(screen.getByLabelText('加速策略')).toHaveValue('GPU 优先');
     expect(screen.getByLabelText('本地模型目录')).toHaveValue('D:\\Antigravity\\tailkall\\models');
@@ -60,12 +64,14 @@ describe('TailKall main renderer', () => {
     expect(screen.getByLabelText('ffmpeg 程序')).toHaveValue('D:\\Antigravity\\tailkall\\models\\whisper\\ffmpeg.exe');
     expect(screen.getByLabelText('Python 运行时')).toHaveValue('D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe');
     expect(screen.getByLabelText('启用文案整理')).not.toBeChecked();
-    expect(screen.getByLabelText('Provider')).toHaveValue('OpenAI Compatible');
-    expect(screen.getByLabelText('Base URL')).toHaveValue('https://api.example.com/v1');
-    expect(screen.getByLabelText('Model')).toHaveValue('gpt-4.1-mini');
-    expect(screen.getByLabelText('API Key')).toHaveAttribute('type', 'password');
+    expect(screen.getAllByText('OpenAI').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('DeepSeek').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('硅基流动').length).toBeGreaterThan(0);
+    expect(screen.getByLabelText('OpenAI Base URL')).toHaveValue('https://api.openai.com/v1');
+    expect(screen.getByLabelText('OpenAI Model')).toHaveValue('gpt-4.1-mini');
+    expect(screen.getByLabelText('OpenAI API Key')).toHaveAttribute('type', 'password');
     expect(screen.getByLabelText('Prompt 模板')).toHaveValue(DEFAULT_CLEANUP_PROMPT);
-    expect(screen.getByRole('button', { name: /测试连接/ })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /测试连接/ }).length).toBeGreaterThan(1);
   });
 
   it('shows records with refined text and actions on the dashboard', () => {

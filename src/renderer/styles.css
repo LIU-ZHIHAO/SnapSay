@@ -738,6 +738,80 @@ button:focus-visible {
   min-width: 0;
 }
 
+.provider-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.asr-card-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.provider-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+}
+
+.provider-card.active {
+  border-color: rgb(18 132 216 / 42%);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.provider-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.provider-card-header h3 {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.provider-card-header span {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.provider-card-header button,
+.provider-card-fields button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 10px;
+  color: var(--accent-strong);
+  background: var(--surface-app);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.provider-card-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
 .learn-action {
   margin-top: 14px;
 }
@@ -1160,6 +1234,8 @@ tr:last-child td {
 
   .metric-grid,
   .press-mode-grid,
+  .provider-card-grid,
+  .asr-card-grid,
   .form-grid {
     grid-template-columns: 1fr;
   }

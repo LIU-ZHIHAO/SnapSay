@@ -6,8 +6,11 @@ import {
   createPythonAsrProvider,
   createWhisperCppAsrProvider,
   maskApiKey,
-  testCleanupProvider
+  resolveActiveCleanupProvider,
+  testCleanupProvider,
+  createCloudStreamingAsrProvider
 } from '../src/main/providers';
+import { defaultSettings } from '../src/main/settingsStore';
 
 describe('providers', () => {
   it('builds an OpenAI-compatible chat completion payload', () => {
@@ -93,6 +96,29 @@ describe('providers', () => {
         fetch
       })
     ).resolves.toEqual({ ok: true });
+  });
+
+  it('resolves the active LLM provider card for cleanup', () => {
+    const settings = {
+      ...defaultSettings,
+      cleanup: {
+        ...defaultSettings.cleanup,
+        activeProviderKey: 'openai',
+        providers: defaultSettings.cleanup.providers.map((provider) =>
+          provider.key === 'openai'
+            ? { ...provider, enabled: true, apiKey: 'sk-openai', model: 'gpt-4.1-mini' }
+            : provider
+        )
+      }
+    };
+
+    expect(resolveActiveCleanupProvider(settings)).toEqual({
+      type: 'openai-compatible',
+      name: 'OpenAI',
+      baseUrl: 'https://api.openai.com/v1',
+      apiKey: 'sk-openai',
+      model: 'gpt-4.1-mini'
+    });
   });
 
   it('masks keys and exposes a mock ASR provider placeholder', async () => {
@@ -212,5 +238,22 @@ describe('providers', () => {
         'zh'
       ]
     });
+  });
+
+  it('returns a clear placeholder for cloud streaming ASR profiles', async () => {
+    const asr = createCloudStreamingAsrProvider({
+      provider: {
+        id: 'cloud-streaming-custom',
+        kind: 'cloud-streaming',
+        displayName: '云端流式转写 API',
+        engine: 'streaming-compatible',
+        enabled: true,
+        baseUrl: 'wss://stream.example.com/listen',
+        apiKey: 'stream-key',
+        model: 'nova-3'
+      }
+    });
+
+    await expect(asr.transcribe(new ArrayBuffer(0))).rejects.toThrow(/流式 ASR/);
   });
 });

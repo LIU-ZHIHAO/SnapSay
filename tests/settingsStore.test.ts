@@ -12,6 +12,14 @@ describe('settingsStore', () => {
 
     expect(store.getSettings()).toEqual(defaultSettings);
     expect(store.getSettings().cleanup.prompt).toBe(DEFAULT_CLEANUP_PROMPT);
+    expect(store.getSettings().cleanup.activeProviderKey).toBe('deepseek');
+    expect(store.getSettings().cleanup.providers.map((provider) => provider.key)).toEqual(
+      expect.arrayContaining(['openai', 'deepseek', 'openrouter', 'custom-openai'])
+    );
+    expect(store.getSettings().input.activeAsrProfileId).toBe('local-sensevoice');
+    expect(store.getSettings().input.asrProfiles.map((profile) => profile.kind)).toEqual(
+      expect.arrayContaining(['local', 'cloud-upload', 'cloud-streaming'])
+    );
 
     const saved = store.saveSettings({
       cleanup: {
@@ -52,10 +60,42 @@ describe('settingsStore', () => {
 
     expect(saved.cleanup.enabled).toBe(true);
     expect(store.getSettings().cleanup.provider?.model).toBe('deepseek-chat');
+    expect(store.getSettings().cleanup.activeProviderKey).toBe('deepseek');
+    expect(store.getSettings().cleanup.providers.find((provider) => provider.key === 'deepseek')?.model).toBe('deepseek-chat');
     expect(store.getSettings().input.recordMode).toBe('点击开始/停止');
     expect(store.getSettings().input.asr).toBe('faster-whisper');
     expect(store.getSettings().input.asrAcceleration).toBe('GPU 优先');
     expect(store.getSettings().input.outputMode).toBe('仅保存记录');
+  });
+
+  it('saves multiple LLM provider cards and ASR profile choices', () => {
+    const store = createSettingsStore({ store: createMemoryStore() });
+
+    const saved = store.saveSettings({
+      cleanup: {
+        enabled: true,
+        activeProviderKey: 'siliconflow',
+        providers: defaultSettings.cleanup.providers.map((provider) =>
+          provider.key === 'siliconflow'
+            ? { ...provider, enabled: true, apiKey: 'sk-sf', model: 'Qwen/Qwen2.5-72B-Instruct' }
+            : provider
+        ),
+        prompt: 'Clean this transcript'
+      },
+      input: {
+        activeAsrProfileId: 'cloud-streaming-custom',
+        asrProfiles: defaultSettings.input.asrProfiles.map((profile) =>
+          profile.id === 'cloud-streaming-custom'
+            ? { ...profile, enabled: true, apiKey: 'dg-key', model: 'nova-3', baseUrl: 'wss://api.deepgram.com/v1/listen' }
+            : profile
+        )
+      }
+    });
+
+    expect(saved.cleanup.providers.find((provider) => provider.key === 'siliconflow')?.apiKey).toBe('sk-sf');
+    expect(saved.cleanup.activeProviderKey).toBe('siliconflow');
+    expect(saved.input.activeAsrProfileId).toBe('cloud-streaming-custom');
+    expect(saved.input.asrProfiles.find((profile) => profile.id === 'cloud-streaming-custom')?.kind).toBe('cloud-streaming');
   });
 
   it('adds, updates, lists, and deletes transcription records', () => {

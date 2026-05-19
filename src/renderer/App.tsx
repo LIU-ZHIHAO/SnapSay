@@ -32,6 +32,27 @@ type WordbookEntry = {
   variants: string[];
 };
 
+type LlmProviderConfig = {
+  key: string;
+  displayName: string;
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+  enabled: boolean;
+  isDefault: boolean;
+};
+
+type AsrProfileConfig = {
+  id: string;
+  kind: 'local' | 'cloud-upload' | 'cloud-streaming';
+  displayName: string;
+  engine: string;
+  enabled: boolean;
+  baseUrl?: string;
+  apiKey?: string;
+  model?: string;
+};
+
 type RecordItem = {
   id: string;
   time: string;
@@ -64,6 +85,8 @@ type SettingsState = {
   baseURL: string;
   model: string;
   apiKey: string;
+  llmProviders: LlmProviderConfig[];
+  activeLlmProviderKey: string;
   prompt: string;
   outputMode: string;
   dataDir: string;
@@ -76,6 +99,8 @@ type SettingsState = {
   cloudAsrBaseUrl: string;
   cloudAsrApiKey: string;
   cloudAsrModel: string;
+  asrProfiles: AsrProfileConfig[];
+  activeAsrProfileId: string;
 };
 
 type TailKallFacade = {
@@ -123,6 +148,21 @@ const demoSettings: SettingsState = {
   baseURL: 'https://api.example.com/v1',
   model: 'gpt-4.1-mini',
   apiKey: 'demo-api-key',
+  llmProviders: [
+    { key: 'openai', displayName: 'OpenAI', baseUrl: 'https://api.openai.com/v1', apiKey: '', model: 'gpt-4.1-mini', enabled: false, isDefault: false },
+    { key: 'deepseek', displayName: 'DeepSeek', baseUrl: 'https://api.deepseek.com/v1', apiKey: 'demo-api-key', model: 'deepseek-chat', enabled: true, isDefault: true },
+    { key: 'openrouter', displayName: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1', apiKey: '', model: '', enabled: false, isDefault: false },
+    { key: 'siliconflow', displayName: '硅基流动', baseUrl: 'https://api.siliconflow.cn/v1', apiKey: '', model: '', enabled: false, isDefault: false },
+    { key: 'volcengine-ark', displayName: '火山方舟', baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', apiKey: '', model: '', enabled: false, isDefault: false },
+    { key: 'dashscope', displayName: '阿里云百炼', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', apiKey: '', model: '', enabled: false, isDefault: false },
+    { key: 'moonshot', displayName: '月之暗面 Kimi', baseUrl: 'https://api.moonshot.cn/v1', apiKey: '', model: '', enabled: false, isDefault: false },
+    { key: 'zhipu', displayName: '智谱 GLM', baseUrl: 'https://open.bigmodel.cn/api/paas/v4', apiKey: '', model: '', enabled: false, isDefault: false },
+    { key: 'tencent-hunyuan', displayName: '腾讯混元', baseUrl: 'https://api.hunyuan.cloud.tencent.com/v1', apiKey: '', model: '', enabled: false, isDefault: false },
+    { key: 'gemini-compatible', displayName: 'Gemini Compatible', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', apiKey: '', model: '', enabled: false, isDefault: false },
+    { key: 'ollama', displayName: 'Ollama', baseUrl: 'http://127.0.0.1:11434/v1', apiKey: '', model: 'qwen2.5', enabled: false, isDefault: false },
+    { key: 'custom-openai', displayName: '自定义 OpenAI-compatible', baseUrl: '', apiKey: '', model: '', enabled: false, isDefault: false }
+  ],
+  activeLlmProviderKey: 'deepseek',
   prompt: DEFAULT_CLEANUP_PROMPT,
   outputMode: '粘贴到当前光标',
   dataDir: 'D:\\Antigravity\\tailkall\\data',
@@ -134,7 +174,15 @@ const demoSettings: SettingsState = {
   cloudAsrType: 'openai-whisper',
   cloudAsrBaseUrl: '',
   cloudAsrApiKey: '',
-  cloudAsrModel: 'whisper-1'
+  cloudAsrModel: 'whisper-1',
+  asrProfiles: [
+    { id: 'local-sensevoice', kind: 'local', displayName: '本地 SenseVoice / FunASR', engine: 'SenseVoice / FunASR', enabled: true },
+    { id: 'local-faster-whisper', kind: 'local', displayName: '本地 faster-whisper', engine: 'faster-whisper', enabled: true },
+    { id: 'local-whisper-cpp', kind: 'local', displayName: '本地 whisper.cpp', engine: 'whisper.cpp', enabled: true },
+    { id: 'cloud-upload-openai', kind: 'cloud-upload', displayName: '云端上传转写 API', engine: 'openai-whisper', enabled: false, baseUrl: 'https://api.openai.com', apiKey: '', model: 'whisper-1' },
+    { id: 'cloud-streaming-custom', kind: 'cloud-streaming', displayName: '云端流式转写 API', engine: 'streaming-compatible', enabled: false, baseUrl: '', apiKey: '', model: '' }
+  ],
+  activeAsrProfileId: 'local-whisper-cpp'
 };
 
 const demoRecords: RecordItem[] = [

@@ -13,9 +13,10 @@ import {
   type MouseTrigger,
   type TriggerBinding
 } from './inputController.js';
-import { cleanupText, createAsrDaemonProvider, createCloudAsrProvider, createPythonAsrProvider, createWhisperCppAsrProvider, testCleanupProvider, type FetchLike } from './providers.js';
+import { cleanupText, createAsrDaemonProvider, createCloudAsrProvider, createCloudStreamingAsrProvider, createPythonAsrProvider, createWhisperCppAsrProvider, resolveActiveCleanupProvider, testCleanupProvider, type FetchLike } from './providers.js';
 import { runRecordingPipeline } from './recorderCoordinator.js';
 import { createElectronStoreAdapter, createSettingsStore, type SettingsStore } from './settingsStore.js';
+import type { AsrProfileConfig, LlmProviderConfig } from './settingsStore.js';
 import { applyWordbook, learnFromCorrections } from './wordbook.js';
 import { DEFAULT_CLEANUP_PROMPT, shouldCleanupTranscript } from '../shared/cleanupPolicy.js';
 
@@ -36,6 +37,8 @@ type RendererSettings = {
   baseURL: string;
   model: string;
   apiKey: string;
+  llmProviders: LlmProviderConfig[];
+  activeLlmProviderKey: string;
   prompt: string;
   outputMode: string;
   dataDir: string;
@@ -47,6 +50,8 @@ type RendererSettings = {
   cloudAsrBaseUrl: string;
   cloudAsrApiKey: string;
   cloudAsrModel: string;
+  asrProfiles: AsrProfileConfig[];
+  activeAsrProfileId: string;
 };
 
 const FLOATING_POS_FILE = join('D:\\Antigravity', 'tailkall', 'data', 'floating-pos.json');
@@ -252,6 +257,8 @@ function toRendererSettings(): RendererSettings {
     baseURL: settings?.cleanup.provider?.baseUrl ?? 'https://api.deepseek.com/v1',
     model: settings?.cleanup.provider?.model ?? 'deepseek-chat',
     apiKey: settings?.cleanup.provider?.apiKey ?? '',
+    llmProviders: settings?.cleanup.providers ?? [],
+    activeLlmProviderKey: settings?.cleanup.activeProviderKey ?? 'deepseek',
     prompt: settings?.cleanup.prompt ?? DEFAULT_CLEANUP_PROMPT,
     outputMode: settings?.input.outputMode ?? '粘贴到当前光标',
     dataDir: settings?.input.dataDir ?? defaultDataRoot(),
@@ -262,7 +269,9 @@ function toRendererSettings(): RendererSettings {
     cloudAsrType: settings?.input.cloudAsr?.type ?? 'openai-whisper',
     cloudAsrBaseUrl: settings?.input.cloudAsr?.baseUrl ?? '',
     cloudAsrApiKey: settings?.input.cloudAsr?.apiKey ?? '',
-    cloudAsrModel: settings?.input.cloudAsr?.model ?? 'whisper-1'
+    cloudAsrModel: settings?.input.cloudAsr?.model ?? 'whisper-1',
+    asrProfiles: settings?.input.asrProfiles ?? [],
+    activeAsrProfileId: settings?.input.activeAsrProfileId ?? 'local-sensevoice'
   };
 }
 
@@ -305,6 +314,8 @@ function installIpcHandlers(): void {
           apiKey: settings.apiKey,
           model: settings.model || 'deepseek-chat'
         },
+        providers: settings.llmProviders,
+        activeProviderKey: settings.activeLlmProviderKey,
         prompt: settings.prompt || DEFAULT_CLEANUP_PROMPT
       },
       input: {
@@ -327,6 +338,8 @@ function installIpcHandlers(): void {
         smartMouseMode: settings.smartMouseMode,
         mouseTrigger: settings.mouseTrigger || 'Mouse Middle',
         wordbook: [],
+        asrProfiles: settings.asrProfiles,
+        activeAsrProfileId: settings.activeAsrProfileId,
         cloudAsr: settings.cloudAsrBaseUrl ? {
           type: (settings.cloudAsrType as 'openai-whisper' | 'openai-compatible') || 'openai-whisper',
           baseUrl: settings.cloudAsrBaseUrl,
@@ -354,12 +367,13 @@ function installIpcHandlers(): void {
       shouldCleanupText: (transcript) =>
         Boolean(settings.cleanup.enabled && settings.cleanup.provider && shouldCleanupTranscript(transcript)),
       cleanupText: async (transcript) => {
-        if (!settings.cleanup.enabled || !settings.cleanup.provider) {
+        const provider = resolveActiveCleanupProvider(settings);
+        if (!settings.cleanup.enabled || !provider) {
           return transcript;
         }
         updateFloatingState({ visible: true, recording: false, status: 'rewriting' });
         return cleanupText({
-          provider: settings.cleanup.provider,
+          provider,
           transcript,
           prompt: settings.cleanup.prompt,
           fetch: fetch as FetchLike,
@@ -721,7 +735,8 @@ function mouseButtonCode(button: MouseTrigger['button']): number {
 }
 
 function createConfiguredAsrProvider(settings: ReturnType<SettingsStore['getSettings']>, durationMs: number) {
-  const asrName = settings.input.asr;
+  const activeProfile = settings.input.asrProfiles.find((profile) => profile.id === settings.input.activeAsrProfileId);
+  const asrName = activeProfile?.kind === 'local' ? activeProfile.engine : settings.input.asr;
   const wordbookPrompt = (settings.input.wordbook ?? [])
     .map((e) => e.target)
     .filter(Boolean)
@@ -765,6 +780,20 @@ function createConfiguredAsrProvider(settings: ReturnType<SettingsStore['getSett
       acceleration: settings.input.asrAcceleration === 'CPU' ? 'cpu' : 'auto-gpu',
       prompt: wordbookPrompt || undefined
     });
+  }
+  if (activeProfile?.kind === 'cloud-upload') {
+    return createCloudAsrProvider({
+      provider: {
+        type: 'openai-whisper',
+        baseUrl: activeProfile.baseUrl || 'https://api.openai.com',
+        apiKey: activeProfile.apiKey || '',
+        model: activeProfile.model || 'whisper-1'
+      },
+      fetch: fetch as FetchLike
+    });
+  }
+  if (activeProfile?.kind === 'cloud-streaming') {
+    return createCloudStreamingAsrProvider({ provider: activeProfile });
   }
   if (/云端|cloud|api/i.test(asrName) && settings.input.cloudAsr) {
     return createCloudAsrProvider({
