@@ -16,6 +16,7 @@ import {
 import { cleanupText, createAsrDaemonProvider, createPythonAsrProvider, createWhisperCppAsrProvider, testCleanupProvider, type FetchLike } from './providers.js';
 import { runRecordingPipeline } from './recorderCoordinator.js';
 import { createElectronStoreAdapter, createSettingsStore, type SettingsStore } from './settingsStore.js';
+import { applyWordbook, learnFromCorrections } from './wordbook.js';
 
 type RendererSettings = {
   triggerKey: string;
@@ -307,7 +308,8 @@ function installIpcHandlers(): void {
         dataDir: settings.dataDir,
         shortPressAction: settings.shortPressAction,
         longPressAction: settings.longPressAction,
-        smartMouseMode: settings.smartMouseMode
+        smartMouseMode: settings.smartMouseMode,
+        wordbook: []
       }
     });
     void registerConfiguredTrigger(saved?.input.triggerLabel ?? settings.triggerKey, saved?.input.smartMouseMode);
@@ -324,6 +326,7 @@ function installIpcHandlers(): void {
     const record = await runRecordingPipeline({
       audio,
       asrProvider: createConfiguredAsrProvider(settings, durationMs),
+      applyWordbook: (text) => applyWordbook(text, settings.input.wordbook ?? []),
       cleanupText: async (transcript) => {
         if (!settings.cleanup.enabled || !settings.cleanup.provider) {
           return transcript;
@@ -406,6 +409,28 @@ function installIpcHandlers(): void {
     });
     settingsStore?.updateRecord(id, { cleanedText: cleaned, status: 'completed' });
     return { ok: true, text: cleaned };
+  });
+
+  ipcMain.handle('tailkall:save-correction', (_event, id: string, correctionText: string) => {
+    settingsStore?.updateRecord(id, { userCorrection: correctionText });
+    return { ok: true };
+  });
+
+  ipcMain.handle('tailkall:learn-wordbook', () => {
+    if (!settingsStore) {
+      return { ok: false, added: 0, updated: 0 };
+    }
+    const settings = settingsStore.getSettings();
+    const records = settingsStore.listRecords();
+    const result = learnFromCorrections(records, settings.input.wordbook ?? [], settings.input.wordbookLearnedAt);
+    settingsStore.saveSettings({
+      input: {
+        ...settings.input,
+        wordbook: result.updatedWordbook,
+        wordbookLearnedAt: result.learnedAt
+      }
+    });
+    return { ok: true, added: result.added, updated: result.updated };
   });
 
   ipcMain.handle('tailkall:window-control', (_event, action: 'minimize' | 'toggle-maximize' | 'close') => {
@@ -631,6 +656,10 @@ function mouseButtonCode(button: MouseTrigger['button']): number {
 
 function createConfiguredAsrProvider(settings: ReturnType<SettingsStore['getSettings']>, durationMs: number) {
   const asrName = settings.input.asr;
+  const wordbookPrompt = (settings.input.wordbook ?? [])
+    .map((e) => e.target)
+    .filter(Boolean)
+    .join(', ');
   const commonPythonOptions = {
     pythonPath: settings.input.pythonPath,
     tmpDir: join('D:\\Antigravity', 'tailkall', 'tmp'),
@@ -646,6 +675,7 @@ function createConfiguredAsrProvider(settings: ReturnType<SettingsStore['getSett
       engine: 'sensevoice-funasr',
       scriptPath: join('D:\\Antigravity', 'tailkall', 'scripts', 'asr-sensevoice.py'),
       modelPath: settings.input.senseVoiceModelPath
+      // SenseVoice does not support prompt injection
     });
   }
   if (/faster-whisper/i.test(asrName)) {
@@ -656,7 +686,8 @@ function createConfiguredAsrProvider(settings: ReturnType<SettingsStore['getSett
       ...commonPythonOptions,
       engine: 'faster-whisper',
       scriptPath: join('D:\\Antigravity', 'tailkall', 'scripts', 'asr-faster-whisper.py'),
-      modelPath: settings.input.fasterWhisperModelPath
+      modelPath: settings.input.fasterWhisperModelPath,
+      prompt: wordbookPrompt || undefined
     });
   }
   if (/whisper|本地/i.test(asrName)) {
@@ -665,7 +696,8 @@ function createConfiguredAsrProvider(settings: ReturnType<SettingsStore['getSett
       modelPath: settings.input.localAsrModelPath,
       tmpDir: join('D:\\Antigravity', 'tailkall', 'tmp'),
       ffmpegPath: settings.input.ffmpegPath || undefined,
-      acceleration: settings.input.asrAcceleration === 'CPU' ? 'cpu' : 'auto-gpu'
+      acceleration: settings.input.asrAcceleration === 'CPU' ? 'cpu' : 'auto-gpu',
+      prompt: wordbookPrompt || undefined
     });
   }
 

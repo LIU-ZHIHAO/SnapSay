@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
+  BookOpen,
   ClipboardCopy,
   Gauge,
   Keyboard,
   Mic,
+  PenLine,
   PlugZap,
   RefreshCcw,
   Settings,
@@ -14,11 +16,18 @@ import './styles.css';
 
 type View = 'dashboard' | 'records' | 'settings';
 
+type WordbookEntry = {
+  id: string;
+  target: string;
+  variants: string[];
+};
+
 type RecordItem = {
   id: string;
   time: string;
   original: string;
   refined: string;
+  userCorrection?: string;
   status: '已输入' | '整理中' | '失败';
   asr?: string;
   cleanup?: string;
@@ -48,6 +57,7 @@ type SettingsState = {
   shortPressAction: string;
   longPressAction: string;
   smartMouseMode: boolean;
+  wordbook: WordbookEntry[];
 };
 
 type TailKallFacade = {
@@ -59,6 +69,8 @@ type TailKallFacade = {
   pasteRecord?: (id: string) => Promise<void>;
   deleteRecord?: (id: string) => Promise<void>;
   testRewriteApi?: (settings: SettingsState) => Promise<{ ok: boolean; message: string }>;
+  saveCorrection?: (id: string, text: string) => Promise<void>;
+  learnWordbook?: () => Promise<{ ok: boolean; added: number; updated: number }>;
   windowControl?: (action: 'minimize' | 'toggle-maximize' | 'close') => Promise<boolean>;
   onRecordingStart?: (callback: () => void) => () => void;
   onRecordingStop?: (callback: () => void) => () => void;
@@ -91,7 +103,8 @@ const demoSettings: SettingsState = {
   dataDir: 'D:\\Antigravity\\tailkall\\data',
   shortPressAction: '语音输入',
   longPressAction: '语音助手',
-  smartMouseMode: true
+  smartMouseMode: true,
+  wordbook: []
 };
 
 const demoRecords: RecordItem[] = [
@@ -230,6 +243,13 @@ export default function App() {
     setRecords((current) => current.filter((record) => record.id !== id));
   };
 
+  const saveCorrection = async (id: string, text: string) => {
+    await getFacade().saveCorrection?.(id, text);
+    setRecords((current) =>
+      current.map((item) => (item.id === id ? { ...item, userCorrection: text } : item))
+    );
+  };
+
   const captureTriggerKey = async () => {
     setIsCapturingTrigger(true);
   };
@@ -265,6 +285,7 @@ export default function App() {
               onEdit={(record) => setEditingRecordId(record.id)}
               onPaste={(record) => getFacade().pasteRecord?.(record.id)}
               onRewrite={(record) => getFacade().rewriteRecord?.(record.id)}
+              onSaveCorrection={saveCorrection}
               onUpdateOriginal={(record, value) => {
                 setRecords((current) => current.map((item) => (item.id === record.id ? { ...item, original: value } : item)));
               }}

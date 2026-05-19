@@ -43,7 +43,8 @@ describe('settingsStore', () => {
         dataDir: 'D:\\Antigravity\\tailkall\\data',
         shortPressAction: '语音输入',
         longPressAction: '语音助手',
-        smartMouseMode: true
+        smartMouseMode: true,
+        wordbook: []
       }
     });
 
