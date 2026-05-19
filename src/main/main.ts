@@ -1,5 +1,6 @@
 import { app, BrowserWindow, clipboard, globalShortcut, ipcMain, nativeImage, screen } from 'electron';
 import { execFile } from 'node:child_process';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
@@ -39,6 +40,34 @@ type RendererSettings = {
   longPressAction: string;
   smartMouseMode: boolean;
 };
+
+const FLOATING_POS_FILE = join('D:\\Antigravity', 'tailkall', 'data', 'floating-pos.json');
+let savePositionTimer: ReturnType<typeof setTimeout> | undefined;
+
+function loadFloatingPosition(): { x: number; y: number } | undefined {
+  try {
+    const data = JSON.parse(readFileSync(FLOATING_POS_FILE, 'utf-8')) as unknown;
+    if (data && typeof data === 'object' && 'x' in data && 'y' in data &&
+        typeof (data as { x: unknown }).x === 'number' && typeof (data as { y: unknown }).y === 'number') {
+      return data as { x: number; y: number };
+    }
+  } catch {
+    // file doesn't exist or is invalid
+  }
+  return undefined;
+}
+
+function saveFloatingPosition(x: number, y: number): void {
+  if (savePositionTimer) clearTimeout(savePositionTimer);
+  savePositionTimer = setTimeout(() => {
+    try {
+      writeFileSync(FLOATING_POS_FILE, JSON.stringify({ x, y }));
+    } catch {
+      // ignore write errors
+    }
+  }, 500);
+}
+
 
 let mainWindow: BrowserWindow | undefined;
 let settingsStore: SettingsStore | undefined;
@@ -91,9 +120,12 @@ async function createMainWindow(): Promise<void> {
 
 async function createFloating(): Promise<void> {
   const display = screen.getPrimaryDisplay();
-  const size = { width: 340, height: 96 };
-  const x = Math.round(display.workArea.x + (display.workArea.width - size.width) / 2);
-  const y = Math.round(display.workArea.y + display.workArea.height - size.height - 36);
+  const size = { width: 160, height: 40 };
+  const savedPos = loadFloatingPosition();
+  const x = savedPos?.x ?? Math.round(display.workArea.x + (display.workArea.width - size.width) / 2);
+  const y = savedPos?.y ?? Math.round(display.workArea.y + display.workArea.height - size.height - 36);
+
+  let floatingBrowserWindow: BrowserWindow | undefined;
 
   const window = createFloatingWindow((options) => {
     const floating = new BrowserWindow({
@@ -108,8 +140,14 @@ async function createFloating(): Promise<void> {
         nodeIntegration: false
       }
     });
+    floatingBrowserWindow = floating;
     void floating.loadURL(rendererUrl('floating.html'));
     return floating;
+  });
+
+  floatingBrowserWindow?.on('moved', () => {
+    const bounds = floatingBrowserWindow?.getBounds();
+    if (bounds) saveFloatingPosition(bounds.x, bounds.y);
   });
 
   window.hide();

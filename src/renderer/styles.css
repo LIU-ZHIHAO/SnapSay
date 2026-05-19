@@ -491,62 +491,50 @@ button:focus-visible {
 
 .floating-capsule {
   position: fixed;
-  left: 50%;
-  bottom: 28px;
-  z-index: 1000;
-  display: inline-flex;
+  inset: 0;
+  display: flex;
   align-items: center;
-  gap: 12px;
-  width: 300px;
-  min-height: 54px;
-  padding: 0 18px;
+  justify-content: flex-start;
+  gap: 7px;
+  padding: 0 14px;
   color: #ffffff;
   background: #109261;
-  border: 1px solid rgb(255 255 255 / 18%);
-  border-radius: 999px;
-  box-shadow: 0 18px 42px rgb(15 79 57 / 26%);
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgb(15 79 57 / 30%);
   white-space: nowrap;
-  transform: translateX(-50%);
+  -webkit-app-region: drag;
+  app-region: drag;
+  cursor: grab;
 }
 
 .floating-icon {
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 999px;
-  background: rgb(255 255 255 / 16%);
+  opacity: 0.85;
 }
 
-.floating-title {
+.floating-label {
   flex: 0 0 auto;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.floating-state {
-  flex: 0 0 auto;
-  color: #d7ffed;
   font-size: 13px;
-  white-space: nowrap;
+  font-weight: 600;
 }
 
 .waveform {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  height: 24px;
-  margin-left: auto;
+  gap: 2px;
+  height: 20px;
+  margin-left: 2px;
 }
 
 .waveform span {
-  width: 4px;
-  height: 10px;
+  width: 3px;
+  height: 8px;
   border-radius: 999px;
-  background: #d7ffed;
-  animation: wave 800ms ease-in-out infinite;
+  background: rgb(255 255 255 / 80%);
+  animation: wave 700ms ease-in-out infinite;
 }
 
 .state-done {
