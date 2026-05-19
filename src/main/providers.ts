@@ -4,6 +4,7 @@ import { basename, join } from 'node:path';
 import { createConnection, type Socket } from 'node:net';
 import { promisify } from 'node:util';
 import type { CleanupProviderConfig, CloudAsrProviderConfig } from './settingsStore';
+import { DEFAULT_CLEANUP_PROMPT } from '../shared/cleanupPolicy.js';
 
 export const DEEPSEEK_BASE_URL = 'https://api.deepseek.com/v1';
 const execFileAsync = promisify(execFile);
@@ -55,9 +56,7 @@ export function buildChatCompletionPayload(options: {
     messages: [
       {
         role: 'system',
-        content:
-          options.prompt ??
-          'Clean up this voice transcript. Preserve meaning and return only the cleaned text.'
+        content: options.prompt ?? DEFAULT_CLEANUP_PROMPT
       },
       {
         role: 'user',

@@ -6,6 +6,7 @@ export type RecordingPipelineOptions = {
   asrProvider: AsrProvider;
   durationMs: number;
   applyWordbook?: (text: string) => string;
+  shouldCleanupText?: (transcript: string) => boolean;
   cleanupText: (transcript: string) => Promise<string>;
   pasteText: (text: string) => Promise<unknown>;
   settingsStore: SettingsStore;
@@ -25,10 +26,14 @@ export async function runRecordingPipeline(
     asrDurationMs = Date.now() - asrStart;
     transcript = options.applyWordbook ? options.applyWordbook(asr.text) : asr.text;
 
-    const cleanupStart = Date.now();
-    cleanedText = await options.cleanupText(transcript);
-    cleanupDurationMs = Date.now() - cleanupStart;
-    await options.pasteText(cleanedText);
+    const shouldCleanup = options.shouldCleanupText?.(transcript) ?? true;
+    if (shouldCleanup) {
+      const cleanupStart = Date.now();
+      cleanedText = await options.cleanupText(transcript);
+      cleanupDurationMs = Date.now() - cleanupStart;
+    }
+
+    await options.pasteText(cleanedText ?? transcript);
 
     return options.settingsStore.addRecord({
       transcript,
@@ -36,8 +41,8 @@ export async function runRecordingPipeline(
       status: 'completed',
       asrProvider: asr.provider,
       asrModel: options.asrProvider.name,
-      cleanupProvider: 'api',
-      cleanupModel: options.settingsStore.getSettings().cleanup.provider?.model,
+      cleanupProvider: cleanedText ? 'api' : undefined,
+      cleanupModel: cleanedText ? options.settingsStore.getSettings().cleanup.provider?.model : undefined,
       durationMs: options.durationMs,
       asrDurationMs,
       cleanupDurationMs,

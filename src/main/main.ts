@@ -17,6 +17,7 @@ import { cleanupText, createAsrDaemonProvider, createCloudAsrProvider, createPyt
 import { runRecordingPipeline } from './recorderCoordinator.js';
 import { createElectronStoreAdapter, createSettingsStore, type SettingsStore } from './settingsStore.js';
 import { applyWordbook, learnFromCorrections } from './wordbook.js';
+import { DEFAULT_CLEANUP_PROMPT, shouldCleanupTranscript } from '../shared/cleanupPolicy.js';
 
 type RendererSettings = {
   triggerKey: string;
@@ -251,7 +252,7 @@ function toRendererSettings(): RendererSettings {
     baseURL: settings?.cleanup.provider?.baseUrl ?? 'https://api.deepseek.com/v1',
     model: settings?.cleanup.provider?.model ?? 'deepseek-chat',
     apiKey: settings?.cleanup.provider?.apiKey ?? '',
-    prompt: settings?.cleanup.prompt ?? '请在不改变原意的前提下整理语音输入文本，修正错别字和标点，直接返回整理后的文本。',
+    prompt: settings?.cleanup.prompt ?? DEFAULT_CLEANUP_PROMPT,
     outputMode: settings?.input.outputMode ?? '粘贴到当前光标',
     dataDir: settings?.input.dataDir ?? defaultDataRoot(),
     shortPressAction: settings?.input.shortPressAction ?? '语音输入',
@@ -304,7 +305,7 @@ function installIpcHandlers(): void {
           apiKey: settings.apiKey,
           model: settings.model || 'deepseek-chat'
         },
-        prompt: settings.prompt || '请在不改变原意的前提下整理语音输入文本，修正错别字和标点，直接返回整理后的文本。'
+        prompt: settings.prompt || DEFAULT_CLEANUP_PROMPT
       },
       input: {
         trigger: { key: settings.triggerKey || 'F8', modifiers: [] },
@@ -350,6 +351,8 @@ function installIpcHandlers(): void {
       asrProvider: createConfiguredAsrProvider(settings, durationMs),
       durationMs,
       applyWordbook: (text) => applyWordbook(text, settings.input.wordbook ?? []),
+      shouldCleanupText: (transcript) =>
+        Boolean(settings.cleanup.enabled && settings.cleanup.provider && shouldCleanupTranscript(transcript)),
       cleanupText: async (transcript) => {
         if (!settings.cleanup.enabled || !settings.cleanup.provider) {
           return transcript;
@@ -359,7 +362,8 @@ function installIpcHandlers(): void {
           provider: settings.cleanup.provider,
           transcript,
           prompt: settings.cleanup.prompt,
-          fetch: fetch as FetchLike
+          fetch: fetch as FetchLike,
+          timeoutMs: 15_000
         });
       },
       pasteText: async (text) => {
@@ -492,7 +496,7 @@ function installIpcHandlers(): void {
         wordbookLearnedAt: result.learnedAt
       }
     });
-    return { ok: true, added: result.added, updated: result.updated };
+    return { ok: true, added: result.added, updated: result.updated, wordbook: result.updatedWordbook };
   });
 
   ipcMain.handle('tailkall:window-control', (_event, action: 'minimize' | 'toggle-maximize' | 'close') => {

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import ModelsView from './ModelsView';
 import './styles.css';
+import { DEFAULT_CLEANUP_PROMPT } from '../shared/cleanupPolicy';
 
 type View = 'dashboard' | 'models' | 'settings';
 type Appearance = 'light' | 'dark' | 'pink' | 'green';
@@ -88,7 +89,7 @@ type TailKallFacade = {
   clearAllRecords?: () => Promise<{ ok: boolean }>;
   testRewriteApi?: (settings: SettingsState) => Promise<{ ok: boolean; message: string }>;
   saveCorrection?: (id: string, text: string) => Promise<void>;
-  learnWordbook?: () => Promise<{ ok: boolean; added: number; updated: number }>;
+  learnWordbook?: () => Promise<{ ok: boolean; added: number; updated: number; wordbook?: WordbookEntry[] }>;
   windowControl?: (action: 'minimize' | 'toggle-maximize' | 'close') => Promise<boolean>;
   onRecordingStart?: (callback: () => void) => () => void;
   onRecordingStop?: (callback: () => void) => () => void;
@@ -122,7 +123,7 @@ const demoSettings: SettingsState = {
   baseURL: 'https://api.example.com/v1',
   model: 'gpt-4.1-mini',
   apiKey: 'demo-api-key',
-  prompt: '请整理语音输入文本，修正错别字和标点，直接返回整理后的文本。',
+  prompt: DEFAULT_CLEANUP_PROMPT,
   outputMode: '粘贴到当前光标',
   dataDir: 'D:\\Antigravity\\tailkall\\data',
   shortPressAction: '语音输入',
@@ -576,7 +577,11 @@ function SettingsView(props: {
     setLearnStatus('学习中…');
     const result = await getFacade().learnWordbook?.();
     if (result?.ok) {
-      setLearnStatus(`完成：新增 ${result.added} 条，更新 ${result.updated} 条`);
+      if (result.wordbook) {
+        onUpdate('wordbook', result.wordbook);
+      }
+      const total = (result.wordbook ?? settings.wordbook ?? []).length;
+      setLearnStatus(`完成：新增 ${result.added} 条，更新 ${result.updated} 条（词库共 ${total} 条）`);
     } else {
       setLearnStatus('学习失败');
     }

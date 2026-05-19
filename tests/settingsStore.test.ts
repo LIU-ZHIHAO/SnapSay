@@ -4,12 +4,14 @@ import {
   createSettingsStore,
   defaultSettings
 } from '../src/main/settingsStore';
+import { DEFAULT_CLEANUP_PROMPT } from '../src/shared/cleanupPolicy';
 
 describe('settingsStore', () => {
   it('saves and reads settings from an injected memory store', () => {
     const store = createSettingsStore({ store: createMemoryStore() });
 
     expect(store.getSettings()).toEqual(defaultSettings);
+    expect(store.getSettings().cleanup.prompt).toBe(DEFAULT_CLEANUP_PROMPT);
 
     const saved = store.saveSettings({
       cleanup: {

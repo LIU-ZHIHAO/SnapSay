@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import App from '../src/renderer/App';
+import { DEFAULT_CLEANUP_PROMPT } from '../src/shared/cleanupPolicy';
 
 describe('TailKall main renderer', () => {
   it('renders the dashboard with trigger, ASR, rewrite API, and recent records', async () => {
@@ -63,7 +64,7 @@ describe('TailKall main renderer', () => {
     expect(screen.getByLabelText('Base URL')).toHaveValue('https://api.example.com/v1');
     expect(screen.getByLabelText('Model')).toHaveValue('gpt-4.1-mini');
     expect(screen.getByLabelText('API Key')).toHaveAttribute('type', 'password');
-    expect(screen.getByLabelText('Prompt 模板')).toHaveValue('请整理语音输入文本，修正错别字和标点，直接返回整理后的文本。');
+    expect(screen.getByLabelText('Prompt 模板')).toHaveValue(DEFAULT_CLEANUP_PROMPT);
     expect(screen.getByRole('button', { name: /测试连接/ })).toBeInTheDocument();
   });
 

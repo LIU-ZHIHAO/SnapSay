@@ -1,3 +1,5 @@
+import { DEFAULT_CLEANUP_PROMPT } from '../shared/cleanupPolicy.js';
+
 export type CleanupProviderConfig = {
   type: 'openai-compatible';
   name: string;
@@ -101,7 +103,7 @@ export type SettingsStore = {
 export const defaultSettings: AppSettings = {
   cleanup: {
     enabled: false,
-    prompt: 'Clean up this voice transcript. Preserve meaning and return only the cleaned text.'
+    prompt: DEFAULT_CLEANUP_PROMPT
   },
   input: {
     trigger: {

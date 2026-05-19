@@ -12,6 +12,7 @@ import {
 import { createMockAsrProvider } from '../src/main/providers';
 import { createMemoryStore, createSettingsStore } from '../src/main/settingsStore';
 import { runRecordingPipeline } from '../src/main/recorderCoordinator';
+import { shouldCleanupTranscript } from '../src/shared/cleanupPolicy';
 import {
   createFloatingWindow,
   hideFloatingWindow,
@@ -185,6 +186,50 @@ describe('recorderCoordinator', () => {
     expect(record.cleanedText).toBe('clean text');
     expect(record.pasteSucceeded).toBe(false);
     expect(store.listRecords()[0]).toEqual(record);
+  });
+
+  it('skips cleanup and pastes ASR text for short transcripts', async () => {
+    const store = createSettingsStore({ store: createMemoryStore() });
+    const cleanup = vi.fn().mockResolvedValue('clean text');
+    const paste = vi.fn().mockResolvedValue({ status: 'pasted' });
+
+    const record = await runRecordingPipeline({
+      audio: new ArrayBuffer(0),
+      durationMs: 600,
+      asrProvider: createMockAsrProvider('打开设置页'),
+      cleanupText: cleanup,
+      pasteText: paste,
+      settingsStore: store,
+      shouldCleanupText: shouldCleanupTranscript
+    });
+
+    expect(record.status).toBe('completed');
+    expect(record.transcript).toBe('打开设置页');
+    expect(record.cleanedText).toBeUndefined();
+    expect(record.cleanupDurationMs).toBeUndefined();
+    expect(cleanup).not.toHaveBeenCalled();
+    expect(paste).toHaveBeenCalledWith('打开设置页');
+  });
+
+  it('runs cleanup for transcripts longer than the cleanup threshold', async () => {
+    const store = createSettingsStore({ store: createMemoryStore() });
+    const cleanup = vi.fn().mockResolvedValue('整理后的长文本');
+    const paste = vi.fn().mockResolvedValue({ status: 'pasted' });
+
+    const record = await runRecordingPipeline({
+      audio: new ArrayBuffer(0),
+      durationMs: 2400,
+      asrProvider: createMockAsrProvider('我们要做一个逻辑判断，短文本不要调用大模型，长文本才需要整理整个内容来节省等待时间'),
+      cleanupText: cleanup,
+      pasteText: paste,
+      settingsStore: store,
+      shouldCleanupText: shouldCleanupTranscript
+    });
+
+    expect(record.status).toBe('completed');
+    expect(record.cleanedText).toBe('整理后的长文本');
+    expect(cleanup).toHaveBeenCalledOnce();
+    expect(paste).toHaveBeenCalledWith('整理后的长文本');
   });
 });
 

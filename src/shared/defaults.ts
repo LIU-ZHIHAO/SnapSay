@@ -1,4 +1,6 @@
 import type { AppSettings, StoragePaths } from './types';
+import { DEFAULT_CLEANUP_PROMPT } from './cleanupPolicy';
+export { DEFAULT_CLEANUP_PROMPT } from './cleanupPolicy';
 
 export const PROJECT_ROOT = 'D:\\Antigravity\\tailkall';
 
@@ -9,9 +11,6 @@ export const DEFAULT_STORAGE_PATHS: StoragePaths = {
   modelsDir: `${PROJECT_ROOT}\\models`,
   tmpDir: `${PROJECT_ROOT}\\tmp`
 };
-
-export const DEFAULT_CLEANUP_PROMPT =
-  '请在不改变原意的前提下整理语音输入文本，修正明显错别字和标点，直接返回整理后的文本。';
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
   trigger: { type: 'keyboard', key: 'F8', modifiers: [] },
