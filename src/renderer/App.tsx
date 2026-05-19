@@ -5,6 +5,7 @@ import {
   Gauge,
   Keyboard,
   Mic,
+  MoreHorizontal,
   PenLine,
   PlugZap,
   RefreshCcw,
@@ -91,6 +92,9 @@ type TailKallFacade = {
   windowControl?: (action: 'minimize' | 'toggle-maximize' | 'close') => Promise<boolean>;
   onRecordingStart?: (callback: () => void) => () => void;
   onRecordingStop?: (callback: () => void) => () => void;
+  onRecordAdded?: (callback: (record: RecordItem) => void) => () => void;
+  onRecordUpdated?: (callback: (record: RecordItem) => void) => () => void;
+  onRecordDeleted?: (callback: (id: string) => void) => () => void;
 };
 
 declare global {
@@ -168,6 +172,24 @@ export default function App() {
         setRecords(dashboard.records);
       })
       .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    const facade = getFacade();
+    const offRecordAdded = facade.onRecordAdded?.((record) => {
+      setRecords((current) => [record, ...current]);
+    });
+    const offRecordUpdated = facade.onRecordUpdated?.((record) => {
+      setRecords((current) => current.map((item) => (item.id === record.id ? record : item)));
+    });
+    const offRecordDeleted = facade.onRecordDeleted?.((id) => {
+      setRecords((current) => current.filter((item) => item.id !== id));
+    });
+    return () => {
+      offRecordAdded?.();
+      offRecordUpdated?.();
+      offRecordDeleted?.();
+    };
   }, []);
 
   useEffect(() => {
@@ -449,21 +471,14 @@ function RecordTable(props: {
   onSaveCorrection?: (id: string, text: string) => void;
   onUpdateOriginal?: (record: RecordItem, value: string) => void;
 }) {
-  const [expandedCorrectionId, setExpandedCorrectionId] = useState<string | null>(null);
-  const [correctionDraft, setCorrectionDraft] = useState('');
+  if (props.compact) {
+    return <CompactRecordTable records={props.records} />;
+  }
+  return <FullRecordList {...props} />;
+}
 
-  const openCorrection = (record: RecordItem) => {
-    setExpandedCorrectionId(record.id);
-    setCorrectionDraft(record.userCorrection ?? '');
-  };
-
-  const commitCorrection = (record: RecordItem) => {
-    if (correctionDraft.trim()) {
-      props.onSaveCorrection?.(record.id, correctionDraft.trim());
-    }
-    setExpandedCorrectionId(null);
-  };
-
+/* ─── Compact table for dashboard ──────────────────────────────────────── */
+function CompactRecordTable({ records }: { records: RecordItem[] }) {
   return (
     <div className="table-wrap">
       <table>
@@ -473,93 +488,157 @@ function RecordTable(props: {
             <th>原文</th>
             <th>整理后</th>
             <th>状态</th>
-            {!props.compact && <th>操作</th>}
           </tr>
         </thead>
         <tbody>
-          {props.records.map((record) => (
-            <Fragment key={record.id}>
-              <tr>
-                <td className="time-cell">{record.time}</td>
-                <td>
-                  {props.editingRecordId === record.id ? (
-                    <input
-                      aria-label="编辑原文"
-                      className="inline-editor"
-                      onBlur={() => props.onEdit?.({ ...record, id: '' })}
-                      onChange={(event) => props.onUpdateOriginal?.(record, event.target.value)}
-                      value={record.original}
-                    />
-                  ) : (
-                    <button className="truncate-cell cell-button" onClick={() => props.onEdit?.(record)} title={record.original} type="button">
-                      {record.original}
-                    </button>
-                  )}
-                </td>
-                <td>
-                  <span className="truncate-cell" title={record.refined}>
-                    {record.refined}
-                  </span>
-                </td>
-                <td>{record.status}</td>
-                {!props.compact && (
-                  <td>
-                    <div className="row-actions">
-                      <button onClick={() => props.onCopyOriginal?.(record)} type="button">
-                        <ClipboardCopy size={14} />
-                        复制原文
-                      </button>
-                      <button onClick={() => props.onCopyRefined?.(record)} type="button">
-                        <ClipboardCopy size={14} />
-                        复制整理
-                      </button>
-                      <button onClick={() => props.onRewrite?.(record)} type="button">
-                        <RefreshCcw size={14} />
-                        重新整理
-                      </button>
-                      <button onClick={() => props.onPaste?.(record)} type="button">
-                        <WandSparkles size={14} />
-                        再次粘贴
-                      </button>
-                      <button
-                        className={record.userCorrection ? 'correction-btn has-correction' : 'correction-btn'}
-                        onClick={() => openCorrection(record)}
-                        title={record.userCorrection ? `已有修正：${record.userCorrection}` : '提交修正，用于词库学习'}
-                        type="button"
-                      >
-                        <PenLine size={14} />
-                        {record.userCorrection ? '修正已提交' : '提交修正'}
-                      </button>
-                      <button className="danger" onClick={() => props.onDelete?.(record)} type="button">
-                        <Trash2 size={14} />
-                        删除
-                      </button>
-                    </div>
-                  </td>
-                )}
-              </tr>
-              {!props.compact && expandedCorrectionId === record.id && (
-                <tr key={`${record.id}-correction`} className="correction-row">
-                  <td colSpan={5}>
-                    <div className="correction-area">
-                      <span className="correction-label">粘贴你修正后的完整文本，软件将从中学习词库规律：</span>
-                      <textarea
-                        aria-label="修正文本"
-                        autoFocus
-                        className="correction-textarea"
-                        onBlur={() => commitCorrection(record)}
-                        onChange={(e) => setCorrectionDraft(e.target.value)}
-                        placeholder="粘贴修正后的文本…"
-                        value={correctionDraft}
-                      />
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </Fragment>
+          {records.map((record) => (
+            <tr key={record.id}>
+              <td className="time-cell">{record.time}</td>
+              <td>
+                <span className="truncate-cell" title={record.original}>
+                  {record.original}
+                </span>
+              </td>
+              <td>
+                <span className="truncate-cell" title={record.refined}>
+                  {record.refined}
+                </span>
+              </td>
+              <td>{record.status}</td>
+            </tr>
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+/* ─── Full card list for records view ──────────────────────────────────── */
+function FullRecordList(props: {
+  records: RecordItem[];
+  editingRecordId?: string | null;
+  onCopyOriginal?: (record: RecordItem) => void;
+  onCopyRefined?: (record: RecordItem) => void;
+  onDelete?: (record: RecordItem) => void;
+  onEdit?: (record: RecordItem) => void;
+  onPaste?: (record: RecordItem) => void;
+  onRewrite?: (record: RecordItem) => void;
+  onSaveCorrection?: (id: string, text: string) => void;
+  onUpdateOriginal?: (record: RecordItem, value: string) => void;
+}) {
+  const [expandedCorrectionId, setExpandedCorrectionId] = useState<string | null>(null);
+  const [correctionDraft, setCorrectionDraft] = useState('');
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  const openCorrection = (record: RecordItem) => {
+    setExpandedCorrectionId(record.id);
+    setCorrectionDraft(record.userCorrection ?? '');
+    setOpenMenuId(null);
+  };
+
+  const commitCorrection = (record: RecordItem) => {
+    if (correctionDraft.trim()) {
+      props.onSaveCorrection?.(record.id, correctionDraft.trim());
+    }
+    setExpandedCorrectionId(null);
+  };
+
+  const statusClass = (s: string) => s === '已输入' ? 'ok' : s === '整理中' ? 'busy' : 'fail';
+
+  return (
+    <div className="record-list">
+      {props.records.map((record) => (
+        <div className="record-card" key={record.id}>
+          <div className="record-meta">
+            <span>{record.time}</span>
+            <span className={`record-status ${statusClass(record.status)}`}>{record.status}</span>
+            {record.durationMs != null && (
+              <span>{(record.durationMs / 1000).toFixed(1)}s</span>
+            )}
+          </div>
+
+          <div className="record-texts">
+            {props.editingRecordId === record.id ? (
+              <input
+                aria-label="编辑原文"
+                className="inline-editor"
+                onBlur={() => props.onEdit?.({ ...record, id: '' })}
+                onChange={(event) => props.onUpdateOriginal?.(record, event.target.value)}
+                value={record.original}
+              />
+            ) : (
+              <div className="record-original" onClick={() => props.onEdit?.(record)} style={{ cursor: 'text' }}>
+                {record.original}
+              </div>
+            )}
+            {record.refined && (
+              <>
+                <div className="record-divider" />
+                <div className="record-refined">{record.refined}</div>
+              </>
+            )}
+          </div>
+
+          {expandedCorrectionId === record.id && (
+            <div className="correction-area">
+              <span className="correction-label">粘贴你修正后的完整文本，软件将从中学习词库规律：</span>
+              <textarea
+                aria-label="修正文本"
+                autoFocus
+                className="correction-textarea"
+                onBlur={() => commitCorrection(record)}
+                onChange={(e) => setCorrectionDraft(e.target.value)}
+                placeholder="粘贴修正后的文本…"
+                value={correctionDraft}
+              />
+            </div>
+          )}
+
+          <div className="record-actions">
+            <button className="record-action-btn" onClick={() => props.onCopyRefined?.(record)} type="button">
+              <ClipboardCopy size={13} />
+              复制
+            </button>
+            <button className="record-action-btn danger" onClick={() => props.onDelete?.(record)} type="button">
+              <Trash2 size={13} />
+              删除
+            </button>
+            <div className="more-menu-wrap">
+              <button
+                className="record-action-btn"
+                onClick={() => setOpenMenuId(openMenuId === record.id ? null : record.id)}
+                type="button"
+              >
+                <MoreHorizontal size={13} />
+              </button>
+              {openMenuId === record.id && (
+                <div className="more-menu">
+                  <button onClick={() => { props.onCopyOriginal?.(record); setOpenMenuId(null); }} type="button">
+                    <ClipboardCopy size={13} />
+                    复制原文
+                  </button>
+                  <button onClick={() => { props.onCopyRefined?.(record); setOpenMenuId(null); }} type="button">
+                    <ClipboardCopy size={13} />
+                    复制整理后
+                  </button>
+                  <button onClick={() => { props.onRewrite?.(record); setOpenMenuId(null); }} type="button">
+                    <RefreshCcw size={13} />
+                    重新整理
+                  </button>
+                  <button onClick={() => { props.onPaste?.(record); setOpenMenuId(null); }} type="button">
+                    <WandSparkles size={13} />
+                    再次粘贴
+                  </button>
+                  <button onClick={() => openCorrection(record)} type="button">
+                    <PenLine size={13} />
+                    {record.userCorrection ? '修正已提交' : '提交修正'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

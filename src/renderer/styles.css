@@ -354,7 +354,223 @@ h2 {
   margin-bottom: 16px;
 }
 
-/* ─── Table ──────────────────────────────────────────────────────────────── */
+/* ─── Record cards ──────────────────────────────────────────────────────── */
+.record-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.record-card {
+  position: relative;
+  padding: 16px 18px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: border-color 160ms;
+}
+
+.record-card:hover {
+  border-color: rgb(255 255 255 / 12%);
+}
+
+.record-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.record-status {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.record-status.ok {
+  color: var(--green);
+  background: rgb(16 185 129 / 12%);
+}
+
+.record-status.busy {
+  color: var(--amber);
+  background: rgb(245 158 11 / 12%);
+}
+
+.record-status.fail {
+  color: var(--red);
+  background: rgb(239 68 68 / 12%);
+}
+
+.record-texts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.record-original,
+.record-refined {
+  word-break: break-word;
+  white-space: pre-wrap;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.record-original {
+  color: var(--text-secondary);
+}
+
+.record-refined {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.record-divider {
+  height: 1px;
+  background: var(--border);
+}
+
+/* ─── Record actions (shown on hover) ───────────────────────────────────── */
+.record-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  opacity: 0;
+  transition: opacity 140ms;
+}
+
+.record-card:hover .record-actions {
+  opacity: 1;
+}
+
+.record-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 0 10px;
+  color: var(--text-secondary);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 120ms, color 120ms, border-color 120ms;
+}
+
+.record-action-btn:hover {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent-glow);
+}
+
+.record-action-btn.danger {
+  color: #f87171;
+  background: rgb(239 68 68 / 8%);
+  border-color: rgb(239 68 68 / 20%);
+}
+
+.record-action-btn.danger:hover {
+  background: rgb(239 68 68 / 16%);
+  color: #fca5a5;
+  border-color: rgb(239 68 68 / 35%);
+}
+
+/* ─── More menu ─────────────────────────────────────────────────────────── */
+.more-menu-wrap {
+  position: relative;
+}
+
+.more-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 50;
+  min-width: 160px;
+  padding: 4px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 30%);
+}
+
+.more-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 12px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  text-align: left;
+  transition: background 100ms, color 100ms;
+  white-space: nowrap;
+}
+
+.more-menu button:hover {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.more-menu button.danger {
+  color: #f87171;
+}
+
+.more-menu button.danger:hover {
+  background: rgb(239 68 68 / 12%);
+  color: #fca5a5;
+}
+
+/* ─── Inline editor (card mode) ─────────────────────────────────────────── */
+.inline-editor {
+  width: 100%;
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+  border: 1px solid var(--border-focus);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ─── Correction (card mode) ────────────────────────────────────────────── */
+.correction-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 12px;
+  background: var(--bg-subtle);
+  border-radius: 8px;
+}
+
+.correction-label {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.correction-textarea {
+  width: 100%;
+  min-height: 72px;
+  padding: 8px 10px;
+  color: var(--text-primary);
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+  resize: vertical;
+}
+
+/* ─── Legacy table (dashboard compact) ──────────────────────────────────── */
 .table-wrap {
   overflow: hidden;
   border: 1px solid var(--border);
@@ -403,26 +619,7 @@ td { color: var(--text-primary); font-size: 13px; }
   white-space: nowrap;
 }
 
-.cell-button {
-  width: 100%;
-  padding: 0;
-  color: var(--text-secondary);
-  text-align: left;
-  background: transparent;
-  border: 0;
-  cursor: text;
-}
-
-.inline-editor {
-  width: 100%;
-  background: var(--bg-subtle);
-  color: var(--text-primary);
-  border: 1px solid var(--border-focus);
-  border-radius: 6px;
-  padding: 4px 8px;
-}
-
-/* ─── Row actions ────────────────────────────────────────────────────────── */
+/* ─── Row actions (legacy compact) ──────────────────────────────────────── */
 .row-actions {
   display: flex;
   flex-wrap: wrap;
@@ -656,12 +853,11 @@ select option { background: var(--bg-overlay); }
 
 /* ─── Floating capsule ───────────────────────────────────────────────────── */
 .floating-capsule {
-  position: fixed;
-  inset: 0;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 12px;
+  padding: 0 14px;
+  height: 100%;
   color: #ffffff;
   background: linear-gradient(135deg, var(--cap-rec-from) 0%, var(--cap-rec-to) 100%);
   border: 1px solid var(--cap-rec-border);
@@ -675,23 +871,22 @@ select option { background: var(--bg-overlay); }
 
 .floating-label {
   flex: 0 0 auto;
+  margin-right: 4px;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 .waveform {
-  flex: 1 1 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 3px;
   height: 20px;
-  min-width: 0;
 }
 
 .waveform span {
-  flex: 1 1 0;
-  max-width: 4px;
+  width: 3px;
   height: 8px;
   border-radius: 999px;
   background: rgb(255 255 255 / 85%);
@@ -756,6 +951,7 @@ select option { background: var(--bg-overlay); }
 .theme-dot[data-t="pink"]  { background: linear-gradient(135deg, #261520, #f472b6); }
 .theme-dot[data-t="green"] { background: linear-gradient(135deg, #0f1e17, #4ade80); }
 
+@keyframes wave {
   0%, 100% { height: 4px; }
   50%       { height: 20px; }
 }

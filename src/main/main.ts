@@ -185,7 +185,7 @@ async function createMainWindow(): Promise<void> {
 
 async function createFloating(): Promise<void> {
   const display = screen.getPrimaryDisplay();
-  const size = { width: 148, height: 40 };
+  const size = { width: 160, height: 40 };
   const savedPos = loadFloatingPosition();
   const x = savedPos?.x ?? Math.round(display.workArea.x + (display.workArea.width - size.width) / 2);
   const y = savedPos?.y ?? Math.round(display.workArea.y + display.workArea.height - size.height - 36);
@@ -356,6 +356,8 @@ function installIpcHandlers(): void {
       error: record.error
     });
     setTimeout(() => updateFloatingState({ visible: false, recording: false }), 1200);
+
+    mainWindow?.webContents.send('tailkall:record-added', record);
     return { ok: record.status === 'completed', record };
   });
 
@@ -377,7 +379,11 @@ function installIpcHandlers(): void {
   });
 
   ipcMain.handle('tailkall:delete-record', (_event, id: string) => {
-    return settingsStore?.deleteRecord(id) ?? false;
+    const success = settingsStore?.deleteRecord(id) ?? false;
+    if (success) {
+      mainWindow?.webContents.send('tailkall:record-deleted', id);
+    }
+    return success;
   });
 
   ipcMain.handle('tailkall:test-rewrite-api', async (_event, settings: RendererSettings) => {
@@ -407,7 +413,10 @@ function installIpcHandlers(): void {
       prompt: settings.cleanup.prompt,
       fetch: fetch as FetchLike
     });
-    settingsStore?.updateRecord(id, { cleanedText: cleaned, status: 'completed' });
+    const updated = settingsStore?.updateRecord(id, { cleanedText: cleaned, status: 'completed' });
+    if (updated) {
+      mainWindow?.webContents.send('tailkall:record-updated', updated);
+    }
     return { ok: true, text: cleaned };
   });
 

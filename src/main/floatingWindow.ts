@@ -36,7 +36,7 @@ export function createFloatingWindow(factory: FloatingWindowFactory): FloatingBr
   }
 
   floatingWindow = factory({
-    width: 148,
+    width: 160,
     height: 40,
     frame: false,
     resizable: false,

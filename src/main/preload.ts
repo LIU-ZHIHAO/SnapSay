@@ -21,6 +21,21 @@ contextBridge.exposeInMainWorld('tailkall', {
   onRecordingStop: (callback: () => void) => {
     ipcRenderer.on('tailkall:recording-stop', callback);
     return () => ipcRenderer.removeListener('tailkall:recording-stop', callback);
+  },
+  onRecordAdded: (callback: (record: unknown) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, record: unknown) => callback(record);
+    ipcRenderer.on('tailkall:record-added', listener);
+    return () => ipcRenderer.removeListener('tailkall:record-added', listener);
+  },
+  onRecordUpdated: (callback: (record: unknown) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, record: unknown) => callback(record);
+    ipcRenderer.on('tailkall:record-updated', listener);
+    return () => ipcRenderer.removeListener('tailkall:record-updated', listener);
+  },
+  onRecordDeleted: (callback: (id: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, id: string) => callback(id);
+    ipcRenderer.on('tailkall:record-deleted', listener);
+    return () => ipcRenderer.removeListener('tailkall:record-deleted', listener);
   }
 });
 
