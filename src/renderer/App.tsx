@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   BookOpen,
   ClipboardCopy,
@@ -529,6 +529,13 @@ function FullRecordList(props: {
   const [expandedCorrectionId, setExpandedCorrectionId] = useState<string | null>(null);
   const [correctionDraft, setCorrectionDraft] = useState('');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!openMenuId) return;
+    const close = () => setOpenMenuId(null);
+    window.addEventListener('mousedown', close);
+    return () => window.removeEventListener('mousedown', close);
+  }, [openMenuId]);
 
   const openCorrection = (record: RecordItem) => {
     setExpandedCorrectionId(record.id);
