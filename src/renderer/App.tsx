@@ -289,6 +289,7 @@ export default function App() {
           <NavButton active={view === 'dashboard'} icon={<Gauge size={18} />} label="仪表盘" onClick={() => setView('dashboard')} />
           <NavButton active={view === 'records'} icon={<ClipboardCopy size={18} />} label="语音记录" onClick={() => setView('records')} />
           <NavButton active={view === 'settings'} icon={<Settings size={18} />} label="设置" onClick={() => setView('settings')} />
+          <ThemeSwitcher current={theme} onChange={setTheme} />
         </aside>
 
         <section className="content">
@@ -348,6 +349,32 @@ function WindowTitlebar() {
         </button>
       </div>
     </header>
+  );
+}
+
+
+const THEMES: { id: Theme; label: string }[] = [
+  { id: 'dark',  label: '暗黑' },
+  { id: 'light', label: '浅色' },
+  { id: 'pink',  label: '粉色' },
+  { id: 'green', label: '绿色' },
+];
+
+function ThemeSwitcher({ current, onChange }: { current: Theme; onChange: (t: Theme) => void }) {
+  return (
+    <div className="theme-switcher" aria-label="切换主题">
+      {THEMES.map((t) => (
+        <button
+          aria-label={t.label}
+          className={`theme-dot${current === t.id ? ' active' : ''}`}
+          data-t={t.id}
+          key={t.id}
+          onClick={() => onChange(t.id)}
+          title={t.label}
+          type="button"
+        />
+      ))}
+    </div>
   );
 }
 
