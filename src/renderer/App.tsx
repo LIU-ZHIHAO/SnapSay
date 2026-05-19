@@ -485,6 +485,18 @@ function FullRecordList(props: {
   const [expandedCorrectionId, setExpandedCorrectionId] = useState<string | null>(null);
   const [correctionDraft, setCorrectionDraft] = useState('');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!copiedId) return;
+    const timer = setTimeout(() => setCopiedId(null), 1200);
+    return () => clearTimeout(timer);
+  }, [copiedId]);
+
+  const handleCopy = (record: RecordItem) => {
+    props.onCopyRefined?.(record);
+    setCopiedId(record.id);
+  };
 
   useEffect(() => {
     if (!openMenuId) return;
@@ -551,15 +563,20 @@ function FullRecordList(props: {
             </div>
 
             <div className="record-actions">
-              <button className="record-action-btn" aria-label="复制" onClick={() => props.onCopyRefined?.(record)} type="button">
-                <ClipboardCopy size={13} />
-              </button>
-              <button className="record-action-btn danger" aria-label="删除" onClick={() => props.onDelete?.(record)} type="button">
+              {copiedId === record.id ? (
+                <span className="copy-feedback">已复制</span>
+              ) : (
+                <button className="record-action-btn" data-tooltip="复制" aria-label="复制" onClick={() => handleCopy(record)} type="button">
+                  <ClipboardCopy size={13} />
+                </button>
+              )}
+              <button className="record-action-btn danger" data-tooltip="删除" aria-label="删除" onClick={() => props.onDelete?.(record)} type="button">
                 <Trash2 size={13} />
               </button>
               <div className="more-menu-wrap">
                 <button
                   className="record-action-btn"
+                  data-tooltip="更多"
                   onClick={() => setOpenMenuId(openMenuId === record.id ? null : record.id)}
                   type="button"
                 >
