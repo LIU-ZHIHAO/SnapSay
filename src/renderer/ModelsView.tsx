@@ -30,6 +30,7 @@ type SettingsState = {
   shortPressAction: string;
   longPressAction: string;
   smartMouseMode: boolean;
+  mouseTrigger: string;
   wordbook: WordbookEntry[];
   cloudAsrType: string;
   cloudAsrBaseUrl: string;
