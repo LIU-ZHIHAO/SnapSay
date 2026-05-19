@@ -20,8 +20,8 @@ declare global {
 
 const stateLabel: Record<FloatingState, string> = {
   recording: '录音中',
-  recognizing: '转写中',
-  rewriting: '转写中',
+  recognizing: '文本提取',
+  rewriting: '文本整理',
   done: '已输入',
   failed: '失败'
 };

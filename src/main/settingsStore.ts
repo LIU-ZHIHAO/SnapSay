@@ -84,6 +84,7 @@ export type SettingsStore = {
     patch: Partial<Omit<TranscriptionRecord, 'id' | 'createdAt'>>
   ): TranscriptionRecord | undefined;
   deleteRecord(id: string): boolean;
+  clearAllRecords(): void;
 };
 
 export const defaultSettings: AppSettings = {
@@ -228,6 +229,9 @@ export function createSettingsStore(options: { store: KeyValueStore }): Settings
       }
       writeRecords(next);
       return true;
+    },
+    clearAllRecords(): void {
+      writeRecords([]);
     }
   };
 }

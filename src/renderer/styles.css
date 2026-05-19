@@ -354,6 +354,38 @@ h2 {
   margin-bottom: 16px;
 }
 
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.panel-header h2 {
+  margin-bottom: 0;
+}
+
+.clear-all-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 0 10px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 120ms, color 120ms, border-color 120ms;
+}
+
+.clear-all-btn:hover {
+  background: rgb(239 68 68 / 10%);
+  color: #f87171;
+  border-color: rgb(239 68 68 / 30%);
+}
+
 /* ─── Record cards ──────────────────────────────────────────────────────── */
 .record-list {
   display: flex;
@@ -470,6 +502,49 @@ h2 {
   background: rgb(239 68 68 / 16%);
   color: #fca5a5;
   border-color: rgb(239 68 68 / 35%);
+}
+
+/* ─── Tooltip for action buttons ───────────────────────────────────────── */
+.record-action-btn[data-tooltip] {
+  position: relative;
+}
+.record-action-btn[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--bg-overlay);
+  color: var(--text-primary);
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms;
+}
+.record-action-btn[data-tooltip]:hover::after {
+  opacity: 1;
+}
+
+/* ─── Copy feedback toast ──────────────────────────────────────────────── */
+.copy-feedback {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 500;
+  animation: copy-fade 1.2s ease forwards;
+}
+@keyframes copy-fade {
+  0% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 /* ─── More menu ─────────────────────────────────────────────────────────── */

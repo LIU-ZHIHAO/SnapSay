@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('tailkall', {
   rewriteRecord: (id: string) => ipcRenderer.invoke('tailkall:rewrite-record', id),
   pasteRecord: (id: string) => ipcRenderer.invoke('tailkall:paste-record', id),
   deleteRecord: (id: string) => ipcRenderer.invoke('tailkall:delete-record', id),
+  clearAllRecords: () => ipcRenderer.invoke('tailkall:clear-all-records'),
   testRewriteApi: (settings: unknown) => ipcRenderer.invoke('tailkall:test-rewrite-api', settings),
   saveCorrection: (id: string, text: string) => ipcRenderer.invoke('tailkall:save-correction', id, text),
   learnWordbook: () => ipcRenderer.invoke('tailkall:learn-wordbook'),
@@ -36,6 +37,10 @@ contextBridge.exposeInMainWorld('tailkall', {
     const listener = (_event: Electron.IpcRendererEvent, id: string) => callback(id);
     ipcRenderer.on('tailkall:record-deleted', listener);
     return () => ipcRenderer.removeListener('tailkall:record-deleted', listener);
+  },
+  onRecordsCleared: (callback: () => void) => {
+    ipcRenderer.on('tailkall:records-cleared', callback);
+    return () => ipcRenderer.removeListener('tailkall:records-cleared', callback);
   }
 });
 

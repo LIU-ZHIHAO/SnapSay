@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   BookOpen,
   ClipboardCopy,
+  Eraser,
   Gauge,
   Keyboard,
   Mic,
@@ -86,6 +87,7 @@ type TailKallFacade = {
   rewriteRecord?: (id: string) => Promise<void>;
   pasteRecord?: (id: string) => Promise<void>;
   deleteRecord?: (id: string) => Promise<void>;
+  clearAllRecords?: () => Promise<{ ok: boolean }>;
   testRewriteApi?: (settings: SettingsState) => Promise<{ ok: boolean; message: string }>;
   saveCorrection?: (id: string, text: string) => Promise<void>;
   learnWordbook?: () => Promise<{ ok: boolean; added: number; updated: number }>;
@@ -95,6 +97,7 @@ type TailKallFacade = {
   onRecordAdded?: (callback: (record: RecordItem) => void) => () => void;
   onRecordUpdated?: (callback: (record: RecordItem) => void) => () => void;
   onRecordDeleted?: (callback: (id: string) => void) => () => void;
+  onRecordsCleared?: (callback: () => void) => () => void;
 };
 
 declare global {
@@ -131,7 +134,7 @@ const demoSettings: SettingsState = {
 const demoRecords: RecordItem[] = [
   {
     id: 'rec-1',
-    time: '今天 09:18',
+    time: '2026/05/19 09:18',
     original:
       '请帮我整理今天会议关于登录体验、首屏性能和快捷键冲突处理的讨论，保留结论、负责人和下次跟进时间。',
     refined: '会议结论：优化登录体验与首屏性能，排查快捷键冲突。负责人分别跟进，下次例会同步结果。',
@@ -143,7 +146,7 @@ const demoRecords: RecordItem[] = [
   },
   {
     id: 'rec-2',
-    time: '昨天 17:42',
+    time: '2026/05/18 17:42',
     original: '把这段客户反馈整理成工单，强调语音识别延迟和偶发粘贴失败。',
     refined: '工单：语音识别存在延迟，偶发粘贴失败。请排查录音结束到文本输出链路。',
     status: '已输入'
@@ -185,10 +188,14 @@ export default function App() {
     const offRecordDeleted = facade.onRecordDeleted?.((id) => {
       setRecords((current) => current.filter((item) => item.id !== id));
     });
+    const offRecordsCleared = facade.onRecordsCleared?.(() => {
+      setRecords([]);
+    });
     return () => {
       offRecordAdded?.();
       offRecordUpdated?.();
       offRecordDeleted?.();
+      offRecordsCleared?.();
     };
   }, []);
 
@@ -259,8 +266,6 @@ export default function App() {
     setMediaRecorder(recorder);
   };
 
-  const recentRecords = useMemo(() => records.slice(0, 10), [records]);
-
   const updateSetting = <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => {
     setSettings((current) => {
       const next = { ...current, [key]: value };
@@ -281,6 +286,11 @@ export default function App() {
   const deleteRecord = async (id: string) => {
     await getFacade().deleteRecord?.(id);
     setRecords((current) => current.filter((record) => record.id !== id));
+  };
+
+  const clearAllRecords = async () => {
+    await getFacade().clearAllRecords?.();
+    setRecords([]);
   };
 
   const saveCorrection = async (id: string, text: string) => {
@@ -319,6 +329,7 @@ export default function App() {
               settings={settings}
               editingRecordId={editingRecordId}
               records={records}
+              onClearAll={clearAllRecords}
               onCopyOriginal={(record) => copyText(record.original)}
               onCopyRefined={(record) => copyText(record.refined)}
               onDelete={(record) => deleteRecord(record.id)}
@@ -412,6 +423,7 @@ function Dashboard(props: {
   settings: SettingsState;
   records: RecordItem[];
   editingRecordId?: string | null;
+  onClearAll?: () => void;
   onCopyOriginal?: (record: RecordItem) => void;
   onCopyRefined?: (record: RecordItem) => void;
   onDelete?: (record: RecordItem) => void;
@@ -430,7 +442,15 @@ function Dashboard(props: {
         <Metric icon={<PlugZap />} label="文案整理 API" value={`${props.settings.provider} / ${props.settings.model}`} />
       </div>
       <section className="panel" aria-label="最近记录">
-        <h2>最近记录</h2>
+        <div className="panel-header">
+          <h2>最近记录</h2>
+          {props.records.length > 0 && (
+            <button className="clear-all-btn" onClick={props.onClearAll} type="button">
+              <Eraser size={14} />
+              清空
+            </button>
+          )}
+        </div>
         <FullRecordList {...props} />
       </section>
     </div>

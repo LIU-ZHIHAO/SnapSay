@@ -8,7 +8,7 @@ describe('TailKall floating renderer', () => {
 
     const capsule = screen.getByRole('status', { name: '语音输入状态' });
     expect(capsule).toHaveClass('floating-capsule');
-    expect(capsule).toHaveTextContent('转写中');
+    expect(capsule).toHaveTextContent('文本提取');
 
     const bars = screen.getAllByTestId('wave-bar');
     expect(bars).toHaveLength(6);
@@ -17,8 +17,8 @@ describe('TailKall floating renderer', () => {
   it('supports all floating voice states', () => {
     const states = [
       ['recording', '录音中'],
-      ['recognizing', '转写中'],
-      ['rewriting', '转写中'],
+      ['recognizing', '文本提取'],
+      ['rewriting', '文本整理'],
       ['done', '已输入'],
       ['failed', '失败']
     ] as const;
