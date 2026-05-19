@@ -95,12 +95,21 @@ export function learnFromCorrections(
 }
 
 function extractSubstitutions(original: string, corrected: string): Array<[string, string]> {
+  // Tokenize: replace all punctuation/whitespace with space, split on space, filter short tokens
+  const tokenize = (text: string): string[] =>
+    text
+      .replace(/[\s，。！？、；：""''（）【】《》.,!?;:()\[\]{}"'\n\r]+/g, ' ')
+      .trim()
+      .split(' ')
+      .filter((t) => t.length >= 2);
+
   const origTokens = tokenize(original);
   const corrTokens = tokenize(corrected);
 
+  // Word-level LCS to find matching tokens
   const lcs = computeLcs(origTokens, corrTokens);
-  const pairs: Array<[string, string]> = [];
 
+  const pairs: Array<[string, string]> = [];
   let oi = 0;
   let ci = 0;
   let li = 0;
@@ -113,11 +122,12 @@ function extractSubstitutions(original: string, corrected: string): Array<[strin
     if (origWord && corrWord && lcsWord &&
         origWord.toLowerCase() === lcsWord.toLowerCase() &&
         corrWord.toLowerCase() === lcsWord.toLowerCase()) {
+      // Both match LCS — skip
       oi++;
       ci++;
       li++;
     } else if (origWord && corrWord && !isStopToken(origWord) && !isStopToken(corrWord)) {
-      // Both sides have a word that's not in LCS — substitution
+      // Both sides have non-stop words not in LCS — substitution
       pairs.push([origWord, corrWord]);
       oi++;
       ci++;
@@ -131,13 +141,6 @@ function extractSubstitutions(original: string, corrected: string): Array<[strin
   }
 
   return pairs;
-}
-
-function tokenize(text: string): string[] {
-  return text
-    .split(/[\s，。！？、；：""''（）【】《》\.,!?;:()\[\]{}"']+/)
-    .map((t) => t.trim())
-    .filter((t) => t.length >= 2);
 }
 
 function isStopToken(token: string): boolean {
