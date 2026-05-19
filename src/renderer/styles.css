@@ -374,11 +374,22 @@ h2 {
   border-color: rgb(255 255 255 / 12%);
 }
 
+.record-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.record-content {
+  flex: 1;
+  min-width: 0;
+}
+
 .record-meta {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   font-size: 12px;
   color: var(--text-muted);
 }
@@ -405,40 +416,21 @@ h2 {
   background: rgb(239 68 68 / 12%);
 }
 
-.record-texts {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.record-original,
 .record-refined {
   word-break: break-word;
   white-space: pre-wrap;
   font-size: 13px;
   line-height: 1.6;
-}
-
-.record-original {
-  color: var(--text-secondary);
-}
-
-.record-refined {
   color: var(--text-primary);
   font-weight: 500;
 }
 
-.record-divider {
-  height: 1px;
-  background: var(--border);
-}
-
-/* ─── Record actions (shown on hover) ───────────────────────────────────── */
+/* ─── Record actions (right side, shown on hover) ──────────────────────── */
 .record-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 12px;
+  gap: 4px;
+  flex-shrink: 0;
   opacity: 0;
   transition: opacity 140ms;
 }
@@ -487,8 +479,8 @@ h2 {
 
 .more-menu {
   position: absolute;
-  bottom: calc(100% + 6px);
-  left: 0;
+  top: 100%;
+  right: 0;
   z-index: 50;
   min-width: 160px;
   padding: 4px;
@@ -568,97 +560,6 @@ h2 {
   font: inherit;
   font-size: 13px;
   resize: vertical;
-}
-
-/* ─── Legacy table (dashboard compact) ──────────────────────────────────── */
-.table-wrap {
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-  background: var(--bg-raised);
-}
-
-th, td {
-  min-width: 0;
-  padding: 11px 14px;
-  border-bottom: 1px solid var(--border);
-  text-align: left;
-  vertical-align: middle;
-}
-
-th {
-  color: var(--text-muted);
-  background: var(--bg-overlay);
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-tr:last-child td { border-bottom: 0; }
-
-td { color: var(--text-primary); font-size: 13px; }
-
-.time-cell {
-  width: 110px;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-
-.truncate-cell {
-  display: block;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* ─── Row actions (legacy compact) ──────────────────────────────────────── */
-.row-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.row-actions button,
-.field-action button {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  min-height: 30px;
-  padding: 0 10px;
-  color: var(--text-secondary);
-  background: var(--bg-subtle);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: background 120ms, color 120ms, border-color 120ms;
-}
-
-.row-actions button:hover,
-.field-action button:hover {
-  background: var(--accent-dim);
-  color: var(--accent);
-  border-color: var(--accent-glow);
-}
-
-.row-actions .danger {
-  color: #f87171;
-  background: rgb(239 68 68 / 8%);
-  border-color: rgb(239 68 68 / 20%);
-}
-
-.row-actions .danger:hover {
-  background: rgb(239 68 68 / 16%);
-  color: #fca5a5;
-  border-color: rgb(239 68 68 / 35%);
 }
 
 /* ─── Settings ───────────────────────────────────────────────────────────── */

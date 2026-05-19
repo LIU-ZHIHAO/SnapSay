@@ -20,7 +20,7 @@ describe('TailKall main renderer', () => {
 
     const recent = screen.getByRole('region', { name: '最近记录' });
     expect(within(recent).getByText('今天 09:18')).toBeInTheDocument();
-    expect(within(recent).getByTitle(/请帮我整理今天会议关于登录体验/)).toBeInTheDocument();
+    expect(within(recent).getByText('会议结论：优化登录体验与首屏性能，排查快捷键冲突。负责人分别跟进，下次例会同步结果。')).toBeInTheDocument();
   });
 
   it('switches to settings and exposes editable voice input configuration', () => {
@@ -83,22 +83,11 @@ describe('TailKall main renderer', () => {
     expect(screen.getByRole('button', { name: /Ctrl \+ Win/ })).toBeInTheDocument();
   });
 
-  it('shows records with clipped long text, hover titles, inline editing, and actions', () => {
+  it('shows records with refined text and actions on the dashboard', () => {
     render(<App />);
 
-    fireEvent.click(screen.getByRole('button', { name: '语音记录' }));
-
-    expect(screen.getByRole('heading', { name: '语音记录' })).toBeInTheDocument();
-
-    const original = screen.getByTitle(/请帮我整理今天会议关于登录体验/);
-    expect(original).toHaveClass('truncate-cell');
-    fireEvent.click(original);
-    expect(screen.getByDisplayValue(/请帮我整理今天会议关于登录体验/)).toBeInTheDocument();
-
-    expect(screen.getAllByRole('button', { name: '复制原文' })[0]).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: '复制整理' })[0]).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: '重新整理' })[0]).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: '再次粘贴' })[0]).toBeInTheDocument();
+    expect(screen.getByText('会议结论：优化登录体验与首屏性能，排查快捷键冲突。负责人分别跟进，下次例会同步结果。')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: '复制' })[0]).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: '删除' })[0]).toBeInTheDocument();
   });
 });

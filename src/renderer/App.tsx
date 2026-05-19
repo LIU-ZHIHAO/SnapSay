@@ -32,7 +32,7 @@ function useTheme(): [Theme, (t: Theme) => void] {
 }
 
 
-type View = 'dashboard' | 'records' | 'settings';
+type View = 'dashboard' | 'settings';
 
 type WordbookEntry = {
   id: string;
@@ -259,7 +259,7 @@ export default function App() {
     setMediaRecorder(recorder);
   };
 
-  const recentRecords = useMemo(() => records.slice(0, 3), [records]);
+  const recentRecords = useMemo(() => records.slice(0, 10), [records]);
 
   const updateSetting = <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => {
     setSettings((current) => {
@@ -309,15 +309,14 @@ export default function App() {
             <span>TailKall</span>
           </div>
           <NavButton active={view === 'dashboard'} icon={<Gauge size={18} />} label="仪表盘" onClick={() => setView('dashboard')} />
-          <NavButton active={view === 'records'} icon={<ClipboardCopy size={18} />} label="语音记录" onClick={() => setView('records')} />
           <NavButton active={view === 'settings'} icon={<Settings size={18} />} label="设置" onClick={() => setView('settings')} />
           <ThemeSwitcher current={theme} onChange={setTheme} />
         </aside>
 
         <section className="content">
-          {view === 'dashboard' && <Dashboard settings={settings} records={recentRecords} />}
-          {view === 'records' && (
-            <RecordsView
+          {view === 'dashboard' && (
+            <Dashboard
+              settings={settings}
               editingRecordId={editingRecordId}
               records={records}
               onCopyOriginal={(record) => copyText(record.original)}
@@ -409,18 +408,30 @@ function NavButton(props: { active: boolean; icon: ReactNode; label: string; onC
   );
 }
 
-function Dashboard({ settings, records }: { settings: SettingsState; records: RecordItem[] }) {
+function Dashboard(props: {
+  settings: SettingsState;
+  records: RecordItem[];
+  editingRecordId?: string | null;
+  onCopyOriginal?: (record: RecordItem) => void;
+  onCopyRefined?: (record: RecordItem) => void;
+  onDelete?: (record: RecordItem) => void;
+  onEdit?: (record: RecordItem) => void;
+  onPaste?: (record: RecordItem) => void;
+  onRewrite?: (record: RecordItem) => void;
+  onSaveCorrection?: (id: string, text: string) => void;
+  onUpdateOriginal?: (record: RecordItem, value: string) => void;
+}) {
   return (
     <div className="view-stack">
       <h1>仪表盘</h1>
       <div className="metric-grid">
-        <Metric icon={<Keyboard />} label="当前触发键" value={settings.triggerKey} />
-        <Metric icon={<Mic />} label="ASR" value={settings.asr} />
-        <Metric icon={<PlugZap />} label="文案整理 API" value={`${settings.provider} / ${settings.model}`} />
+        <Metric icon={<Keyboard />} label="当前触发键" value={props.settings.triggerKey} />
+        <Metric icon={<Mic />} label="ASR" value={props.settings.asr} />
+        <Metric icon={<PlugZap />} label="文案整理 API" value={`${props.settings.provider} / ${props.settings.model}`} />
       </div>
       <section className="panel" aria-label="最近记录">
         <h2>最近记录</h2>
-        <RecordTable compact records={records} />
+        <FullRecordList {...props} />
       </section>
     </div>
   );
@@ -438,82 +449,7 @@ function Metric({ icon, label, value }: { icon: ReactNode; label: string; value:
   );
 }
 
-function RecordsView(props: {
-  records: RecordItem[];
-  editingRecordId: string | null;
-  onCopyOriginal: (record: RecordItem) => void;
-  onCopyRefined: (record: RecordItem) => void;
-  onDelete: (record: RecordItem) => void;
-  onEdit: (record: RecordItem) => void;
-  onPaste: (record: RecordItem) => void;
-  onRewrite: (record: RecordItem) => void;
-  onSaveCorrection: (id: string, text: string) => void;
-  onUpdateOriginal: (record: RecordItem, value: string) => void;
-}) {
-  return (
-    <div className="view-stack">
-      <h1>语音记录</h1>
-      <RecordTable {...props} />
-    </div>
-  );
-}
-
-function RecordTable(props: {
-  records: RecordItem[];
-  compact?: boolean;
-  editingRecordId?: string | null;
-  onCopyOriginal?: (record: RecordItem) => void;
-  onCopyRefined?: (record: RecordItem) => void;
-  onDelete?: (record: RecordItem) => void;
-  onEdit?: (record: RecordItem) => void;
-  onPaste?: (record: RecordItem) => void;
-  onRewrite?: (record: RecordItem) => void;
-  onSaveCorrection?: (id: string, text: string) => void;
-  onUpdateOriginal?: (record: RecordItem, value: string) => void;
-}) {
-  if (props.compact) {
-    return <CompactRecordTable records={props.records} />;
-  }
-  return <FullRecordList {...props} />;
-}
-
-/* ─── Compact table for dashboard ──────────────────────────────────────── */
-function CompactRecordTable({ records }: { records: RecordItem[] }) {
-  return (
-    <div className="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>时间</th>
-            <th>原文</th>
-            <th>整理后</th>
-            <th>状态</th>
-          </tr>
-        </thead>
-        <tbody>
-          {records.map((record) => (
-            <tr key={record.id}>
-              <td className="time-cell">{record.time}</td>
-              <td>
-                <span className="truncate-cell" title={record.original}>
-                  {record.original}
-                </span>
-              </td>
-              <td>
-                <span className="truncate-cell" title={record.refined}>
-                  {record.refined}
-                </span>
-              </td>
-              <td>{record.status}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-/* ─── Full card list for records view ──────────────────────────────────── */
+/* ─── Full card list ──────────────────────────────────────────────────── */
 function FullRecordList(props: {
   records: RecordItem[];
   editingRecordId?: string | null;
@@ -556,92 +492,84 @@ function FullRecordList(props: {
     <div className="record-list">
       {props.records.map((record) => (
         <div className="record-card" key={record.id}>
-          <div className="record-meta">
-            <span>{record.time}</span>
-            <span className={`record-status ${statusClass(record.status)}`}>{record.status}</span>
-            {record.durationMs != null && (
-              <span>{(record.durationMs / 1000).toFixed(1)}s</span>
-            )}
-          </div>
-
-          <div className="record-texts">
-            {props.editingRecordId === record.id ? (
-              <input
-                aria-label="编辑原文"
-                className="inline-editor"
-                onBlur={() => props.onEdit?.({ ...record, id: '' })}
-                onChange={(event) => props.onUpdateOriginal?.(record, event.target.value)}
-                value={record.original}
-              />
-            ) : (
-              <div className="record-original" onClick={() => props.onEdit?.(record)} style={{ cursor: 'text' }}>
-                {record.original}
+          <div className="record-row">
+            <div className="record-content">
+              <div className="record-meta">
+                <span>{record.time}</span>
+                <span className={`record-status ${statusClass(record.status)}`}>{record.status}</span>
+                {record.durationMs != null && (
+                  <span>{(record.durationMs / 1000).toFixed(1)}s</span>
+                )}
               </div>
-            )}
-            {record.refined && (
-              <>
-                <div className="record-divider" />
+
+              {props.editingRecordId === record.id ? (
+                <input
+                  aria-label="编辑原文"
+                  className="inline-editor"
+                  onBlur={() => props.onEdit?.({ ...record, id: '' })}
+                  onChange={(event) => props.onUpdateOriginal?.(record, event.target.value)}
+                  value={record.original}
+                />
+              ) : (
                 <div className="record-refined">{record.refined}</div>
-              </>
-            )}
-          </div>
+              )}
 
-          {expandedCorrectionId === record.id && (
-            <div className="correction-area">
-              <span className="correction-label">粘贴你修正后的完整文本，软件将从中学习词库规律：</span>
-              <textarea
-                aria-label="修正文本"
-                autoFocus
-                className="correction-textarea"
-                onBlur={() => commitCorrection(record)}
-                onChange={(e) => setCorrectionDraft(e.target.value)}
-                placeholder="粘贴修正后的文本…"
-                value={correctionDraft}
-              />
-            </div>
-          )}
-
-          <div className="record-actions">
-            <button className="record-action-btn" onClick={() => props.onCopyRefined?.(record)} type="button">
-              <ClipboardCopy size={13} />
-              复制
-            </button>
-            <button className="record-action-btn danger" onClick={() => props.onDelete?.(record)} type="button">
-              <Trash2 size={13} />
-              删除
-            </button>
-            <div className="more-menu-wrap">
-              <button
-                className="record-action-btn"
-                onClick={() => setOpenMenuId(openMenuId === record.id ? null : record.id)}
-                type="button"
-              >
-                <MoreHorizontal size={13} />
-              </button>
-              {openMenuId === record.id && (
-                <div className="more-menu">
-                  <button onClick={() => { props.onCopyOriginal?.(record); setOpenMenuId(null); }} type="button">
-                    <ClipboardCopy size={13} />
-                    复制原文
-                  </button>
-                  <button onClick={() => { props.onCopyRefined?.(record); setOpenMenuId(null); }} type="button">
-                    <ClipboardCopy size={13} />
-                    复制整理后
-                  </button>
-                  <button onClick={() => { props.onRewrite?.(record); setOpenMenuId(null); }} type="button">
-                    <RefreshCcw size={13} />
-                    重新整理
-                  </button>
-                  <button onClick={() => { props.onPaste?.(record); setOpenMenuId(null); }} type="button">
-                    <WandSparkles size={13} />
-                    再次粘贴
-                  </button>
-                  <button onClick={() => openCorrection(record)} type="button">
-                    <PenLine size={13} />
-                    {record.userCorrection ? '修正已提交' : '提交修正'}
-                  </button>
+              {expandedCorrectionId === record.id && (
+                <div className="correction-area">
+                  <span className="correction-label">粘贴你修正后的完整文本，软件将从中学习词库规律：</span>
+                  <textarea
+                    aria-label="修正文本"
+                    autoFocus
+                    className="correction-textarea"
+                    onBlur={() => commitCorrection(record)}
+                    onChange={(e) => setCorrectionDraft(e.target.value)}
+                    placeholder="粘贴修正后的文本…"
+                    value={correctionDraft}
+                  />
                 </div>
               )}
+            </div>
+
+            <div className="record-actions">
+              <button className="record-action-btn" aria-label="复制" onClick={() => props.onCopyRefined?.(record)} type="button">
+                <ClipboardCopy size={13} />
+              </button>
+              <button className="record-action-btn danger" aria-label="删除" onClick={() => props.onDelete?.(record)} type="button">
+                <Trash2 size={13} />
+              </button>
+              <div className="more-menu-wrap">
+                <button
+                  className="record-action-btn"
+                  onClick={() => setOpenMenuId(openMenuId === record.id ? null : record.id)}
+                  type="button"
+                >
+                  <MoreHorizontal size={13} />
+                </button>
+                {openMenuId === record.id && (
+                  <div className="more-menu">
+                    <button onClick={() => { props.onCopyOriginal?.(record); setOpenMenuId(null); }} type="button">
+                      <ClipboardCopy size={13} />
+                      复制原文
+                    </button>
+                    <button onClick={() => { props.onCopyRefined?.(record); setOpenMenuId(null); }} type="button">
+                      <ClipboardCopy size={13} />
+                      复制整理后
+                    </button>
+                    <button onClick={() => { props.onRewrite?.(record); setOpenMenuId(null); }} type="button">
+                      <RefreshCcw size={13} />
+                      重新整理
+                    </button>
+                    <button onClick={() => { props.onPaste?.(record); setOpenMenuId(null); }} type="button">
+                      <WandSparkles size={13} />
+                      再次粘贴
+                    </button>
+                    <button onClick={() => openCorrection(record)} type="button">
+                      <PenLine size={13} />
+                      {record.userCorrection ? '修正已提交' : '提交修正'}
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
