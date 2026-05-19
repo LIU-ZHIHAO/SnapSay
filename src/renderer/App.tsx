@@ -73,7 +73,7 @@ declare global {
 const demoSettings: SettingsState = {
   triggerKey: 'Ctrl + Alt + Space',
   recordMode: '按住说话',
-  asr: 'whisper.cpp',
+  asr: 'SenseVoice',
   asrAcceleration: 'GPU 优先',
   localModelDir: 'D:\\Antigravity\\tailkall\\models',
   localAsrExePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\Release\\whisper-cli.exe',

@@ -75,9 +75,11 @@ let isRecording = false;
 let activeTriggerAccelerator: string | undefined;
 let stopLowLevelTrigger: (() => void) | undefined;
 let asrDaemonPort: number | undefined;
+let asrDaemonEngine: 'sensevoice' | 'faster-whisper' | undefined;
 const execFileAsync = promisify(execFile);
 const LONG_PRESS_MS = 350;
-const ASR_PORT_FILE = join('D:\\Antigravity', 'tailkall', 'data', 'asr-daemon.port');
+const ASR_PORT_FILE_SV = join('D:\\Antigravity', 'tailkall', 'data', 'asr-daemon.port');
+const ASR_PORT_FILE_FW = join('D:\\Antigravity', 'tailkall', 'data', 'asr-daemon-fw.port');
 
 app.setPath('userData', join('D:\\Antigravity', 'tailkall', 'data', 'electron'));
 app.setPath('logs', join('D:\\Antigravity', 'tailkall', 'logs'));
@@ -100,29 +102,32 @@ function defaultDataRoot(): string {
 }
 
 async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>): Promise<void> {
-  if (!/sensevoice|funasr/i.test(settings.input.asr)) {
-    return;
-  }
-  try {
-    unlinkSync(ASR_PORT_FILE);
-  } catch {
-    // file may not exist
-  }
+  const asrName = settings.input.asr;
+  const isSenseVoice = /sensevoice|funasr/i.test(asrName);
+  const isFasterWhisper = /faster-whisper/i.test(asrName);
+  if (!isSenseVoice && !isFasterWhisper) return;
 
-  const pythonPath = settings.input.pythonPath;
-  const scriptPath = join('D:\\Antigravity', 'tailkall', 'scripts', 'asr-daemon.py');
-  const modelPath = settings.input.senseVoiceModelPath;
-  const device = settings.input.asrAcceleration === 'CPU' ? 'cpu' : 'cuda:0';
+  const portFile = isSenseVoice ? ASR_PORT_FILE_SV : ASR_PORT_FILE_FW;
+  const scriptPath = isSenseVoice
+    ? join('D:\\Antigravity', 'tailkall', 'scripts', 'asr-daemon.py')
+    : join('D:\\Antigravity', 'tailkall', 'scripts', 'asr-daemon-fw.py');
+  const modelPath = isSenseVoice
+    ? settings.input.senseVoiceModelPath
+    : settings.input.fasterWhisperModelPath;
+  const device = settings.input.asrAcceleration === 'CPU' ? 'cpu' : (isSenseVoice ? 'cuda:0' : 'cuda');
 
-  const daemon = spawn(pythonPath, [scriptPath], {
+  try { unlinkSync(portFile); } catch { /* ignore */ }
+
+  const daemon = spawn(settings.input.pythonPath, [scriptPath], {
     cwd: join('D:\\Antigravity', 'tailkall'),
     env: {
       ...process.env,
       ASR_MODEL_PATH: modelPath,
       ASR_DEVICE: device,
-      ASR_PORT_FILE: ASR_PORT_FILE,
+      ASR_PORT_FILE: portFile,
       MODELSCOPE_CACHE: join('D:\\Antigravity', 'tailkall', 'cache', 'modelscope'),
-      HF_HOME: join('D:\\Antigravity', 'tailkall', 'cache', 'huggingface')
+      HF_HOME: join('D:\\Antigravity', 'tailkall', 'cache', 'huggingface'),
+      HUGGINGFACE_HUB_CACHE: join('D:\\Antigravity', 'tailkall', 'cache', 'huggingface', 'hub')
     },
     windowsHide: true,
     stdio: 'ignore',
@@ -133,26 +138,24 @@ async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>
 
   app.on('will-quit', () => {
     try { daemon.kill(); } catch { /* ignore */ }
-    try { unlinkSync(ASR_PORT_FILE); } catch { /* ignore */ }
+    try { unlinkSync(portFile); } catch { /* ignore */ }
   });
 
-  // Poll for port file (daemon writes it once model is loaded and ready)
   await new Promise<void>((resolve) => {
     const start = Date.now();
     const poll = setInterval(() => {
       try {
-        const port = parseInt(readFileSync(ASR_PORT_FILE, 'utf-8').trim(), 10);
+        const port = parseInt(readFileSync(portFile, 'utf-8').trim(), 10);
         if (port > 0) {
           asrDaemonPort = port;
+          asrDaemonEngine = isSenseVoice ? 'sensevoice' : 'faster-whisper';
           clearInterval(poll);
           resolve();
         }
-      } catch {
-        // not ready yet
-      }
+      } catch { /* not ready yet */ }
       if (Date.now() - start > 30_000) {
         clearInterval(poll);
-        resolve(); // give up, fall back to subprocess
+        resolve();
       }
     }, 100);
   });
@@ -635,7 +638,7 @@ function createConfiguredAsrProvider(settings: ReturnType<SettingsStore['getSett
     acceleration: settings.input.asrAcceleration === 'CPU' ? ('cpu' as const) : ('auto-gpu' as const)
   };
   if (/sensevoice|funasr/i.test(asrName)) {
-    if (asrDaemonPort) {
+    if (asrDaemonPort && asrDaemonEngine === 'sensevoice') {
       return createAsrDaemonProvider(asrDaemonPort);
     }
     return createPythonAsrProvider({
@@ -646,6 +649,9 @@ function createConfiguredAsrProvider(settings: ReturnType<SettingsStore['getSett
     });
   }
   if (/faster-whisper/i.test(asrName)) {
+    if (asrDaemonPort && asrDaemonEngine === 'faster-whisper') {
+      return createAsrDaemonProvider(asrDaemonPort);
+    }
     return createPythonAsrProvider({
       ...commonPythonOptions,
       engine: 'faster-whisper',
