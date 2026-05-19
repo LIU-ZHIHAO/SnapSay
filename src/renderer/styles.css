@@ -844,8 +844,8 @@ select option { background: var(--bg-overlay); }
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 0 16px;
+  gap: 6px;
+  padding: 0 10px;
   height: 100%;
   color: #ffffff;
   background: linear-gradient(135deg, var(--cap-rec-from) 0%, var(--cap-rec-to) 100%);
