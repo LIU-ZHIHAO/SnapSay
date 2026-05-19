@@ -16,6 +16,14 @@ import ModelsView from './ModelsView';
 import './styles.css';
 
 type View = 'dashboard' | 'models' | 'settings';
+type Appearance = 'light' | 'dark' | 'pink' | 'green';
+
+const APPEARANCES: { id: Appearance; label: string }[] = [
+  { id: 'light', label: '浅色' },
+  { id: 'dark', label: '深色' },
+  { id: 'pink', label: '柔粉' },
+  { id: 'green', label: '青绿' }
+];
 
 type WordbookEntry = {
   id: string;
@@ -157,7 +165,21 @@ function getFacade(): TailKallFacade {
   return window.tailkall ?? {};
 }
 
+function useAppearance(): [Appearance, (appearance: Appearance) => void] {
+  const [appearance, setAppearance] = useState<Appearance>(() => {
+    return (localStorage.getItem('tailkall-appearance') as Appearance | null) ?? 'light';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-appearance', appearance);
+    localStorage.setItem('tailkall-appearance', appearance);
+  }, [appearance]);
+
+  return [appearance, setAppearance];
+}
+
 export default function App() {
+  const [appearance, setAppearance] = useAppearance();
   const [view, setView] = useState<View>('dashboard');
   const [settings, setSettings] = useState<SettingsState>(demoSettings);
   const [records, setRecords] = useState<RecordItem[]>(demoRecords);
@@ -277,7 +299,6 @@ export default function App() {
 
   return (
     <div className="window-shell">
-      <WindowTitlebar />
       <main className="app-shell">
         <aside className="sidebar" aria-label="主导航">
           <div className="brand">
@@ -289,6 +310,7 @@ export default function App() {
           <NavButton active={view === 'settings'} icon={<Settings size={18} />} label="设置" onClick={() => setView('settings')} />
         </aside>
 
+        <WindowControls />
         <section className="content">
           {view === 'dashboard' && (
             <Dashboard
@@ -315,7 +337,9 @@ export default function App() {
           )}
           {view === 'settings' && (
             <SettingsView
+              appearance={appearance}
               settings={settings}
+              onAppearanceChange={setAppearance}
               onUpdate={updateSetting}
             />
           )}
@@ -325,29 +349,23 @@ export default function App() {
   );
 }
 
-function WindowTitlebar() {
+function WindowControls() {
   const control = (action: 'minimize' | 'toggle-maximize' | 'close') => {
     void getFacade().windowControl?.(action);
   };
 
   return (
-    <header aria-label="TailKall 窗口栏" className="window-titlebar">
-      <div className="window-title">
-        <Mic size={15} />
-        <span>TailKall</span>
-      </div>
-      <div className="window-controls">
-        <button aria-label="最小化" onClick={() => control('minimize')} type="button">
-          <span aria-hidden="true">-</span>
-        </button>
-        <button aria-label="最大化或还原" onClick={() => control('toggle-maximize')} type="button">
-          <span aria-hidden="true">□</span>
-        </button>
-        <button aria-label="关闭" className="close" onClick={() => control('close')} type="button">
-          <span aria-hidden="true">×</span>
-        </button>
-      </div>
-    </header>
+    <div aria-label="窗口控制" className="window-controls" role="toolbar">
+      <button aria-label="最小化" onClick={() => control('minimize')} type="button">
+        <span aria-hidden="true">-</span>
+      </button>
+      <button aria-label="最大化或还原" onClick={() => control('toggle-maximize')} type="button">
+        <span aria-hidden="true">□</span>
+      </button>
+      <button aria-label="关闭" className="close" onClick={() => control('close')} type="button">
+        <span aria-hidden="true">×</span>
+      </button>
+    </div>
   );
 }
 
@@ -520,7 +538,9 @@ function FullRecordList(props: {
 }
 
 function SettingsView(props: {
+  appearance: Appearance;
   settings: SettingsState;
+  onAppearanceChange: (appearance: Appearance) => void;
   onUpdate: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void;
 }) {
   const { settings, onUpdate } = props;
@@ -565,6 +585,10 @@ function SettingsView(props: {
   return (
     <div className="view-stack settings-view">
       <h1>设置</h1>
+      <section className="panel settings-card">
+        <h2>外观</h2>
+        <AppearanceSelector current={props.appearance} onChange={props.onAppearanceChange} />
+      </section>
       <section className="panel settings-card">
         <h2>快捷键</h2>
         <div className="form-grid">
@@ -737,6 +761,25 @@ function SettingsView(props: {
           {learnStatus && <span className="test-status">{learnStatus}</span>}
         </div>
       </section>
+    </div>
+  );
+}
+
+function AppearanceSelector(props: { current: Appearance; onChange: (appearance: Appearance) => void }) {
+  return (
+    <div aria-label="界面风格" className="appearance-selector" role="radiogroup">
+      {APPEARANCES.map((appearance) => (
+        <button
+          aria-checked={props.current === appearance.id}
+          className={props.current === appearance.id ? 'appearance-option active' : 'appearance-option'}
+          key={appearance.id}
+          onClick={() => props.onChange(appearance.id)}
+          role="radio"
+          type="button"
+        >
+          {appearance.label}
+        </button>
+      ))}
     </div>
   );
 }

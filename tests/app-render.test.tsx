@@ -6,7 +6,8 @@ describe('TailKall main renderer', () => {
   it('renders the dashboard with trigger, ASR, rewrite API, and recent records', async () => {
     render(<App />);
 
-    expect(screen.getByRole('banner', { name: 'TailKall 窗口栏' })).toBeInTheDocument();
+    expect(screen.queryByRole('banner', { name: 'TailKall 窗口栏' })).not.toBeInTheDocument();
+    expect(screen.getByRole('toolbar', { name: '窗口控制' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '最小化' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '最大化或还原' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '关闭' })).toBeInTheDocument();
@@ -39,6 +40,8 @@ describe('TailKall main renderer', () => {
     expect(screen.getByLabelText('长按动作')).toHaveValue('语音助手');
     expect(screen.getByLabelText('输出模式')).toHaveValue('粘贴到当前光标');
     expect(screen.getByLabelText('数据目录')).toHaveValue('D:\\Antigravity\\tailkall\\data');
+    expect(screen.getByRole('radiogroup', { name: '界面风格' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: '浅色' })).toHaveAttribute('aria-checked', 'true');
     expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
   });
 

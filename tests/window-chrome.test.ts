@@ -19,10 +19,11 @@ describe('custom window chrome', () => {
     expect(preloadSource).toContain('tailkall:window-control');
   });
 
-  it('marks the custom title bar as draggable while keeping buttons interactive', () => {
+  it('integrates the draggable chrome into the app shell while keeping buttons interactive', () => {
     const css = readFileSync(join(process.cwd(), 'src', 'renderer', 'styles.css'), 'utf8');
 
-    expect(css).toMatch(/\.window-titlebar\s*\{[^}]*app-region:\s*drag/s);
+    expect(css).not.toContain('.window-titlebar');
+    expect(css).toMatch(/\.app-shell\s*\{[^}]*app-region:\s*drag/s);
     expect(css).toMatch(/\.window-controls button\s*\{[^}]*app-region:\s*no-drag/s);
   });
 });

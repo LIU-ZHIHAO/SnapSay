@@ -6,14 +6,23 @@ describe('TailKall UI consistency', () => {
   const css = readFileSync(join(process.cwd(), 'src', 'renderer', 'styles.css'), 'utf8');
   const appSource = readFileSync(join(process.cwd(), 'src', 'renderer', 'App.tsx'), 'utf8');
 
-  it('uses a single light Windows client design system by default', () => {
+  it('uses a unified Windows client design system by default', () => {
     expect(css).toMatch(/:root\s*\{[^}]*--bg-base:\s*#f6f7f9/s);
     expect(css).toMatch(/:root\s*\{[^}]*--surface-sidebar:\s*#f7f8fa/s);
     expect(css).toMatch(/:root\s*\{[^}]*--radius-panel:\s*18px/s);
-    expect(css).not.toContain('[data-theme="pink"]');
-    expect(css).not.toContain('[data-theme="green"]');
     expect(appSource).not.toContain('ThemeSwitcher');
     expect(appSource).not.toContain('tailkall-theme');
+  });
+
+  it('keeps four appearance styles on token overrides instead of duplicate component skins', () => {
+    for (const style of ['light', 'dark', 'pink', 'green']) {
+      expect(css).toContain(`[data-appearance="${style}"]`);
+    }
+    expect(css).toMatch(/\[data-appearance="dark"\]\s*\{[^}]*--bg-base:/s);
+    expect(css).toMatch(/\[data-appearance="pink"\]\s*\{[^}]*--accent:/s);
+    expect(css).toMatch(/\[data-appearance="green"\]\s*\{[^}]*--accent:/s);
+    expect(appSource).toContain('AppearanceSelector');
+    expect(appSource).toContain('tailkall-appearance');
   });
 
   it('does not contain legacy mixed-style hardcoded colors from the old UI', () => {
