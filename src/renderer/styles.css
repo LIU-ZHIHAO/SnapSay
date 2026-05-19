@@ -494,9 +494,8 @@ button:focus-visible {
   inset: 0;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
   gap: 7px;
-  padding: 0 14px;
+  padding: 0 12px;
   color: #ffffff;
   background: #109261;
   border-radius: 20px;
@@ -521,16 +520,17 @@ button:focus-visible {
 }
 
 .waveform {
-  flex: 0 0 auto;
-  display: inline-flex;
+  flex: 1 1 0;
+  display: flex;
   align-items: center;
-  gap: 2px;
+  justify-content: space-between;
   height: 20px;
-  margin-left: 2px;
+  min-width: 0;
 }
 
 .waveform span {
-  width: 3px;
+  flex: 1 1 0;
+  max-width: 4px;
   height: 8px;
   border-radius: 999px;
   background: rgb(255 255 255 / 80%);

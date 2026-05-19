@@ -38,8 +38,8 @@ export function FloatingWindow({ state = 'recognizing' }: { state?: FloatingStat
       <span className="floating-label">{meta.label}</span>
       {meta.showWave && (
         <div className="waveform" aria-hidden="true">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <span data-testid="wave-bar" key={index} style={{ animationDelay: `${index * 110}ms` }} />
+          {Array.from({ length: 6 }).map((_, index) => (
+            <span data-testid="wave-bar" key={index} style={{ animationDelay: `${index * 80}ms` }} />
           ))}
         </div>
       )}
