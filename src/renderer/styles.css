@@ -295,8 +295,8 @@ input[type="number"] {
   overflow: auto;
   padding: 72px 34px 30px;
   background: var(--bg-base);
-  -webkit-app-region: no-drag;
-  app-region: no-drag;
+  -webkit-app-region: drag;
+  app-region: drag;
 }
 
 .view-stack {
@@ -304,6 +304,8 @@ input[type="number"] {
   flex-direction: column;
   gap: 22px;
   max-width: 1080px;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
 }
 
 h1,

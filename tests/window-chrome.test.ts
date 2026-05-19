@@ -2,6 +2,11 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+function cssBlock(css: string, selector: string): string {
+  const match = new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`, 's').exec(css);
+  return match?.[1] ?? '';
+}
+
 describe('custom window chrome', () => {
   it('creates the main window without the native frame or menu bar', () => {
     const mainSource = readFileSync(join(process.cwd(), 'src', 'main', 'main.ts'), 'utf8');
@@ -25,5 +30,13 @@ describe('custom window chrome', () => {
     expect(css).not.toContain('.window-titlebar');
     expect(css).toMatch(/\.app-shell\s*\{[^}]*app-region:\s*drag/s);
     expect(css).toMatch(/\.window-controls button\s*\{[^}]*app-region:\s*no-drag/s);
+  });
+
+  it('keeps the right-side chrome background draggable and scopes no-drag to content views', () => {
+    const css = readFileSync(join(process.cwd(), 'src', 'renderer', 'styles.css'), 'utf8');
+
+    expect(cssBlock(css, '.content')).toMatch(/app-region:\s*drag/);
+    expect(cssBlock(css, '.content')).not.toMatch(/app-region:\s*no-drag/);
+    expect(cssBlock(css, '.view-stack')).toMatch(/app-region:\s*no-drag/);
   });
 });
