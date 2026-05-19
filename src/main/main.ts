@@ -1,6 +1,6 @@
 import { app, BrowserWindow, clipboard, globalShortcut, ipcMain, nativeImage, screen } from 'electron';
-import { execFile } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { execFile, spawn } from 'node:child_process';
+import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
@@ -13,7 +13,7 @@ import {
   type MouseTrigger,
   type TriggerBinding
 } from './inputController.js';
-import { cleanupText, createPythonAsrProvider, createWhisperCppAsrProvider, testCleanupProvider, type FetchLike } from './providers.js';
+import { cleanupText, createAsrDaemonProvider, createPythonAsrProvider, createWhisperCppAsrProvider, testCleanupProvider, type FetchLike } from './providers.js';
 import { runRecordingPipeline } from './recorderCoordinator.js';
 import { createElectronStoreAdapter, createSettingsStore, type SettingsStore } from './settingsStore.js';
 
@@ -74,8 +74,10 @@ let settingsStore: SettingsStore | undefined;
 let isRecording = false;
 let activeTriggerAccelerator: string | undefined;
 let stopLowLevelTrigger: (() => void) | undefined;
+let asrDaemonPort: number | undefined;
 const execFileAsync = promisify(execFile);
 const LONG_PRESS_MS = 350;
+const ASR_PORT_FILE = join('D:\\Antigravity', 'tailkall', 'data', 'asr-daemon.port');
 
 app.setPath('userData', join('D:\\Antigravity', 'tailkall', 'data', 'electron'));
 app.setPath('logs', join('D:\\Antigravity', 'tailkall', 'logs'));
@@ -95,6 +97,65 @@ function rendererUrl(page: 'index.html' | 'floating.html'): string {
 
 function defaultDataRoot(): string {
   return join('D:\\Antigravity', 'tailkall', 'data');
+}
+
+async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>): Promise<void> {
+  if (!/sensevoice|funasr/i.test(settings.input.asr)) {
+    return;
+  }
+  try {
+    unlinkSync(ASR_PORT_FILE);
+  } catch {
+    // file may not exist
+  }
+
+  const pythonPath = settings.input.pythonPath;
+  const scriptPath = join('D:\\Antigravity', 'tailkall', 'scripts', 'asr-daemon.py');
+  const modelPath = settings.input.senseVoiceModelPath;
+  const device = settings.input.asrAcceleration === 'CPU' ? 'cpu' : 'cuda:0';
+
+  const daemon = spawn(pythonPath, [scriptPath], {
+    cwd: join('D:\\Antigravity', 'tailkall'),
+    env: {
+      ...process.env,
+      ASR_MODEL_PATH: modelPath,
+      ASR_DEVICE: device,
+      ASR_PORT_FILE: ASR_PORT_FILE,
+      MODELSCOPE_CACHE: join('D:\\Antigravity', 'tailkall', 'cache', 'modelscope'),
+      HF_HOME: join('D:\\Antigravity', 'tailkall', 'cache', 'huggingface')
+    },
+    windowsHide: true,
+    stdio: 'ignore',
+    detached: false
+  });
+
+  daemon.unref();
+
+  app.on('will-quit', () => {
+    try { daemon.kill(); } catch { /* ignore */ }
+    try { unlinkSync(ASR_PORT_FILE); } catch { /* ignore */ }
+  });
+
+  // Poll for port file (daemon writes it once model is loaded and ready)
+  await new Promise<void>((resolve) => {
+    const start = Date.now();
+    const poll = setInterval(() => {
+      try {
+        const port = parseInt(readFileSync(ASR_PORT_FILE, 'utf-8').trim(), 10);
+        if (port > 0) {
+          asrDaemonPort = port;
+          clearInterval(poll);
+          resolve();
+        }
+      } catch {
+        // not ready yet
+      }
+      if (Date.now() - start > 30_000) {
+        clearInterval(poll);
+        resolve(); // give up, fall back to subprocess
+      }
+    }, 100);
+  });
 }
 
 async function createMainWindow(): Promise<void> {
@@ -574,6 +635,9 @@ function createConfiguredAsrProvider(settings: ReturnType<SettingsStore['getSett
     acceleration: settings.input.asrAcceleration === 'CPU' ? ('cpu' as const) : ('auto-gpu' as const)
   };
   if (/sensevoice|funasr/i.test(asrName)) {
+    if (asrDaemonPort) {
+      return createAsrDaemonProvider(asrDaemonPort);
+    }
     return createPythonAsrProvider({
       ...commonPythonOptions,
       engine: 'sensevoice-funasr',
@@ -640,6 +704,8 @@ app.whenReady().then(async () => {
   await createFloating();
   updateFloatingState({ visible: false, recording: false });
   const startupSettings = settingsStore.getSettings();
+  // Start ASR daemon in background — don't await, it loads while user interacts with the app
+  void startAsrDaemon(startupSettings);
   await registerConfiguredTrigger(startupSettings.input.triggerLabel, startupSettings.input.smartMouseMode);
 
   app.on('activate', () => {

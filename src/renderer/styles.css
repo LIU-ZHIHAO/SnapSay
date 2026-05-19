@@ -494,7 +494,7 @@ button:focus-visible {
   inset: 0;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   padding: 0 12px;
   color: #ffffff;
   background: #109261;
@@ -504,13 +504,6 @@ button:focus-visible {
   -webkit-app-region: drag;
   app-region: drag;
   cursor: grab;
-}
-
-.floating-icon {
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  opacity: 0.85;
 }
 
 .floating-label {
@@ -537,12 +530,23 @@ button:focus-visible {
   animation: wave 700ms ease-in-out infinite;
 }
 
+.waveform span.paused {
+  height: 4px;
+  animation: none;
+  opacity: 0.5;
+}
+
 .state-done {
   background: #0f7f5c;
 }
 
 .state-failed {
   background: #b42328;
+}
+
+.state-recognizing,
+.state-rewriting {
+  background: #0a7a52;
 }
 
 .spin {

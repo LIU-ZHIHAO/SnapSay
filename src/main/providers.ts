@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
 import { access, readFile, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
+import { createConnection, type Socket } from 'node:net';
 import { promisify } from 'node:util';
 import type { CleanupProviderConfig } from './settingsStore';
 
@@ -342,4 +343,63 @@ function readAssistantContent(json: unknown): string | undefined {
 
 function sanitizeProviderError(message: string, apiKey: string): string {
   return message.split(apiKey).join(maskApiKey(apiKey));
+}
+
+export type AsrDaemonClient = {
+  transcribe(audio: ArrayBuffer): Promise<AsrResult>;
+  close(): void;
+};
+
+export function createAsrDaemonProvider(port: number): AsrProvider {
+  let socket: Socket | undefined;
+
+  function getSocket(): Promise<Socket> {
+    if (socket && !socket.destroyed) {
+      return Promise.resolve(socket);
+    }
+    return new Promise((resolve, reject) => {
+      const s = createConnection({ host: '127.0.0.1', port }, () => resolve(s));
+      s.on('error', reject);
+      socket = s;
+    });
+  }
+
+  return {
+    name: 'sensevoice-daemon',
+    async transcribe(audio: ArrayBuffer): Promise<AsrResult> {
+      const s = await getSocket();
+      const buf = Buffer.from(audio);
+      const header = Buffer.allocUnsafe(4);
+      header.writeUInt32BE(buf.length, 0);
+      s.write(header);
+      s.write(buf);
+
+      const text = await new Promise<string>((resolve, reject) => {
+        let acc = '';
+        const onData = (chunk: Buffer) => {
+          acc += chunk.toString('utf-8');
+          const nl = acc.indexOf('\n');
+          if (nl === -1) return;
+          s.off('data', onData);
+          s.off('error', onError);
+          try {
+            const parsed = JSON.parse(acc.slice(0, nl)) as { text?: string; error?: string };
+            if (parsed.error) reject(new Error(parsed.error));
+            else resolve(parsed.text ?? '');
+          } catch (e) {
+            reject(e);
+          }
+        };
+        const onError = (err: Error) => {
+          s.off('data', onData);
+          socket = undefined;
+          reject(err);
+        };
+        s.on('data', onData);
+        s.on('error', onError);
+      });
+
+      return { text, provider: 'sensevoice-daemon' };
+    }
+  };
 }

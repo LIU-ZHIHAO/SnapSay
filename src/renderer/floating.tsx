@@ -1,6 +1,5 @@
 import { createRoot } from 'react-dom/client';
-import { useEffect, useState, type ReactNode } from 'react';
-import { CheckCircle2, LoaderCircle, Mic, XCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import './styles.css';
 
 export type FloatingState = 'recording' | 'recognizing' | 'rewriting' | 'done' | 'failed';
@@ -19,30 +18,30 @@ declare global {
   }
 }
 
-type StateMeta = { label: string; icon: ReactNode; showWave?: boolean };
-
-const stateMeta: Record<FloatingState, StateMeta> = {
-  recording: { label: '录音中', icon: <Mic size={14} />, showWave: true },
-  recognizing: { label: '转写', icon: <LoaderCircle className="spin" size={14} /> },
-  rewriting: { label: '转写', icon: <LoaderCircle className="spin" size={14} /> },
-  done: { label: '已输入', icon: <CheckCircle2 size={14} /> },
-  failed: { label: '失败', icon: <XCircle size={14} /> }
+const stateLabel: Record<FloatingState, string> = {
+  recording: '录音中',
+  recognizing: '转写中',
+  rewriting: '转写中',
+  done: '已输入',
+  failed: '失败'
 };
 
 export function FloatingWindow({ state = 'recognizing' }: { state?: FloatingState }) {
-  const meta = stateMeta[state];
+  const showWave = state === 'recording';
 
   return (
     <div aria-label="语音输入状态" className={`floating-capsule state-${state}`} role="status">
-      <div className="floating-icon">{meta.icon}</div>
-      <span className="floating-label">{meta.label}</span>
-      {meta.showWave && (
-        <div className="waveform" aria-hidden="true">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <span data-testid="wave-bar" key={index} style={{ animationDelay: `${index * 80}ms` }} />
-          ))}
-        </div>
-      )}
+      <span className="floating-label">{stateLabel[state]}</span>
+      <div className="waveform" aria-hidden="true">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <span
+            className={showWave ? '' : 'paused'}
+            data-testid="wave-bar"
+            key={index}
+            style={{ animationDelay: `${index * 80}ms` }}
+          />
+        ))}
+      </div>
     </div>
   );
 }
