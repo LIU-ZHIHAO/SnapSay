@@ -48,6 +48,22 @@ describe('TailKall main renderer', () => {
     expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
   });
 
+  it('captures the next keyboard or mouse trigger in the settings page', () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '设置' }));
+    fireEvent.click(screen.getByRole('button', { name: /重新捕获/ }));
+
+    expect(screen.getByText('按下键盘按键、组合键或鼠标中键/侧键')).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: 'F9', code: 'F9' });
+    expect(screen.getByLabelText('当前触发键')).toHaveValue('F9');
+
+    fireEvent.click(screen.getByRole('button', { name: /重新捕获/ }));
+    fireEvent.mouseDown(window, { button: 1 });
+    expect(screen.getByLabelText('当前触发键')).toHaveValue('Mouse Middle');
+  });
+
   it('shows records with clipped long text, hover titles, inline editing, and actions', () => {
     render(<App />);
 

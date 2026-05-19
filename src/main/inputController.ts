@@ -33,6 +33,27 @@ export function triggerToAccelerator(trigger: KeyboardTrigger): string {
   return parts.join('+');
 }
 
+export function parseTriggerLabelToAccelerator(label: string): string | undefined {
+  const normalized = label.trim();
+  if (!normalized || /^mouse/i.test(normalized)) {
+    return undefined;
+  }
+
+  const parts = normalized
+    .split('+')
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const key = parts.pop();
+  if (!key) {
+    return undefined;
+  }
+
+  return triggerToAccelerator({
+    key,
+    modifiers: parts.map((part) => part.toLowerCase() as TriggerModifier)
+  });
+}
+
 export function registerKeyboardTrigger(
   trigger: KeyboardTrigger,
   handler: () => void,

@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { createFloatingWindow, updateFloatingState } from './floatingWindow.js';
-import { pasteTextToCursor } from './inputController.js';
+import { parseTriggerLabelToAccelerator, pasteTextToCursor } from './inputController.js';
 import { cleanupText, createPythonAsrProvider, createWhisperCppAsrProvider, testCleanupProvider, type FetchLike } from './providers.js';
 import { runRecordingPipeline } from './recorderCoordinator.js';
 import { createElectronStoreAdapter, createSettingsStore, type SettingsStore } from './settingsStore.js';
@@ -33,6 +33,7 @@ type RendererSettings = {
 let mainWindow: BrowserWindow | undefined;
 let settingsStore: SettingsStore | undefined;
 let isRecording = false;
+let activeTriggerAccelerator: string | undefined;
 const execFileAsync = promisify(execFile);
 
 app.setPath('userData', join('D:\\Antigravity', 'tailkall', 'data', 'electron'));
@@ -157,7 +158,7 @@ function installIpcHandlers(): void {
   });
 
   ipcMain.handle('tailkall:save-settings', (_event, settings: RendererSettings) => {
-    settingsStore?.saveSettings({
+    const saved = settingsStore?.saveSettings({
       cleanup: {
         enabled: Boolean(settings.apiKey && settings.model),
         provider: {
@@ -186,6 +187,7 @@ function installIpcHandlers(): void {
         dataDir: settings.dataDir
       }
     });
+    registerConfiguredTrigger(saved?.input.triggerLabel ?? settings.triggerKey);
     return settings;
   });
 
@@ -286,6 +288,29 @@ function installIpcHandlers(): void {
   ipcMain.handle('tailkall:capture-trigger-key', () => 'F8');
 }
 
+function toggleRecording(): void {
+  isRecording = !isRecording;
+  if (isRecording) {
+    updateFloatingState({ visible: true, recording: true, status: 'recording' });
+    mainWindow?.webContents.send('tailkall:recording-start');
+  } else {
+    updateFloatingState({ visible: true, recording: false, status: 'recognizing' });
+    mainWindow?.webContents.send('tailkall:recording-stop');
+  }
+}
+
+function registerConfiguredTrigger(label: string | undefined): void {
+  if (activeTriggerAccelerator) {
+    globalShortcut.unregister(activeTriggerAccelerator);
+    activeTriggerAccelerator = undefined;
+  }
+
+  const accelerator = parseTriggerLabelToAccelerator(label || 'F8') ?? 'F8';
+  if (globalShortcut.register(accelerator, toggleRecording)) {
+    activeTriggerAccelerator = accelerator;
+  }
+}
+
 function createConfiguredAsrProvider(settings: ReturnType<SettingsStore['getSettings']>, durationMs: number) {
   const asrName = settings.input.asr;
   const commonPythonOptions = {
@@ -360,17 +385,7 @@ app.whenReady().then(async () => {
   await createMainWindow();
   await createFloating();
   updateFloatingState({ visible: false, recording: false });
-
-  globalShortcut.register('F8', () => {
-    isRecording = !isRecording;
-    if (isRecording) {
-      updateFloatingState({ visible: true, recording: true, status: 'recording' });
-      mainWindow?.webContents.send('tailkall:recording-start');
-    } else {
-      updateFloatingState({ visible: true, recording: false, status: 'recognizing' });
-      mainWindow?.webContents.send('tailkall:recording-stop');
-    }
-  });
+  registerConfiguredTrigger(settingsStore.getSettings().input.triggerLabel);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

@@ -121,6 +121,7 @@ export default function App() {
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [testStatus, setTestStatus] = useState('未测试');
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [isCapturingTrigger, setIsCapturingTrigger] = useState(false);
 
   useEffect(() => {
     getFacade()
@@ -145,6 +146,39 @@ export default function App() {
       offStop?.();
     };
   }, [mediaRecorder]);
+
+  useEffect(() => {
+    if (!isCapturingTrigger) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const label = formatKeyboardTrigger(event);
+      if (label) {
+        updateSetting('triggerKey', label);
+        setIsCapturingTrigger(false);
+      }
+    };
+    const handleMouseDown = (event: MouseEvent) => {
+      const label = formatMouseTrigger(event);
+      if (!label) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      updateSetting('triggerKey', label);
+      setIsCapturingTrigger(false);
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    window.addEventListener('mousedown', handleMouseDown, true);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, true);
+      window.removeEventListener('mousedown', handleMouseDown, true);
+    };
+  }, [isCapturingTrigger, settings]);
 
   const startBrowserRecording = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -191,8 +225,12 @@ export default function App() {
   };
 
   const captureTriggerKey = async () => {
+    setIsCapturingTrigger(true);
     const captured = await getFacade().captureTriggerKey?.();
-    updateSetting('triggerKey', captured || 'Ctrl + Shift + Space');
+    if (captured) {
+      updateSetting('triggerKey', captured);
+      setIsCapturingTrigger(false);
+    }
   };
 
   const testRewriteApi = async () => {
@@ -234,6 +272,7 @@ export default function App() {
             settings={settings}
             testStatus={testStatus}
             onCaptureTriggerKey={captureTriggerKey}
+            isCapturingTrigger={isCapturingTrigger}
             onTestRewriteApi={testRewriteApi}
             onUpdate={updateSetting}
           />
@@ -386,6 +425,7 @@ function RecordTable(props: {
 function SettingsView(props: {
   settings: SettingsState;
   testStatus: string;
+  isCapturingTrigger: boolean;
   onCaptureTriggerKey: () => void;
   onTestRewriteApi: () => void;
   onUpdate: (key: keyof SettingsState, value: string) => void;
@@ -405,8 +445,9 @@ function SettingsView(props: {
           <div className="field-action">
             <button onClick={props.onCaptureTriggerKey} type="button">
               <Keyboard size={16} />
-              重新捕获
+              {props.isCapturingTrigger ? '捕获中' : '重新捕获'}
             </button>
+            {props.isCapturingTrigger && <span className="test-status">按下键盘按键、组合键或鼠标中键/侧键</span>}
           </div>
           <label>
             录音模式
@@ -514,4 +555,32 @@ function SettingsView(props: {
       </section>
     </div>
   );
+}
+
+function formatKeyboardTrigger(event: KeyboardEvent): string {
+  const modifiers = [
+    event.ctrlKey ? 'Ctrl' : '',
+    event.altKey ? 'Alt' : '',
+    event.shiftKey ? 'Shift' : '',
+    event.metaKey ? 'Meta' : ''
+  ].filter(Boolean);
+  const key = normalizeKeyLabel(event.key);
+  if (!key || ['Control', 'Alt', 'Shift', 'Meta'].includes(key)) {
+    return '';
+  }
+  return [...modifiers, key].join(' + ');
+}
+
+function normalizeKeyLabel(key: string): string {
+  if (key === ' ') return 'Space';
+  if (/^f\d{1,2}$/i.test(key)) return key.toUpperCase();
+  if (key.length === 1) return key.toUpperCase();
+  return key.charAt(0).toUpperCase() + key.slice(1);
+}
+
+function formatMouseTrigger(event: MouseEvent): string {
+  if (event.button === 1) return 'Mouse Middle';
+  if (event.button === 3) return 'Mouse Side 1';
+  if (event.button === 4) return 'Mouse Side 2';
+  return '';
 }

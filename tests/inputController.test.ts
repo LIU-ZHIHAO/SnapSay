@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   pasteTextToCursor,
+  parseTriggerLabelToAccelerator,
   registerKeyboardTrigger,
   registerMouseTrigger,
   triggerToAccelerator
@@ -24,6 +25,12 @@ describe('inputController', () => {
     ).toBe('CommandOrControl+Shift+Space');
 
     expect(triggerToAccelerator({ key: 'f9', modifiers: [] })).toBe('F9');
+  });
+
+  it('parses saved trigger labels into Electron accelerators', () => {
+    expect(parseTriggerLabelToAccelerator('F9')).toBe('F9');
+    expect(parseTriggerLabelToAccelerator('Ctrl + Alt + V')).toBe('CommandOrControl+Alt+V');
+    expect(parseTriggerLabelToAccelerator('Mouse Middle')).toBeUndefined();
   });
 
   it('registers keyboard triggers through an injected adapter', () => {
