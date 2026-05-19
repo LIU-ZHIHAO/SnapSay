@@ -51,6 +51,8 @@ type RecordItem = {
   asr?: string;
   cleanup?: string;
   durationMs?: number;
+  asrDurationMs?: number;
+  cleanupDurationMs?: number;
   pasteSucceeded?: boolean;
 };
 
@@ -144,6 +146,8 @@ const demoRecords: RecordItem[] = [
     asr: '本地 Whisper / small',
     cleanup: 'OpenAI Compatible / gpt-4.1-mini',
     durationMs: 8200,
+    asrDurationMs: 3200,
+    cleanupDurationMs: 1800,
     pasteSucceeded: true
   },
   {
@@ -151,7 +155,8 @@ const demoRecords: RecordItem[] = [
     time: '2026/05/18 17:42',
     original: '把这段客户反馈整理成工单，强调语音识别延迟和偶发粘贴失败。',
     refined: '工单：语音识别存在延迟，偶发粘贴失败。请排查录音结束到文本输出链路。',
-    status: '已输入'
+    status: '已输入',
+    asrDurationMs: 1200
   }
 ];
 
@@ -531,8 +536,11 @@ function FullRecordList(props: {
               <div className="record-meta">
                 <span>{record.time}</span>
                 <span className={`record-status ${statusClass(record.status)}`}>{record.status}</span>
-                {record.durationMs != null && (
-                  <span>{(record.durationMs / 1000).toFixed(1)}s</span>
+                {record.asrDurationMs != null && (
+                  <span className="record-duration">提取 {(record.asrDurationMs / 1000).toFixed(1)}s</span>
+                )}
+                {record.cleanupDurationMs != null && (
+                  <span className="record-duration">整理 {(record.cleanupDurationMs / 1000).toFixed(1)}s</span>
                 )}
               </div>
 

@@ -58,6 +58,8 @@ export type TranscriptionRecord = {
   cleanupProvider?: string;
   cleanupModel?: string;
   durationMs?: number;
+  asrDurationMs?: number;
+  cleanupDurationMs?: number;
   pasteSucceeded?: boolean;
   createdAt: string;
   updatedAt: string;

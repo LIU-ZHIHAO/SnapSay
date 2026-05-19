@@ -272,6 +272,8 @@ function installIpcHandlers(): void {
       asr: [record.asrProvider, record.asrModel].filter(Boolean).join(' / '),
       cleanup: [record.cleanupProvider, record.cleanupModel].filter(Boolean).join(' / '),
       durationMs: record.durationMs,
+      asrDurationMs: record.asrDurationMs,
+      cleanupDurationMs: record.cleanupDurationMs,
       pasteSucceeded: record.pasteSucceeded
     }));
 

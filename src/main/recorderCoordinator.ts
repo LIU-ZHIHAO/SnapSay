@@ -16,12 +16,18 @@ export async function runRecordingPipeline(
 ): Promise<TranscriptionRecord> {
   let transcript = '';
   let cleanedText: string | undefined;
+  let asrDurationMs: number | undefined;
+  let cleanupDurationMs: number | undefined;
 
   try {
+    const asrStart = Date.now();
     const asr = await options.asrProvider.transcribe(options.audio);
+    asrDurationMs = Date.now() - asrStart;
     transcript = options.applyWordbook ? options.applyWordbook(asr.text) : asr.text;
 
+    const cleanupStart = Date.now();
     cleanedText = await options.cleanupText(transcript);
+    cleanupDurationMs = Date.now() - cleanupStart;
     await options.pasteText(cleanedText);
 
     return options.settingsStore.addRecord({
@@ -33,6 +39,8 @@ export async function runRecordingPipeline(
       cleanupProvider: 'api',
       cleanupModel: options.settingsStore.getSettings().cleanup.provider?.model,
       durationMs: options.durationMs,
+      asrDurationMs,
+      cleanupDurationMs,
       pasteSucceeded: true
     });
   } catch (error) {
@@ -46,6 +54,8 @@ export async function runRecordingPipeline(
       cleanupProvider: options.settingsStore.getSettings().cleanup.provider?.name,
       cleanupModel: options.settingsStore.getSettings().cleanup.provider?.model,
       durationMs: options.durationMs,
+      asrDurationMs,
+      cleanupDurationMs,
       pasteSucceeded: false
     });
   }
