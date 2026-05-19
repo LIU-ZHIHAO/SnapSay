@@ -3,7 +3,7 @@ import { access, readFile, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { createConnection, type Socket } from 'node:net';
 import { promisify } from 'node:util';
-import type { CleanupProviderConfig } from './settingsStore';
+import type { CleanupProviderConfig, CloudAsrProviderConfig } from './settingsStore';
 
 export const DEEPSEEK_BASE_URL = 'https://api.deepseek.com/v1';
 const execFileAsync = promisify(execFile);
@@ -24,7 +24,7 @@ export type FetchLike = (
   init: {
     method: string;
     headers: Record<string, string>;
-    body: string;
+    body: string | Uint8Array;
     signal?: AbortSignal;
   }
 ) => Promise<{
@@ -292,6 +292,100 @@ export function createPythonAsrProvider(options: PythonAsrProviderOptions): AsrP
       return { text, provider: options.engine };
     }
   };
+}
+
+export type CloudAsrProviderOptions = {
+  provider: CloudAsrProviderConfig;
+  fetch: FetchLike;
+  language?: string;
+  timeoutMs?: number;
+};
+
+export function createCloudAsrProvider(options: CloudAsrProviderOptions): AsrProvider {
+  const p = options.provider;
+  const baseUrl = p.baseUrl.replace(/\/+$/, '');
+  return {
+    name: `cloud-asr ${p.model}`,
+    async transcribe(audio: ArrayBuffer): Promise<AsrResult> {
+      const boundary = `----TailKall${Date.now().toString(36)}`;
+      const audioBuf = Buffer.from(audio);
+      const parts: Uint8Array[] = [];
+
+      // file field
+      parts.push(strToBuf(
+        `--${boundary}\r\n` +
+        `Content-Disposition: form-data; name="file"; filename="audio.webm"\r\n` +
+        `Content-Type: audio/webm\r\n\r\n`
+      ));
+      parts.push(audioBuf);
+      parts.push(strToBuf('\r\n'));
+
+      // model field
+      parts.push(strToBuf(
+        `--${boundary}\r\n` +
+        `Content-Disposition: form-data; name="model"\r\n\r\n` +
+        `${p.model}\r\n`
+      ));
+
+      // language field
+      parts.push(strToBuf(
+        `--${boundary}\r\n` +
+        `Content-Disposition: form-data; name="language"\r\n\r\n` +
+        `${options.language ?? 'zh'}\r\n`
+      ));
+
+      // closing boundary
+      parts.push(strToBuf(`--${boundary}--\r\n`));
+
+      const body = concatBuffers(parts);
+
+      const url = `${baseUrl}/v1/audio/transcriptions`;
+      const response = await options.fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': `multipart/form-data; boundary=${boundary}`,
+          Authorization: `Bearer ${p.apiKey}`
+        },
+        body,
+        signal: createTimeoutSignal(options.timeoutMs)
+      });
+
+      if (!response.ok) {
+        const errBody = response.text ? await response.text() : '';
+        throw new Error(
+          sanitizeProviderError(
+            `Cloud ASR ${p.model} failed with HTTP ${response.status}: ${errBody}`,
+            p.apiKey
+          )
+        );
+      }
+
+      const json = response.json ? await response.json() : undefined;
+      const text = json && typeof json === 'object' && 'text' in json
+        ? String((json as { text: unknown }).text)
+        : '';
+      if (!text) {
+        throw new Error(`Cloud ASR ${p.model} returned no text`);
+      }
+      return { text, provider: `cloud-asr ${p.model}` };
+    }
+  };
+}
+
+function strToBuf(s: string): Uint8Array {
+  return new TextEncoder().encode(s);
+}
+
+function concatBuffers(buffers: Uint8Array[]): Uint8Array {
+  let total = 0;
+  for (const buf of buffers) total += buf.length;
+  const result = new Uint8Array(total);
+  let offset = 0;
+  for (const buf of buffers) {
+    result.set(buf, offset);
+    offset += buf.length;
+  }
+  return result;
 }
 
 async function runExecFile(file: string, args: string[]): Promise<void> {

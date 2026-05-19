@@ -6,6 +6,13 @@ export type CleanupProviderConfig = {
   model: string;
 };
 
+export type CloudAsrProviderConfig = {
+  type: 'openai-whisper' | 'openai-compatible';
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+};
+
 export type WordbookEntry = {
   id: string;
   target: string;
@@ -41,6 +48,7 @@ export type AppSettings = {
     smartMouseMode: boolean;
     wordbook: WordbookEntry[];
     wordbookLearnedAt?: string;
+    cloudAsr?: CloudAsrProviderConfig;
   };
 };
 

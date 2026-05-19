@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import {
   BookOpen,
+  Brain,
   ClipboardCopy,
   Eraser,
   Gauge,
@@ -11,6 +12,7 @@ import {
   Settings,
   Trash2
 } from 'lucide-react';
+import ModelsView from './ModelsView';
 import './styles.css';
 
 type Theme = 'dark' | 'light' | 'pink' | 'green';
@@ -30,7 +32,7 @@ function useTheme(): [Theme, (t: Theme) => void] {
 }
 
 
-type View = 'dashboard' | 'settings';
+type View = 'dashboard' | 'models' | 'settings';
 
 type WordbookEntry = {
   id: string;
@@ -77,6 +79,10 @@ type SettingsState = {
   longPressAction: string;
   smartMouseMode: boolean;
   wordbook: WordbookEntry[];
+  cloudAsrType: string;
+  cloudAsrBaseUrl: string;
+  cloudAsrApiKey: string;
+  cloudAsrModel: string;
 };
 
 type TailKallFacade = {
@@ -129,7 +135,11 @@ const demoSettings: SettingsState = {
   shortPressAction: '语音输入',
   longPressAction: '语音助手',
   smartMouseMode: true,
-  wordbook: []
+  wordbook: [],
+  cloudAsrType: 'openai-whisper',
+  cloudAsrBaseUrl: '',
+  cloudAsrApiKey: '',
+  cloudAsrModel: 'whisper-1'
 };
 
 const demoRecords: RecordItem[] = [
@@ -323,6 +333,7 @@ export default function App() {
             <span>TailKall</span>
           </div>
           <NavButton active={view === 'dashboard'} icon={<Gauge size={18} />} label="主页" onClick={() => setView('dashboard')} />
+          <NavButton active={view === 'models'} icon={<Brain size={18} />} label="模型" onClick={() => setView('models')} />
           <NavButton active={view === 'settings'} icon={<Settings size={18} />} label="设置" onClick={() => setView('settings')} />
           <ThemeSwitcher current={theme} onChange={setTheme} />
         </aside>
@@ -343,13 +354,19 @@ export default function App() {
               }}
             />
           )}
+          {view === 'models' && (
+            <ModelsView
+              settings={settings}
+              testStatus={testStatus}
+              onTestRewriteApi={testRewriteApi}
+              onUpdate={updateSetting}
+            />
+          )}
           {view === 'settings' && (
             <SettingsView
               settings={settings}
-              testStatus={testStatus}
               onCaptureTriggerKey={captureTriggerKey}
               isCapturingTrigger={isCapturingTrigger}
-              onTestRewriteApi={testRewriteApi}
               onUpdate={updateSetting}
             />
           )}
@@ -580,10 +597,8 @@ function FullRecordList(props: {
 
 function SettingsView(props: {
   settings: SettingsState;
-  testStatus: string;
   isCapturingTrigger: boolean;
   onCaptureTriggerKey: () => void;
-  onTestRewriteApi: () => void;
   onUpdate: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void;
 }) {
   const { settings, onUpdate } = props;
@@ -684,97 +699,6 @@ function SettingsView(props: {
               type="checkbox"
             />
           </label>
-        </div>
-        <div className="form-grid">
-          <label>
-            ASR 引擎
-            <select onChange={(event) => onUpdate('asr', event.target.value)} value={settings.asr}>
-              <option>SenseVoice / FunASR</option>
-              <option>faster-whisper</option>
-              <option>whisper.cpp</option>
-              <option>云端 ASR</option>
-            </select>
-          </label>
-          <label>
-            加速策略
-            <select onChange={(event) => onUpdate('asrAcceleration', event.target.value)} value={settings.asrAcceleration}>
-              <option>GPU 优先</option>
-              <option>CPU</option>
-            </select>
-          </label>
-          <label className="wide">
-            本地模型目录
-            <input onChange={(event) => onUpdate('localModelDir', event.target.value)} value={settings.localModelDir} />
-          </label>
-          <label className="wide">
-            whisper.cpp 程序
-            <input onChange={(event) => onUpdate('localAsrExePath', event.target.value)} value={settings.localAsrExePath} />
-          </label>
-          <label className="wide">
-            whisper 模型文件
-            <input onChange={(event) => onUpdate('localAsrModelPath', event.target.value)} value={settings.localAsrModelPath} />
-          </label>
-          <label className="wide">
-            ffmpeg 程序
-            <input onChange={(event) => onUpdate('ffmpegPath', event.target.value)} value={settings.ffmpegPath} />
-          </label>
-          <label className="wide">
-            faster-whisper 模型目录
-            <input onChange={(event) => onUpdate('fasterWhisperModelPath', event.target.value)} value={settings.fasterWhisperModelPath} />
-          </label>
-          <label className="wide">
-            SenseVoice 模型目录
-            <input onChange={(event) => onUpdate('senseVoiceModelPath', event.target.value)} value={settings.senseVoiceModelPath} />
-          </label>
-          <label className="wide">
-            Python 运行时
-            <input onChange={(event) => onUpdate('pythonPath', event.target.value)} value={settings.pythonPath} />
-          </label>
-        </div>
-      </section>
-
-      <section className="panel">
-        <h2>文案整理 API</h2>
-        <label className="smart-mouse-row">
-          <span>
-            <strong>启用文案整理</strong>
-            <small>关闭后将跳过大模型整理，直接使用 ASR 识别结果</small>
-          </span>
-          <input
-            aria-label="启用文案整理"
-            checked={settings.cleanupEnabled}
-            onChange={(event) => onUpdate('cleanupEnabled', event.target.checked)}
-            type="checkbox"
-          />
-        </label>
-        <div className="form-grid">
-          <label>
-            Provider
-            <input onChange={(event) => onUpdate('provider', event.target.value)} value={settings.provider} />
-          </label>
-          <label>
-            Base URL
-            <input onChange={(event) => onUpdate('baseURL', event.target.value)} value={settings.baseURL} />
-          </label>
-          <label>
-            Model
-            <input onChange={(event) => onUpdate('model', event.target.value)} value={settings.model} />
-          </label>
-          <label>
-            API Key
-            <input onChange={(event) => onUpdate('apiKey', event.target.value)} type="password" value={settings.apiKey} />
-          </label>
-          <label className="wide">
-            Prompt 模板
-            <textarea onChange={(event) => onUpdate('prompt', event.target.value)} value={settings.prompt} />
-          </label>
-          <div className="field-action">
-            <button onClick={props.onTestRewriteApi} type="button">
-              <PlugZap size={16} />
-              测试连接
-            </button>
-            <span className="test-status">{props.testStatus}</span>
-          </div>
         </div>
       </section>
 

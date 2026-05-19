@@ -13,7 +13,7 @@ import {
   type MouseTrigger,
   type TriggerBinding
 } from './inputController.js';
-import { cleanupText, createAsrDaemonProvider, createPythonAsrProvider, createWhisperCppAsrProvider, testCleanupProvider, type FetchLike } from './providers.js';
+import { cleanupText, createAsrDaemonProvider, createCloudAsrProvider, createPythonAsrProvider, createWhisperCppAsrProvider, testCleanupProvider, type FetchLike } from './providers.js';
 import { runRecordingPipeline } from './recorderCoordinator.js';
 import { createElectronStoreAdapter, createSettingsStore, type SettingsStore } from './settingsStore.js';
 import { applyWordbook, learnFromCorrections } from './wordbook.js';
@@ -41,6 +41,10 @@ type RendererSettings = {
   shortPressAction: string;
   longPressAction: string;
   smartMouseMode: boolean;
+  cloudAsrType: string;
+  cloudAsrBaseUrl: string;
+  cloudAsrApiKey: string;
+  cloudAsrModel: string;
 };
 
 const FLOATING_POS_FILE = join('D:\\Antigravity', 'tailkall', 'data', 'floating-pos.json');
@@ -251,7 +255,11 @@ function toRendererSettings(): RendererSettings {
     dataDir: settings?.input.dataDir ?? defaultDataRoot(),
     shortPressAction: settings?.input.shortPressAction ?? '语音输入',
     longPressAction: settings?.input.longPressAction ?? '语音助手',
-    smartMouseMode: settings?.input.smartMouseMode ?? true
+    smartMouseMode: settings?.input.smartMouseMode ?? true,
+    cloudAsrType: settings?.input.cloudAsr?.type ?? 'openai-whisper',
+    cloudAsrBaseUrl: settings?.input.cloudAsr?.baseUrl ?? '',
+    cloudAsrApiKey: settings?.input.cloudAsr?.apiKey ?? '',
+    cloudAsrModel: settings?.input.cloudAsr?.model ?? 'whisper-1'
   };
 }
 
@@ -314,7 +322,13 @@ function installIpcHandlers(): void {
         shortPressAction: settings.shortPressAction,
         longPressAction: settings.longPressAction,
         smartMouseMode: settings.smartMouseMode,
-        wordbook: []
+        wordbook: [],
+        cloudAsr: settings.cloudAsrBaseUrl ? {
+          type: (settings.cloudAsrType as 'openai-whisper' | 'openai-compatible') || 'openai-whisper',
+          baseUrl: settings.cloudAsrBaseUrl,
+          apiKey: settings.cloudAsrApiKey,
+          model: settings.cloudAsrModel || 'whisper-1'
+        } : undefined
       }
     });
     void registerConfiguredTrigger(saved?.input.triggerLabel ?? settings.triggerKey, saved?.input.smartMouseMode);
@@ -721,12 +735,18 @@ function createConfiguredAsrProvider(settings: ReturnType<SettingsStore['getSett
       prompt: wordbookPrompt || undefined
     });
   }
+  if (/云端|cloud|api/i.test(asrName) && settings.input.cloudAsr) {
+    return createCloudAsrProvider({
+      provider: settings.input.cloudAsr,
+      fetch: fetch as FetchLike
+    });
+  }
 
   return {
     name: asrName || '未配置 ASR',
     async transcribe(): Promise<{ text: string; provider: string }> {
       if (!asrName || /占位|未配置/.test(asrName)) {
-        throw new Error('ASR 尚未配置，请在设置页选择本地或云端语音识别引擎。');
+        throw new Error('ASR 尚未配置，请在模型页选择本地或云端语音识别引擎。');
       }
       return {
         text: `已收到 ${Math.round(durationMs / 1000)} 秒录音。当前 ASR 适配器为 ${asrName}。请接入真实云端 ASR 后替换此占位文本。`,
