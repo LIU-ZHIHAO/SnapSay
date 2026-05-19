@@ -136,6 +136,7 @@ describe('recorderCoordinator', () => {
 
     const record = await runRecordingPipeline({
       audio: new ArrayBuffer(0),
+      durationMs: 1000,
       asrProvider: createMockAsrProvider('raw text'),
       cleanupText: cleanup,
       pasteText: paste,
@@ -154,6 +155,7 @@ describe('recorderCoordinator', () => {
 
     const record = await runRecordingPipeline({
       audio: new ArrayBuffer(0),
+      durationMs: 1000,
       asrProvider: createMockAsrProvider('raw text'),
       cleanupText: vi.fn().mockRejectedValue(new Error('cleanup failed')),
       pasteText: vi.fn(),
@@ -171,6 +173,7 @@ describe('recorderCoordinator', () => {
 
     const record = await runRecordingPipeline({
       audio: new ArrayBuffer(0),
+      durationMs: 1000,
       asrProvider: createMockAsrProvider('raw text'),
       cleanupText: vi.fn().mockResolvedValue('clean text'),
       pasteText: vi.fn().mockRejectedValue(new Error('paste failed')),
