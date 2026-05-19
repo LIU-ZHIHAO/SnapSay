@@ -6,6 +6,7 @@ import {
   parseTriggerLabelToBinding,
   registerKeyboardTrigger,
   registerMouseTrigger,
+  resolveTriggerReleaseAction,
   triggerToAccelerator
 } from '../src/main/inputController';
 import { createMockAsrProvider } from '../src/main/providers';
@@ -59,6 +60,35 @@ describe('inputController', () => {
   it('classifies shortcut press duration for short and long actions', () => {
     expect(classifyPressDuration(1000, 1249, 350)).toBe('short');
     expect(classifyPressDuration(1000, 1350, 350)).toBe('long');
+  });
+
+  it('starts recording immediately on trigger down and resolves release behavior by duration', () => {
+    expect(
+      resolveTriggerReleaseAction({
+        wasRecordingAtDown: false,
+        startedAt: 1000,
+        endedAt: 1100,
+        longPressMs: 350
+      })
+    ).toBe('keep-recording');
+
+    expect(
+      resolveTriggerReleaseAction({
+        wasRecordingAtDown: false,
+        startedAt: 1000,
+        endedAt: 1500,
+        longPressMs: 350
+      })
+    ).toBe('stop-recording');
+
+    expect(
+      resolveTriggerReleaseAction({
+        wasRecordingAtDown: true,
+        startedAt: 1000,
+        endedAt: 1100,
+        longPressMs: 350
+      })
+    ).toBe('stop-recording');
   });
 
   it('registers keyboard triggers through an injected adapter', () => {

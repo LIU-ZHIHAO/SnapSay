@@ -5,10 +5,10 @@ import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { createFloatingWindow, updateFloatingState } from './floatingWindow.js';
 import {
-  classifyPressDuration,
   parseTriggerLabelToAccelerator,
   parseTriggerLabelToBinding,
   pasteTextToCursor,
+  resolveTriggerReleaseAction,
   type MouseTrigger,
   type TriggerBinding
 } from './inputController.js';
@@ -353,16 +353,7 @@ async function registerLowLevelTriggers(labels: string[]): Promise<boolean> {
   try {
     const { uIOhook } = await import('uiohook-napi');
     const downStartedAt = new Map<string, number>();
-    const longPressTimers = new Map<string, NodeJS.Timeout>();
-    let longPressActive = false;
-
-    const clearLongPressTimer = (bindingId: string) => {
-      const timer = longPressTimers.get(bindingId);
-      if (timer) {
-        clearTimeout(timer);
-        longPressTimers.delete(bindingId);
-      }
-    };
+    const recordingStateAtDown = new Map<string, boolean>();
     const onDown = (event: unknown) => {
       const binding = bindings.find((candidate) => matchesTriggerEvent(candidate, event));
       if (!binding) {
@@ -373,11 +364,8 @@ async function registerLowLevelTriggers(labels: string[]): Promise<boolean> {
         return;
       }
       downStartedAt.set(bindingId, Date.now());
-      longPressActive = false;
-      longPressTimers.set(bindingId, setTimeout(() => {
-        longPressActive = true;
-        setRecording(true);
-      }, LONG_PRESS_MS));
+      recordingStateAtDown.set(bindingId, isRecording);
+      setRecording(true);
     };
     const onUp = (event: unknown) => {
       const binding = bindings.find((candidate) => matchesTriggerEvent(candidate, event));
@@ -387,16 +375,20 @@ async function registerLowLevelTriggers(labels: string[]): Promise<boolean> {
       const bindingId = bindingToId(binding);
       const startedAt = downStartedAt.get(bindingId);
       downStartedAt.delete(bindingId);
-      clearLongPressTimer(bindingId);
+      const wasRecordingAtDown = recordingStateAtDown.get(bindingId) ?? false;
+      recordingStateAtDown.delete(bindingId);
       if (startedAt === undefined) {
         return;
       }
-      if (longPressActive || classifyPressDuration(startedAt, Date.now(), LONG_PRESS_MS) === 'long') {
+      const releaseAction = resolveTriggerReleaseAction({
+        wasRecordingAtDown,
+        startedAt,
+        endedAt: Date.now(),
+        longPressMs: LONG_PRESS_MS
+      });
+      if (releaseAction === 'stop-recording') {
         setRecording(false);
-        longPressActive = false;
-        return;
       }
-      toggleRecording();
     };
 
     uIOhook.on('mousedown', onDown);
@@ -405,9 +397,6 @@ async function registerLowLevelTriggers(labels: string[]): Promise<boolean> {
     uIOhook.on('keyup', onUp);
     uIOhook.start();
     stopLowLevelTrigger = () => {
-      for (const bindingId of longPressTimers.keys()) {
-        clearLongPressTimer(bindingId);
-      }
       uIOhook.off('mousedown', onDown);
       uIOhook.off('mouseup', onUp);
       uIOhook.off('keydown', onDown);

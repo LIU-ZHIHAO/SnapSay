@@ -20,7 +20,7 @@ declare global {
 }
 
 const stateMeta: Record<FloatingState, { label: string; icon: ReactNode }> = {
-  recording: { label: '语音输入', icon: <Mic size={18} /> },
+  recording: { label: '录音中', icon: <Mic size={18} /> },
   recognizing: { label: '识别中', icon: <LoaderCircle className="spin" size={18} /> },
   rewriting: { label: '整理中', icon: <WandSparkles size={18} /> },
   done: { label: '已输入', icon: <CheckCircle2 size={18} /> },
@@ -33,7 +33,7 @@ export function FloatingWindow({ state = 'recognizing' }: { state?: FloatingStat
   return (
     <div aria-label="TailKall 语音输入" className={`floating-capsule state-${state}`} role="status">
       <div className="floating-icon">{meta.icon}</div>
-      <span className="floating-title">语音输入</span>
+      <span className="floating-title">TailKall</span>
       <span className="floating-state">{meta.label}</span>
       <div className="waveform" aria-hidden="true">
         {Array.from({ length: 5 }).map((_, index) => (
