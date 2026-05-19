@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  classifyPressDuration,
   pasteTextToCursor,
   parseTriggerLabelToAccelerator,
+  parseTriggerLabelToBinding,
   registerKeyboardTrigger,
   registerMouseTrigger,
   triggerToAccelerator
@@ -31,6 +33,32 @@ describe('inputController', () => {
     expect(parseTriggerLabelToAccelerator('F9')).toBe('F9');
     expect(parseTriggerLabelToAccelerator('Ctrl + Alt + V')).toBe('CommandOrControl+Alt+V');
     expect(parseTriggerLabelToAccelerator('Mouse Middle')).toBeUndefined();
+  });
+
+  it('parses trigger labels into keyboard or mouse bindings', () => {
+    expect(parseTriggerLabelToBinding('左 Ctrl + 左 Win')).toEqual({
+      type: 'keyboard',
+      key: 'Meta',
+      modifiers: ['control']
+    });
+    expect(parseTriggerLabelToBinding('Ctrl + Alt + V')).toEqual({
+      type: 'keyboard',
+      key: 'V',
+      modifiers: ['control', 'alt']
+    });
+    expect(parseTriggerLabelToBinding('Mouse Middle')).toEqual({
+      type: 'mouse',
+      button: 'middle'
+    });
+    expect(parseTriggerLabelToBinding('Mouse Side 2')).toEqual({
+      type: 'mouse',
+      button: 'x2'
+    });
+  });
+
+  it('classifies shortcut press duration for short and long actions', () => {
+    expect(classifyPressDuration(1000, 1249, 350)).toBe('short');
+    expect(classifyPressDuration(1000, 1350, 350)).toBe('long');
   });
 
   it('registers keyboard triggers through an injected adapter', () => {

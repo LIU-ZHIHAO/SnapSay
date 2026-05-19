@@ -4,7 +4,14 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { createFloatingWindow, updateFloatingState } from './floatingWindow.js';
-import { parseTriggerLabelToAccelerator, pasteTextToCursor } from './inputController.js';
+import {
+  classifyPressDuration,
+  parseTriggerLabelToAccelerator,
+  parseTriggerLabelToBinding,
+  pasteTextToCursor,
+  type MouseTrigger,
+  type TriggerBinding
+} from './inputController.js';
 import { cleanupText, createPythonAsrProvider, createWhisperCppAsrProvider, testCleanupProvider, type FetchLike } from './providers.js';
 import { runRecordingPipeline } from './recorderCoordinator.js';
 import { createElectronStoreAdapter, createSettingsStore, type SettingsStore } from './settingsStore.js';
@@ -28,13 +35,18 @@ type RendererSettings = {
   prompt: string;
   outputMode: string;
   dataDir: string;
+  shortPressAction: string;
+  longPressAction: string;
+  smartMouseMode: boolean;
 };
 
 let mainWindow: BrowserWindow | undefined;
 let settingsStore: SettingsStore | undefined;
 let isRecording = false;
 let activeTriggerAccelerator: string | undefined;
+let stopLowLevelTrigger: (() => void) | undefined;
 const execFileAsync = promisify(execFile);
+const LONG_PRESS_MS = 350;
 
 app.setPath('userData', join('D:\\Antigravity', 'tailkall', 'data', 'electron'));
 app.setPath('logs', join('D:\\Antigravity', 'tailkall', 'logs'));
@@ -128,7 +140,10 @@ function toRendererSettings(): RendererSettings {
     apiKey: settings?.cleanup.provider?.apiKey ?? '',
     prompt: settings?.cleanup.prompt ?? '请在不改变原意的前提下整理语音输入文本，修正错别字和标点，直接返回整理后的文本。',
     outputMode: settings?.input.outputMode ?? '粘贴到当前光标',
-    dataDir: settings?.input.dataDir ?? defaultDataRoot()
+    dataDir: settings?.input.dataDir ?? defaultDataRoot(),
+    shortPressAction: settings?.input.shortPressAction ?? '语音输入',
+    longPressAction: settings?.input.longPressAction ?? '语音助手',
+    smartMouseMode: settings?.input.smartMouseMode ?? true
   };
 }
 
@@ -184,10 +199,13 @@ function installIpcHandlers(): void {
         senseVoiceModelPath: settings.senseVoiceModelPath,
         pythonPath: settings.pythonPath,
         outputMode: settings.outputMode,
-        dataDir: settings.dataDir
+        dataDir: settings.dataDir,
+        shortPressAction: settings.shortPressAction,
+        longPressAction: settings.longPressAction,
+        smartMouseMode: settings.smartMouseMode
       }
     });
-    registerConfiguredTrigger(saved?.input.triggerLabel ?? settings.triggerKey);
+    void registerConfiguredTrigger(saved?.input.triggerLabel ?? settings.triggerKey, saved?.input.smartMouseMode);
     return settings;
   });
 
@@ -285,11 +303,13 @@ function installIpcHandlers(): void {
     return { ok: true, text: cleaned };
   });
 
-  ipcMain.handle('tailkall:capture-trigger-key', () => 'F8');
 }
 
-function toggleRecording(): void {
-  isRecording = !isRecording;
+function setRecording(next: boolean): void {
+  if (isRecording === next) {
+    return;
+  }
+  isRecording = next;
   if (isRecording) {
     updateFloatingState({ visible: true, recording: true, status: 'recording' });
     mainWindow?.webContents.send('tailkall:recording-start');
@@ -299,15 +319,197 @@ function toggleRecording(): void {
   }
 }
 
-function registerConfiguredTrigger(label: string | undefined): void {
+function toggleRecording(): void {
+  setRecording(!isRecording);
+}
+
+async function registerConfiguredTrigger(label: string | undefined, smartMouseMode = true): Promise<void> {
+  stopLowLevelTrigger?.();
+  stopLowLevelTrigger = undefined;
+
   if (activeTriggerAccelerator) {
     globalShortcut.unregister(activeTriggerAccelerator);
     activeTriggerAccelerator = undefined;
   }
 
+  const triggerLabels = smartMouseMode ? [label || 'F8', 'Mouse Middle'] : [label || 'F8'];
+  const hookRegistered = await registerLowLevelTriggers(triggerLabels);
+  if (hookRegistered) {
+    return;
+  }
+
   const accelerator = parseTriggerLabelToAccelerator(label || 'F8') ?? 'F8';
   if (globalShortcut.register(accelerator, toggleRecording)) {
     activeTriggerAccelerator = accelerator;
+  }
+}
+
+async function registerLowLevelTriggers(labels: string[]): Promise<boolean> {
+  const bindings = uniqueBindings(labels.map((label) => parseTriggerLabelToBinding(label)).filter(Boolean) as TriggerBinding[]);
+  if (!bindings.length) {
+    return false;
+  }
+
+  try {
+    const { uIOhook } = await import('uiohook-napi');
+    const downStartedAt = new Map<string, number>();
+    const longPressTimers = new Map<string, NodeJS.Timeout>();
+    let longPressActive = false;
+
+    const clearLongPressTimer = (bindingId: string) => {
+      const timer = longPressTimers.get(bindingId);
+      if (timer) {
+        clearTimeout(timer);
+        longPressTimers.delete(bindingId);
+      }
+    };
+    const onDown = (event: unknown) => {
+      const binding = bindings.find((candidate) => matchesTriggerEvent(candidate, event));
+      if (!binding) {
+        return;
+      }
+      const bindingId = bindingToId(binding);
+      if (downStartedAt.has(bindingId)) {
+        return;
+      }
+      downStartedAt.set(bindingId, Date.now());
+      longPressActive = false;
+      longPressTimers.set(bindingId, setTimeout(() => {
+        longPressActive = true;
+        setRecording(true);
+      }, LONG_PRESS_MS));
+    };
+    const onUp = (event: unknown) => {
+      const binding = bindings.find((candidate) => matchesTriggerEvent(candidate, event));
+      if (!binding) {
+        return;
+      }
+      const bindingId = bindingToId(binding);
+      const startedAt = downStartedAt.get(bindingId);
+      downStartedAt.delete(bindingId);
+      clearLongPressTimer(bindingId);
+      if (startedAt === undefined) {
+        return;
+      }
+      if (longPressActive || classifyPressDuration(startedAt, Date.now(), LONG_PRESS_MS) === 'long') {
+        setRecording(false);
+        longPressActive = false;
+        return;
+      }
+      toggleRecording();
+    };
+
+    uIOhook.on('mousedown', onDown);
+    uIOhook.on('mouseup', onUp);
+    uIOhook.on('keydown', onDown);
+    uIOhook.on('keyup', onUp);
+    uIOhook.start();
+    stopLowLevelTrigger = () => {
+      for (const bindingId of longPressTimers.keys()) {
+        clearLongPressTimer(bindingId);
+      }
+      uIOhook.off('mousedown', onDown);
+      uIOhook.off('mouseup', onUp);
+      uIOhook.off('keydown', onDown);
+      uIOhook.off('keyup', onUp);
+    };
+    return true;
+  } catch (error) {
+    console.warn('Low-level trigger hook unavailable, falling back to Electron globalShortcut.', error);
+    return false;
+  }
+}
+
+function uniqueBindings(bindings: TriggerBinding[]): TriggerBinding[] {
+  const unique = new Map<string, TriggerBinding>();
+  for (const binding of bindings) {
+    unique.set(bindingToId(binding), binding);
+  }
+  return [...unique.values()];
+}
+
+function bindingToId(binding: TriggerBinding): string {
+  if (binding.type === 'mouse') {
+    return `mouse:${binding.button}`;
+  }
+  return `keyboard:${binding.modifiers.join('+')}:${binding.key}`;
+}
+
+function matchesTriggerEvent(binding: TriggerBinding, event: unknown): boolean {
+  if (!event || typeof event !== 'object') {
+    return false;
+  }
+  const candidate = event as {
+    altKey?: boolean;
+    ctrlKey?: boolean;
+    metaKey?: boolean;
+    shiftKey?: boolean;
+    keycode?: number;
+    button?: unknown;
+  };
+  if (!modifiersMatch(binding, candidate)) {
+    return false;
+  }
+  if (binding.type === 'mouse') {
+    return mouseButtonCode(binding.button) === Number(candidate.button);
+  }
+  return keyCodeForLabel(binding.key) === candidate.keycode;
+}
+
+function modifiersMatch(
+  binding: TriggerBinding,
+  event: { altKey?: boolean; ctrlKey?: boolean; metaKey?: boolean; shiftKey?: boolean }
+): boolean {
+  if (binding.type !== 'keyboard') {
+    return true;
+  }
+  const modifiers = new Set(binding.modifiers.map((item) => item.toLowerCase()));
+  return Boolean(event.ctrlKey) === (modifiers.has('ctrl') || modifiers.has('control')) &&
+    Boolean(event.altKey) === (modifiers.has('alt') || modifiers.has('option')) &&
+    Boolean(event.shiftKey) === modifiers.has('shift') &&
+    Boolean(event.metaKey) === (modifiers.has('meta') || modifiers.has('cmd') || modifiers.has('command'));
+}
+
+function keyCodeForLabel(label: string): number | undefined {
+  const upper = label.trim().toUpperCase();
+  const fKey = /^F(\d{1,2})$/.exec(upper);
+  if (fKey) {
+    const index = Number(fKey[1]);
+    if (index >= 1 && index <= 10) return 58 + index;
+    if (index === 11) return 87;
+    if (index === 12) return 88;
+  }
+  if (/^[A-Z]$/.test(upper)) {
+    return {
+      A: 30, B: 48, C: 46, D: 32, E: 18, F: 33, G: 34, H: 35, I: 23, J: 36, K: 37, L: 38, M: 50,
+      N: 49, O: 24, P: 25, Q: 16, R: 19, S: 31, T: 20, U: 22, V: 47, W: 17, X: 45, Y: 21, Z: 44
+    }[upper];
+  }
+  if (/^[0-9]$/.test(upper)) {
+    return { '0': 11, '1': 2, '2': 3, '3': 4, '4': 5, '5': 6, '6': 7, '7': 8, '8': 9, '9': 10 }[upper];
+  }
+  if (upper === 'SPACE') return 57;
+  if (upper === 'META') return 3675;
+  if (upper === 'CTRL' || upper === 'CONTROL') return 29;
+  if (upper === 'ALT') return 56;
+  if (upper === 'SHIFT') return 42;
+  return undefined;
+}
+
+function mouseButtonCode(button: MouseTrigger['button']): number {
+  switch (button) {
+    case 'middle':
+      return 3;
+    case 'x1':
+      return 4;
+    case 'x2':
+      return 5;
+    case 'left':
+      return 1;
+    case 'right':
+      return 2;
+    default:
+      return 0;
   }
 }
 
@@ -385,7 +587,8 @@ app.whenReady().then(async () => {
   await createMainWindow();
   await createFloating();
   updateFloatingState({ visible: false, recording: false });
-  registerConfiguredTrigger(settingsStore.getSettings().input.triggerLabel);
+  const startupSettings = settingsStore.getSettings();
+  await registerConfiguredTrigger(startupSettings.input.triggerLabel, startupSettings.input.smartMouseMode);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

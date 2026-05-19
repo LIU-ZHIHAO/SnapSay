@@ -40,7 +40,10 @@ describe('settingsStore', () => {
         senseVoiceModelPath: 'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
         pythonPath: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
         outputMode: '仅保存记录',
-        dataDir: 'D:\\Antigravity\\tailkall\\data'
+        dataDir: 'D:\\Antigravity\\tailkall\\data',
+        shortPressAction: '语音输入',
+        longPressAction: '语音助手',
+        smartMouseMode: true
       }
     });
 

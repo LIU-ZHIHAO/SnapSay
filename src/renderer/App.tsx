@@ -45,6 +45,9 @@ type SettingsState = {
   prompt: string;
   outputMode: string;
   dataDir: string;
+  shortPressAction: string;
+  longPressAction: string;
+  smartMouseMode: boolean;
 };
 
 type TailKallFacade = {
@@ -56,7 +59,6 @@ type TailKallFacade = {
   pasteRecord?: (id: string) => Promise<void>;
   deleteRecord?: (id: string) => Promise<void>;
   testRewriteApi?: (settings: SettingsState) => Promise<{ ok: boolean; message: string }>;
-  captureTriggerKey?: () => Promise<string>;
   onRecordingStart?: (callback: () => void) => () => void;
   onRecordingStop?: (callback: () => void) => () => void;
 };
@@ -85,7 +87,10 @@ const demoSettings: SettingsState = {
   apiKey: 'demo-api-key',
   prompt: '请整理语音输入文本，修正错别字和标点，直接返回整理后的文本。',
   outputMode: '粘贴到当前光标',
-  dataDir: 'D:\\Antigravity\\tailkall\\data'
+  dataDir: 'D:\\Antigravity\\tailkall\\data',
+  shortPressAction: '语音输入',
+  longPressAction: '语音助手',
+  smartMouseMode: true
 };
 
 const demoRecords: RecordItem[] = [
@@ -202,7 +207,7 @@ export default function App() {
 
   const recentRecords = useMemo(() => records.slice(0, 3), [records]);
 
-  const updateSetting = (key: keyof SettingsState, value: string) => {
+  const updateSetting = <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => {
     setSettings((current) => {
       const next = { ...current, [key]: value };
       void getFacade().saveSettings?.(next).catch(() => undefined);
@@ -226,11 +231,6 @@ export default function App() {
 
   const captureTriggerKey = async () => {
     setIsCapturingTrigger(true);
-    const captured = await getFacade().captureTriggerKey?.();
-    if (captured) {
-      updateSetting('triggerKey', captured);
-      setIsCapturingTrigger(false);
-    }
   };
 
   const testRewriteApi = async () => {
@@ -428,7 +428,7 @@ function SettingsView(props: {
   isCapturingTrigger: boolean;
   onCaptureTriggerKey: () => void;
   onTestRewriteApi: () => void;
-  onUpdate: (key: keyof SettingsState, value: string) => void;
+  onUpdate: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void;
 }) {
   const { settings, onUpdate } = props;
 
@@ -437,25 +437,62 @@ function SettingsView(props: {
       <h1>设置</h1>
       <section className="panel">
         <h2>语音输入</h2>
-        <div className="form-grid">
-          <label>
-            当前触发键
-            <input onChange={(event) => onUpdate('triggerKey', event.target.value)} value={settings.triggerKey} />
-          </label>
-          <div className="field-action">
-            <button onClick={props.onCaptureTriggerKey} type="button">
-              <Keyboard size={16} />
-              {props.isCapturingTrigger ? '捕获中' : '重新捕获'}
-            </button>
-            {props.isCapturingTrigger && <span className="test-status">按下键盘按键、组合键或鼠标中键/侧键</span>}
+        <div className="shortcut-config">
+          <button
+            className={props.isCapturingTrigger ? 'shortcut-capture active' : 'shortcut-capture'}
+            onClick={props.onCaptureTriggerKey}
+            type="button"
+          >
+            <Keyboard size={18} />
+            <span>{settings.triggerKey}</span>
+          </button>
+          <span className="shortcut-help">{props.isCapturingTrigger ? '按下键盘按键、组合键或鼠标中键/侧键' : '点击上方按钮修改'}</span>
+          <div className="press-mode-grid">
+            <div className="press-card">
+              <h3>短按</h3>
+              <p>按一下开始说话，再按一下结束</p>
+              <label>
+                <span className="sr-only">短按动作</span>
+                <select
+                  aria-label="短按动作"
+                  onChange={(event) => onUpdate('shortPressAction', event.target.value)}
+                  value={settings.shortPressAction}
+                >
+                  <option>语音输入</option>
+                  <option>语音助手</option>
+                </select>
+              </label>
+            </div>
+            <div className="press-card">
+              <h3>长按</h3>
+              <p>按住说话，松开结束</p>
+              <label>
+                <span className="sr-only">长按动作</span>
+                <select
+                  aria-label="长按动作"
+                  onChange={(event) => onUpdate('longPressAction', event.target.value)}
+                  value={settings.longPressAction}
+                >
+                  <option>语音助手</option>
+                  <option>语音输入</option>
+                </select>
+              </label>
+            </div>
           </div>
-          <label>
-            录音模式
-            <select onChange={(event) => onUpdate('recordMode', event.target.value)} value={settings.recordMode}>
-              <option>按住说话</option>
-              <option>点击开始/停止</option>
-            </select>
+          <label className="smart-mouse-row">
+            <span>
+              <strong>智能鼠标模式</strong>
+              <small>鼠标中键将同步应用上述“短按”与“长按”逻辑</small>
+            </span>
+            <input
+              aria-label="智能鼠标模式"
+              checked={settings.smartMouseMode}
+              onChange={(event) => onUpdate('smartMouseMode', event.target.checked)}
+              type="checkbox"
+            />
           </label>
+        </div>
+        <div className="form-grid">
           <label>
             ASR 引擎
             <select onChange={(event) => onUpdate('asr', event.target.value)} value={settings.asr}>
@@ -562,17 +599,21 @@ function formatKeyboardTrigger(event: KeyboardEvent): string {
     event.ctrlKey ? 'Ctrl' : '',
     event.altKey ? 'Alt' : '',
     event.shiftKey ? 'Shift' : '',
-    event.metaKey ? 'Meta' : ''
+    event.metaKey ? 'Win' : ''
   ].filter(Boolean);
   const key = normalizeKeyLabel(event.key);
-  if (!key || ['Control', 'Alt', 'Shift', 'Meta'].includes(key)) {
+  if (!key) {
     return '';
+  }
+  if (['Control', 'Alt', 'Shift', 'Win'].includes(key)) {
+    return modifiers.length ? modifiers.join(' + ') : key;
   }
   return [...modifiers, key].join(' + ');
 }
 
 function normalizeKeyLabel(key: string): string {
   if (key === ' ') return 'Space';
+  if (key === 'Meta') return 'Win';
   if (/^f\d{1,2}$/i.test(key)) return key.toUpperCase();
   if (key.length === 1) return key.toUpperCase();
   return key.charAt(0).toUpperCase() + key.slice(1);

@@ -30,6 +30,9 @@ export type AppSettings = {
     pythonPath: string;
     outputMode: string;
     dataDir: string;
+    shortPressAction: string;
+    longPressAction: string;
+    smartMouseMode: boolean;
   };
 };
 
@@ -96,7 +99,10 @@ export const defaultSettings: AppSettings = {
     senseVoiceModelPath: 'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
     pythonPath: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
     outputMode: '粘贴到当前光标',
-    dataDir: 'D:\\Antigravity\\tailkall\\data'
+    dataDir: 'D:\\Antigravity\\tailkall\\data',
+    shortPressAction: '语音输入',
+    longPressAction: '语音助手',
+    smartMouseMode: true
   }
 };
 

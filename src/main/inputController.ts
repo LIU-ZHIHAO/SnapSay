@@ -21,6 +21,10 @@ export type MouseTrigger = {
   button: 'left' | 'right' | 'middle' | 'x1' | 'x2';
 };
 
+export type TriggerBinding =
+  | { type: 'keyboard'; key: string; modifiers: TriggerModifier[] }
+  | { type: 'mouse'; button: MouseTrigger['button'] };
+
 export type MouseHookAdapter = {
   register(trigger: MouseTrigger, handler: () => void): () => void;
 };
@@ -34,24 +38,48 @@ export function triggerToAccelerator(trigger: KeyboardTrigger): string {
 }
 
 export function parseTriggerLabelToAccelerator(label: string): string | undefined {
-  const normalized = label.trim();
-  if (!normalized || /^mouse/i.test(normalized)) {
+  const binding = parseTriggerLabelToBinding(label);
+  if (!binding || binding.type !== 'keyboard') {
     return undefined;
+  }
+
+  return triggerToAccelerator(binding);
+}
+
+export function parseTriggerLabelToBinding(label: string): TriggerBinding | undefined {
+  const normalized = label.trim();
+  if (!normalized) {
+    return undefined;
+  }
+
+  if (/^mouse middle$/i.test(normalized) || normalized === '鼠标中键') {
+    return { type: 'mouse', button: 'middle' };
+  }
+  if (/^mouse side 1$/i.test(normalized) || normalized === '鼠标侧键1') {
+    return { type: 'mouse', button: 'x1' };
+  }
+  if (/^mouse side 2$/i.test(normalized) || normalized === '鼠标侧键2') {
+    return { type: 'mouse', button: 'x2' };
   }
 
   const parts = normalized
     .split('+')
-    .map((part) => part.trim())
+    .map(normalizeLabelPart)
     .filter(Boolean);
   const key = parts.pop();
   if (!key) {
     return undefined;
   }
 
-  return triggerToAccelerator({
+  return {
+    type: 'keyboard',
     key,
     modifiers: parts.map((part) => part.toLowerCase() as TriggerModifier)
-  });
+  };
+}
+
+export function classifyPressDuration(startedAt: number, endedAt: number, longPressMs = 350): 'short' | 'long' {
+  return endedAt - startedAt >= longPressMs ? 'long' : 'short';
 }
 
 export function registerKeyboardTrigger(
@@ -119,6 +147,36 @@ function normalizeModifier(modifier: TriggerModifier): string {
       return 'Alt';
     default:
       return modifier;
+  }
+}
+
+function normalizeLabelPart(part: string): string {
+  const normalized = part.trim();
+  switch (normalized.toLowerCase()) {
+    case '左 ctrl':
+    case '右 ctrl':
+    case 'ctrl':
+    case 'control':
+      return 'control';
+    case '左 alt':
+    case '右 alt':
+    case 'alt':
+    case 'option':
+      return 'alt';
+    case '左 shift':
+    case '右 shift':
+    case 'shift':
+      return 'shift';
+    case '左 win':
+    case '右 win':
+    case 'win':
+    case 'windows':
+    case 'meta':
+    case 'cmd':
+    case 'command':
+      return 'Meta';
+    default:
+      return normalizeKey(normalized);
   }
 }
 

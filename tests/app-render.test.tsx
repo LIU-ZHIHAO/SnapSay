@@ -25,9 +25,13 @@ describe('TailKall main renderer', () => {
     fireEvent.click(screen.getByRole('button', { name: '设置' }));
 
     expect(screen.getByRole('heading', { name: '设置' })).toBeInTheDocument();
-    expect(screen.getByLabelText('当前触发键')).toHaveValue('Ctrl + Alt + Space');
-    expect(screen.getByRole('button', { name: /重新捕获/ })).toBeInTheDocument();
-    expect(screen.getByLabelText('录音模式')).toHaveValue('按住说话');
+    expect(screen.getByRole('button', { name: /Ctrl \+ Alt \+ Space/ })).toBeInTheDocument();
+    expect(screen.getByText('点击上方按钮修改')).toBeInTheDocument();
+    expect(screen.getByLabelText('短按动作')).toHaveValue('语音输入');
+    expect(screen.getByText('按一下开始说话，再按一下结束')).toBeInTheDocument();
+    expect(screen.getByLabelText('长按动作')).toHaveValue('语音助手');
+    expect(screen.getByText('按住说话，松开结束')).toBeInTheDocument();
+    expect(screen.getByLabelText('智能鼠标模式')).toBeInTheDocument();
     expect(screen.getByLabelText('ASR 引擎')).toHaveValue('whisper.cpp');
     expect(screen.getByLabelText('加速策略')).toHaveValue('GPU 优先');
     expect(screen.getByLabelText('本地模型目录')).toHaveValue('D:\\Antigravity\\tailkall\\models');
@@ -52,16 +56,27 @@ describe('TailKall main renderer', () => {
     render(<App />);
 
     fireEvent.click(screen.getByRole('button', { name: '设置' }));
-    fireEvent.click(screen.getByRole('button', { name: /重新捕获/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Ctrl \+ Alt \+ Space/ }));
 
     expect(screen.getByText('按下键盘按键、组合键或鼠标中键/侧键')).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: 'F9', code: 'F9' });
-    expect(screen.getByLabelText('当前触发键')).toHaveValue('F9');
+    expect(screen.getByRole('button', { name: /F9/ })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /重新捕获/ }));
+    fireEvent.click(screen.getByRole('button', { name: /F9/ }));
     fireEvent.mouseDown(window, { button: 1 });
-    expect(screen.getByLabelText('当前触发键')).toHaveValue('Mouse Middle');
+    expect(screen.getByRole('button', { name: /Mouse Middle/ })).toBeInTheDocument();
+  });
+
+  it('captures modifier-only keyboard combinations such as Ctrl plus Win', () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '设置' }));
+    fireEvent.click(screen.getByRole('button', { name: /Ctrl \+ Alt \+ Space/ }));
+
+    fireEvent.keyDown(window, { key: 'Meta', ctrlKey: true, metaKey: true });
+
+    expect(screen.getByRole('button', { name: /Ctrl \+ Win/ })).toBeInTheDocument();
   });
 
   it('shows records with clipped long text, hover titles, inline editing, and actions', () => {
