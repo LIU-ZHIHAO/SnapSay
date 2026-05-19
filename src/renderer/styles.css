@@ -21,7 +21,7 @@
   --amber: #f59e0b;
 
   /* Floating capsule colours (recording / processing / done / failed) */
-  --cap-rec-from:  #0d9488; --cap-rec-to:  #0f766e; --cap-rec-border:  rgb(45 212 191 / 30%); --cap-rec-glow:  rgb(13 148 136 / 40%);
+  --cap-rec-from:  #109261; --cap-rec-to:  #0d7a52; --cap-rec-border:  rgb(16 146 97 / 30%); --cap-rec-glow:  rgb(16 146 97 / 40%);
   --cap-proc-from: #0891b2; --cap-proc-to: #0e7490; --cap-proc-border: rgb(14 165 233 / 30%); --cap-proc-glow: rgb(8 145 178 / 40%);
   --cap-done-from: #059669; --cap-done-to: #047857; --cap-done-border: rgb(16 185 129 / 30%); --cap-done-glow: rgb(5 150 105 / 40%);
   --cap-fail-from: #dc2626; --cap-fail-to: #b91c1c; --cap-fail-border: rgb(239 68 68 / 30%);  --cap-fail-glow: rgb(220 38 38 / 40%);
@@ -49,7 +49,7 @@
   --text-secondary: #4b5563;
   --text-muted:     #9ca3af;
 
-  --cap-rec-from:  #0d9488; --cap-rec-to:  #0f766e; --cap-rec-border:  rgb(45 212 191 / 40%); --cap-rec-glow:  rgb(13 148 136 / 35%);
+  --cap-rec-from:  #109261; --cap-rec-to:  #0d7a52; --cap-rec-border:  rgb(16 146 97 / 40%); --cap-rec-glow:  rgb(16 146 97 / 35%);
   --cap-proc-from: #0284c7; --cap-proc-to: #0369a1; --cap-proc-border: rgb(14 165 233 / 40%); --cap-proc-glow: rgb(2 132 199 / 35%);
   --cap-done-from: #059669; --cap-done-to: #047857; --cap-done-border: rgb(16 185 129 / 40%); --cap-done-glow: rgb(5 150 105 / 35%);
   --cap-fail-from: #dc2626; --cap-fail-to: #b91c1c; --cap-fail-border: rgb(239 68 68 / 40%);  --cap-fail-glow: rgb(220 38 38 / 35%);
@@ -73,7 +73,7 @@
   --text-secondary: #c084a8;
   --text-muted:     #7c4d6a;
 
-  --cap-rec-from:  #be185d; --cap-rec-to:  #9d174d; --cap-rec-border:  rgb(244 114 182 / 35%); --cap-rec-glow:  rgb(190 24 93 / 45%);
+  --cap-rec-from:  #109261; --cap-rec-to:  #0d7a52; --cap-rec-border:  rgb(16 146 97 / 35%); --cap-rec-glow:  rgb(16 146 97 / 45%);
   --cap-proc-from: #9333ea; --cap-proc-to: #7e22ce; --cap-proc-border: rgb(192 132 252 / 35%); --cap-proc-glow: rgb(147 51 234 / 40%);
   --cap-done-from: #059669; --cap-done-to: #047857; --cap-done-border: rgb(16 185 129 / 35%);  --cap-done-glow: rgb(5 150 105 / 40%);
   --cap-fail-from: #dc2626; --cap-fail-to: #b91c1c; --cap-fail-border: rgb(239 68 68 / 35%);   --cap-fail-glow: rgb(220 38 38 / 40%);
@@ -97,7 +97,7 @@
   --text-secondary: #6ee7b7;
   --text-muted:     #2d6a4f;
 
-  --cap-rec-from:  #16a34a; --cap-rec-to:  #15803d; --cap-rec-border:  rgb(74 222 128 / 35%); --cap-rec-glow:  rgb(22 163 74 / 45%);
+  --cap-rec-from:  #109261; --cap-rec-to:  #0d7a52; --cap-rec-border:  rgb(16 146 97 / 35%); --cap-rec-glow:  rgb(16 146 97 / 45%);
   --cap-proc-from: #0891b2; --cap-proc-to: #0e7490; --cap-proc-border: rgb(14 165 233 / 35%); --cap-proc-glow: rgb(8 145 178 / 40%);
   --cap-done-from: #059669; --cap-done-to: #047857; --cap-done-border: rgb(16 185 129 / 35%); --cap-done-glow: rgb(5 150 105 / 40%);
   --cap-fail-from: #dc2626; --cap-fail-to: #b91c1c; --cap-fail-border: rgb(239 68 68 / 35%);  --cap-fail-glow: rgb(220 38 38 / 40%);
