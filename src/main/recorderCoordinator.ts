@@ -4,6 +4,7 @@ import type { SettingsStore, TranscriptionRecord } from './settingsStore';
 export type RecordingPipelineOptions = {
   audio: ArrayBuffer;
   asrProvider: AsrProvider;
+  durationMs: number;
   applyWordbook?: (text: string) => string;
   cleanupText: (transcript: string) => Promise<string>;
   pasteText: (text: string) => Promise<unknown>;
@@ -31,7 +32,7 @@ export async function runRecordingPipeline(
       asrModel: options.asrProvider.name,
       cleanupProvider: 'api',
       cleanupModel: options.settingsStore.getSettings().cleanup.provider?.model,
-      durationMs: 0,
+      durationMs: options.durationMs,
       pasteSucceeded: true
     });
   } catch (error) {
@@ -44,7 +45,7 @@ export async function runRecordingPipeline(
       asrModel: options.asrProvider.name,
       cleanupProvider: options.settingsStore.getSettings().cleanup.provider?.name,
       cleanupModel: options.settingsStore.getSettings().cleanup.provider?.model,
-      durationMs: 0,
+      durationMs: options.durationMs,
       pasteSucceeded: false
     });
   }

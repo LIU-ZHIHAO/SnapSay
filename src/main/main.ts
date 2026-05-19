@@ -258,6 +258,7 @@ function installIpcHandlers(): void {
     const records = settingsStore?.listRecords().map((record) => ({
       id: record.id,
       time: new Date(record.createdAt).toLocaleString('zh-CN', {
+        year: 'numeric',
         month: '2-digit',
         day: '2-digit',
         hour: '2-digit',
@@ -326,6 +327,7 @@ function installIpcHandlers(): void {
     const record = await runRecordingPipeline({
       audio,
       asrProvider: createConfiguredAsrProvider(settings, durationMs),
+      durationMs,
       applyWordbook: (text) => applyWordbook(text, settings.input.wordbook ?? []),
       cleanupText: async (transcript) => {
         if (!settings.cleanup.enabled || !settings.cleanup.provider) {
@@ -384,6 +386,12 @@ function installIpcHandlers(): void {
       mainWindow?.webContents.send('tailkall:record-deleted', id);
     }
     return success;
+  });
+
+  ipcMain.handle('tailkall:clear-all-records', () => {
+    settingsStore?.clearAllRecords();
+    mainWindow?.webContents.send('tailkall:records-cleared');
+    return { ok: true };
   });
 
   ipcMain.handle('tailkall:test-rewrite-api', async (_event, settings: RendererSettings) => {
