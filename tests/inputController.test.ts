@@ -172,6 +172,7 @@ describe('floatingWindow', () => {
     expect(factory).toHaveBeenCalledWith(
       expect.objectContaining({
         alwaysOnTop: true,
+        backgroundColor: '#00000000',
         frame: false,
         focusable: false,
         show: false

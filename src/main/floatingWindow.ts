@@ -23,6 +23,7 @@ export type FloatingWindowFactory = (options: {
   alwaysOnTop: boolean;
   skipTaskbar: boolean;
   transparent: boolean;
+  backgroundColor: string;
   show: boolean;
   focusable: boolean;
 }) => FloatingBrowserWindow;
@@ -35,13 +36,14 @@ export function createFloatingWindow(factory: FloatingWindowFactory): FloatingBr
   }
 
   floatingWindow = factory({
-    width: 320,
+    width: 340,
     height: 96,
     frame: false,
     resizable: false,
     alwaysOnTop: true,
     skipTaskbar: true,
     transparent: true,
+    backgroundColor: '#00000000',
     show: false,
     focusable: false
   });

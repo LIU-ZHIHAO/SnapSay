@@ -88,7 +88,7 @@ async function createMainWindow(): Promise<void> {
 
 async function createFloating(): Promise<void> {
   const display = screen.getPrimaryDisplay();
-  const size = { width: 320, height: 96 };
+  const size = { width: 340, height: 96 };
   const x = Math.round(display.workArea.x + (display.workArea.width - size.width) / 2);
   const y = Math.round(display.workArea.y + display.workArea.height - size.height - 36);
 

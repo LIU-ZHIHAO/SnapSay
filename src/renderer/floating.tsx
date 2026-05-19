@@ -48,6 +48,15 @@ function FloatingRoot() {
   const [state, setState] = useState<FloatingState>('recognizing');
 
   useEffect(() => {
+    document.documentElement.classList.add('floating-page');
+    document.body.classList.add('floating-page');
+    return () => {
+      document.documentElement.classList.remove('floating-page');
+      document.body.classList.remove('floating-page');
+    };
+  }, []);
+
+  useEffect(() => {
     return window.tailkallFloating?.onState?.((payload) => {
       if (payload.status) {
         setState(payload.status);
