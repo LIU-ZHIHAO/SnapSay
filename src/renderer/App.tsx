@@ -6,13 +6,10 @@ import {
   Gauge,
   Keyboard,
   Mic,
-  MoreHorizontal,
   PenLine,
   PlugZap,
-  RefreshCcw,
   Settings,
-  Trash2,
-  WandSparkles
+  Trash2
 } from 'lucide-react';
 import './styles.css';
 
@@ -337,12 +334,9 @@ export default function App() {
               editingRecordId={editingRecordId}
               records={records}
               onClearAll={clearAllRecords}
-              onCopyOriginal={(record) => copyText(record.original)}
               onCopyRefined={(record) => copyText(record.refined)}
               onDelete={(record) => deleteRecord(record.id)}
               onEdit={(record) => setEditingRecordId(record.id)}
-              onPaste={(record) => getFacade().pasteRecord?.(record.id)}
-              onRewrite={(record) => getFacade().rewriteRecord?.(record.id)}
               onSaveCorrection={saveCorrection}
               onUpdateOriginal={(record, value) => {
                 setRecords((current) => current.map((item) => (item.id === record.id ? { ...item, original: value } : item)));
@@ -431,12 +425,9 @@ function Dashboard(props: {
   records: RecordItem[];
   editingRecordId?: string | null;
   onClearAll?: () => void;
-  onCopyOriginal?: (record: RecordItem) => void;
   onCopyRefined?: (record: RecordItem) => void;
   onDelete?: (record: RecordItem) => void;
   onEdit?: (record: RecordItem) => void;
-  onPaste?: (record: RecordItem) => void;
-  onRewrite?: (record: RecordItem) => void;
   onSaveCorrection?: (id: string, text: string) => void;
   onUpdateOriginal?: (record: RecordItem, value: string) => void;
 }) {
@@ -480,18 +471,14 @@ function Metric({ icon, label, value }: { icon: ReactNode; label: string; value:
 function FullRecordList(props: {
   records: RecordItem[];
   editingRecordId?: string | null;
-  onCopyOriginal?: (record: RecordItem) => void;
   onCopyRefined?: (record: RecordItem) => void;
   onDelete?: (record: RecordItem) => void;
   onEdit?: (record: RecordItem) => void;
-  onPaste?: (record: RecordItem) => void;
-  onRewrite?: (record: RecordItem) => void;
   onSaveCorrection?: (id: string, text: string) => void;
   onUpdateOriginal?: (record: RecordItem, value: string) => void;
 }) {
   const [expandedCorrectionId, setExpandedCorrectionId] = useState<string | null>(null);
   const [correctionDraft, setCorrectionDraft] = useState('');
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -505,17 +492,9 @@ function FullRecordList(props: {
     setCopiedId(record.id);
   };
 
-  useEffect(() => {
-    if (!openMenuId) return;
-    const close = () => setOpenMenuId(null);
-    window.addEventListener('mousedown', close);
-    return () => window.removeEventListener('mousedown', close);
-  }, [openMenuId]);
-
   const openCorrection = (record: RecordItem) => {
     setExpandedCorrectionId(record.id);
     setCorrectionDraft(record.userCorrection ?? '');
-    setOpenMenuId(null);
   };
 
   const commitCorrection = (record: RecordItem) => {
@@ -583,40 +562,14 @@ function FullRecordList(props: {
               <button className="record-action-btn danger" data-tooltip="删除" aria-label="删除" onClick={() => props.onDelete?.(record)} type="button">
                 <Trash2 size={13} />
               </button>
-              <div className="more-menu-wrap">
-                <button
-                  className="record-action-btn"
-                  data-tooltip="更多"
-                  onClick={() => setOpenMenuId(openMenuId === record.id ? null : record.id)}
-                  type="button"
-                >
-                  <MoreHorizontal size={13} />
-                </button>
-                {openMenuId === record.id && (
-                  <div className="more-menu">
-                    <button onClick={() => { props.onCopyOriginal?.(record); setOpenMenuId(null); }} type="button">
-                      <ClipboardCopy size={13} />
-                      复制原文
-                    </button>
-                    <button onClick={() => { props.onCopyRefined?.(record); setOpenMenuId(null); }} type="button">
-                      <ClipboardCopy size={13} />
-                      复制整理后
-                    </button>
-                    <button onClick={() => { props.onRewrite?.(record); setOpenMenuId(null); }} type="button">
-                      <RefreshCcw size={13} />
-                      重新整理
-                    </button>
-                    <button onClick={() => { props.onPaste?.(record); setOpenMenuId(null); }} type="button">
-                      <WandSparkles size={13} />
-                      再次粘贴
-                    </button>
-                    <button onClick={() => openCorrection(record)} type="button">
-                      <PenLine size={13} />
-                      {record.userCorrection ? '修正已提交' : '提交修正'}
-                    </button>
-                  </div>
-                )}
-              </div>
+              <button
+                className={`record-action-btn${record.userCorrection ? ' has-correction' : ''}`}
+                data-tooltip={record.userCorrection ? '修正已提交' : '提交修正'}
+                onClick={() => openCorrection(record)}
+                type="button"
+              >
+                <PenLine size={13} />
+              </button>
             </div>
           </div>
         </div>
