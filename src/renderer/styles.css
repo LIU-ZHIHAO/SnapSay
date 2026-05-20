@@ -202,34 +202,50 @@ input[type="number"] {
 
 .window-controls {
   display: inline-flex;
+  align-items: center;
+  gap: 6px;
   position: fixed;
-  top: 0;
-  right: 0;
+  top: 16px;
+  right: 18px;
   z-index: 1000;
-  height: 42px;
+  height: 32px;
+  padding: 0 8px;
+  background: var(--surface-app);
+  border: 1px solid var(--border-subtle);
+  border-radius: 9999px;
   -webkit-app-region: no-drag;
   app-region: no-drag;
+  box-shadow: var(--shadow-soft);
+  transition: all 200ms ease;
+  backdrop-filter: blur(8px);
+}
+
+.window-controls:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 4px 12px rgba(22, 34, 51, 0.08);
 }
 
 .window-controls button {
-  display: grid;
-  place-items: center;
-  width: 50px;
-  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
   color: var(--text-secondary);
   background: transparent;
   border: 0;
-  border-radius: 0;
+  border-radius: 50%;
   cursor: pointer;
-  transition: background 160ms ease, color 160ms ease;
+  transition: all 150ms ease;
   -webkit-app-region: no-drag;
   app-region: no-drag;
+  padding: 0;
 }
 
 .window-controls button .control-icon {
-  width: 10px;
-  height: 10px;
-  transition: transform 160ms ease;
+  width: 9px;
+  height: 9px;
+  transition: transform 150ms ease;
 }
 
 .window-controls button:hover {
@@ -238,11 +254,11 @@ input[type="number"] {
 }
 
 .window-controls button:hover .control-icon {
-  transform: scale(1.1);
+  transform: scale(1.08);
 }
 
 .window-controls .close:hover {
-  background: #e81123 !important;
+  background: var(--danger) !important;
   color: #ffffff !important;
 }
 
