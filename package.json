@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.electron.json --noEmit",
-    "electron": "npm run build && electron ."
+    "electron": "npm run build && electron .",
+    "watch-commit": "chokidar \"src/**/*\" -c \"git add . && git commit -m 'auto: code change detected' --allow-empty\""
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.1.1",
@@ -26,6 +27,7 @@
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@vitest/ui": "^4.0.15",
+    "chokidar-cli": "^3.0.0",
     "electron": "^39.2.7",
     "jsdom": "^27.3.0",
     "typescript": "^5.9.3",

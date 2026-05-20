@@ -458,6 +458,7 @@ export default function App() {
                 records={records}
                 onClearAll={clearAllRecords}
                 onCopyRefined={(record) => copyText(record.refined)}
+                onCopyOriginal={(record) => copyText(record.original)}
                 onDelete={(record) => deleteRecord(record.id)}
                 onEdit={(record) => setEditingRecordId(record.id)}
                 onSaveCorrection={saveCorrection}
@@ -645,9 +646,14 @@ function FullRecordList(props: {
     return () => clearTimeout(timer);
   }, [copiedId]);
 
-  const handleCopy = (record: RecordItem) => {
+  const handleCopyOriginal = (record: RecordItem) => {
+    props.onCopyOriginal?.(record);
+    setCopiedId(record.id + '-original');
+  };
+
+  const handleCopyRefined = (record: RecordItem) => {
     props.onCopyRefined?.(record);
-    setCopiedId(record.id);
+    setCopiedId(record.id + '-refined');
   };
 
   const openCorrection = (record: RecordItem) => {
@@ -710,23 +716,48 @@ function FullRecordList(props: {
             </div>
 
             <div className="record-actions">
-              {copiedId === record.id ? (
-                <span className="copy-feedback">已复制</span>
-              ) : (
-                <button className="record-action-btn" data-tooltip="复制" aria-label="复制" onClick={() => handleCopy(record)} type="button">
-                  <ClipboardCopy size={13} />
-                </button>
-              )}
-              <button className="record-action-btn danger" data-tooltip="删除" aria-label="删除" onClick={() => props.onDelete?.(record)} type="button">
-                <Trash2 size={13} />
+              {/* 复制整理后文本 */}
+              <button
+                className={`record-action-btn${copiedId === record.id + '-refined' ? ' success' : ''}`}
+                data-tooltip={copiedId === record.id + '-refined' ? '已复制整理文本' : '复制整理文本'}
+                aria-label="复制整理文本"
+                onClick={() => handleCopyRefined(record)}
+                type="button"
+              >
+                {copiedId === record.id + '-refined' ? <Check size={13} /> : <Sparkles size={13} />}
               </button>
+
+              {/* 复制原始文本 */}
+              <button
+                className={`record-action-btn${copiedId === record.id + '-original' ? ' success' : ''}`}
+                data-tooltip={copiedId === record.id + '-original' ? '已复制原始文本' : '复制原始文本'}
+                aria-label="复制原始文本"
+                onClick={() => handleCopyOriginal(record)}
+                type="button"
+              >
+                {copiedId === record.id + '-original' ? <Check size={13} /> : <Copy size={13} />}
+              </button>
+
+              {/* 纠错 */}
               <button
                 className={`record-action-btn${record.userCorrection ? ' has-correction' : ''}`}
                 data-tooltip={record.userCorrection ? '修正已提交' : '提交修正'}
+                aria-label="纠错"
                 onClick={() => openCorrection(record)}
                 type="button"
               >
                 <PenLine size={13} />
+              </button>
+
+              {/* 删除 */}
+              <button
+                className="record-action-btn danger"
+                data-tooltip="删除"
+                aria-label="删除"
+                onClick={() => props.onDelete?.(record)}
+                type="button"
+              >
+                <Trash2 size={13} />
               </button>
             </div>
           </div>
