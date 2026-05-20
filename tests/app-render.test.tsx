@@ -58,11 +58,11 @@ describe('TailKall main renderer', () => {
     expect(screen.getAllByText('云端流式转写 API').length).toBeGreaterThan(0);
     expect(screen.getByLabelText('ASR 引擎')).toHaveValue('whisper.cpp');
     expect(screen.getByLabelText('加速策略')).toHaveValue('GPU 优先');
-    expect(screen.getByLabelText('本地模型目录')).toHaveValue('D:\\Antigravity\\tailkall\\models');
-    expect(screen.getByLabelText('whisper.cpp 程序')).toHaveValue('D:\\Antigravity\\tailkall\\models\\whisper\\Release\\whisper-cli.exe');
-    expect(screen.getByLabelText('whisper 模型文件')).toHaveValue('D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin');
-    expect(screen.getByLabelText('ffmpeg 程序')).toHaveValue('D:\\Antigravity\\tailkall\\models\\whisper\\ffmpeg.exe');
-    expect(screen.getByLabelText('Python 运行时')).toHaveValue('D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe');
+    expect(screen.queryByLabelText('本地模型目录')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('whisper.cpp 程序')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('whisper 模型文件')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('ffmpeg 程序')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Python 运行时')).not.toBeInTheDocument();
     expect(screen.getByLabelText('启用文案整理')).not.toBeChecked();
     expect(screen.getAllByText('OpenAI').length).toBeGreaterThan(0);
     expect(screen.getAllByText('DeepSeek').length).toBeGreaterThan(0);

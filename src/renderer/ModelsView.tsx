@@ -225,48 +225,6 @@ export default function ModelsView(props: {
           ))}
         </div>
 
-        {/* Local ASR paths */}
-        {!isCloudAsr && (
-          <div className="form-grid" style={{ marginTop: 12 }}>
-            <label className="wide">
-              本地模型目录
-              <input onChange={(event) => onUpdate('localModelDir', event.target.value)} value={settings.localModelDir} />
-            </label>
-            {/whisper\.cpp/i.test(settings.asr) && (
-              <>
-                <label className="wide">
-                  whisper.cpp 程序
-                  <input onChange={(event) => onUpdate('localAsrExePath', event.target.value)} value={settings.localAsrExePath} />
-                </label>
-                <label className="wide">
-                  whisper 模型文件
-                  <input onChange={(event) => onUpdate('localAsrModelPath', event.target.value)} value={settings.localAsrModelPath} />
-                </label>
-              </>
-            )}
-            <label className="wide">
-              ffmpeg 程序
-              <input onChange={(event) => onUpdate('ffmpegPath', event.target.value)} value={settings.ffmpegPath} />
-            </label>
-            {/faster-whisper/i.test(settings.asr) && (
-              <label className="wide">
-                faster-whisper 模型目录
-                <input onChange={(event) => onUpdate('fasterWhisperModelPath', event.target.value)} value={settings.fasterWhisperModelPath} />
-              </label>
-            )}
-            {/sensevoice|funasr/i.test(settings.asr) && (
-              <label className="wide">
-                SenseVoice 模型目录
-                <input onChange={(event) => onUpdate('senseVoiceModelPath', event.target.value)} value={settings.senseVoiceModelPath} />
-              </label>
-            )}
-            <label className="wide">
-              Python 运行时
-              <input onChange={(event) => onUpdate('pythonPath', event.target.value)} value={settings.pythonPath} />
-            </label>
-          </div>
-        )}
-
         {/* Cloud ASR config */}
         {isCloudAsr && (
           <div className="form-grid" style={{ marginTop: 12 }}>
