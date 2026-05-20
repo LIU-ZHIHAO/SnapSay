@@ -58,6 +58,9 @@ describe('TailKall main renderer', () => {
     expect(screen.getAllByText('云端流式转写 API').length).toBeGreaterThan(0);
     expect(screen.getByLabelText('ASR 引擎')).toHaveValue('whisper.cpp');
     expect(screen.getByLabelText('加速策略')).toHaveValue('GPU 优先');
+    expect(screen.queryByLabelText('云端上传转写 API Base URL')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('云端上传转写 API Model')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('云端上传转写 API API Key')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('本地模型目录')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('whisper.cpp 程序')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('whisper 模型文件')).not.toBeInTheDocument();
@@ -83,6 +86,19 @@ describe('TailKall main renderer', () => {
     expect(within(dialog).getByLabelText('OpenAI Model')).toHaveValue('gpt-4.1-mini');
     expect(within(dialog).getByLabelText('OpenAI API Key')).toHaveAttribute('type', 'password');
     expect(within(dialog).getByRole('button', { name: '设为默认模型' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: /测试连接/ })).toBeInTheDocument();
+  });
+
+  it('keeps ASR provider card details inside a modal', () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '模型' }));
+    fireEvent.click(screen.getByRole('button', { name: /点击配置 云端上传转写 API/ }));
+
+    const dialog = screen.getByRole('dialog', { name: '云端上传转写 API 设置' });
+    expect(within(dialog).getByLabelText('云端上传转写 API Base URL')).toHaveValue('https://api.openai.com');
+    expect(within(dialog).getByLabelText('云端上传转写 API Model')).toHaveValue('whisper-1');
+    expect(within(dialog).getByLabelText('云端上传转写 API API Key')).toHaveAttribute('type', 'password');
     expect(within(dialog).getByRole('button', { name: /测试连接/ })).toBeInTheDocument();
   });
 

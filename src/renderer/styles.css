@@ -675,27 +675,14 @@ h2 svg {
 
 .settings-view {
   flex: 0 0 auto;
-  gap: 28px;
+  gap: 18px;
   max-width: 980px;
   margin-bottom: 8px;
-  padding: 28px 30px 34px;
-  background: var(--surface-panel);
-  border: 1px solid var(--border-subtle);
-  border-radius: 28px;
-  box-shadow: var(--shadow-panel);
-}
-
-.settings-view .settings-card {
-  max-width: none;
   padding: 0;
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
 }
 
 .settings-view .settings-card + .settings-card {
-  padding-top: 2px;
+  margin-top: 4px;
 }
 
 .form-grid {
@@ -771,7 +758,7 @@ button:focus-visible {
 }
 
 .asr-card-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .provider-card {
@@ -798,6 +785,17 @@ button:focus-visible {
   min-height: 42px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--border-subtle);
+}
+
+.provider-card-header > div {
+  min-width: 0;
+}
+
+.provider-card-header-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
 }
 
 .provider-card-header h3 {
@@ -828,8 +826,7 @@ button:focus-visible {
   white-space: nowrap;
 }
 
-.provider-card-header button,
-.provider-card-fields button {
+.provider-card-header button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -885,12 +882,6 @@ button:focus-visible {
 
 .provider-config-link:hover {
   color: var(--accent-strong);
-}
-
-.provider-card-fields {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
 }
 
 .modal-backdrop {

@@ -80,8 +80,10 @@ export default function ModelsView(props: {
   const isCloudAsr = activeAsrProfile?.kind === 'cloud-upload' || activeAsrProfile?.kind === 'cloud-streaming';
   const [cloudTestStatus, setCloudTestStatus] = useState('');
   const [providerTestStatus, setProviderTestStatus] = useState<Record<string, string>>({});
+  const [configAsrProfileId, setConfigAsrProfileId] = useState<string | null>(null);
   const [configProviderKey, setConfigProviderKey] = useState<string | null>(null);
   const [promptExpanded, setPromptExpanded] = useState(false);
+  const configAsrProfile = settings.asrProfiles.find((profile) => profile.id === configAsrProfileId);
   const configProvider = settings.llmProviders.find((provider) => provider.key === configProviderKey);
 
   const updateAsrProfile = <K extends keyof AsrProfileConfig>(id: string, key: K, value: AsrProfileConfig[K]) => {
@@ -111,16 +113,16 @@ export default function ModelsView(props: {
     }
   };
 
-  const testCloudAsr = async () => {
+  const testCloudAsr = async (profile?: AsrProfileConfig) => {
     setCloudTestStatus('测试中…');
     try {
       const facade = getFacade();
       const result = await facade.testRewriteApi?.({
         ...settings,
         provider: 'cloud-asr',
-        baseURL: settings.cloudAsrBaseUrl,
-        apiKey: settings.cloudAsrApiKey,
-        model: settings.cloudAsrModel
+        baseURL: profile?.baseUrl ?? settings.cloudAsrBaseUrl,
+        apiKey: profile?.apiKey ?? settings.cloudAsrApiKey,
+        model: profile?.model ?? settings.cloudAsrModel
       });
       setCloudTestStatus(result?.message || '连接成功');
     } catch {
@@ -199,75 +201,22 @@ export default function ModelsView(props: {
                   <h3>{profile.displayName}</h3>
                   <span>{profile.kind === 'local' ? '本地模型' : profile.kind === 'cloud-upload' ? '云端上传' : '云端流式'}</span>
                 </div>
-                <button onClick={() => selectAsrProfile(profile.id)} type="button">选择</button>
-              </div>
-              {profile.kind !== 'local' && (
-                <div className="provider-card-fields">
-                  <label>
-                    {profile.displayName} Base URL
-                    <input onChange={(event) => updateAsrProfile(profile.id, 'baseUrl', event.target.value)} value={profile.baseUrl ?? ''} />
-                  </label>
-                  <label>
-                    {profile.displayName} Model
-                    <input onChange={(event) => updateAsrProfile(profile.id, 'model', event.target.value)} value={profile.model ?? ''} />
-                  </label>
-                  <label>
-                    {profile.displayName} API Key
-                    <input onChange={(event) => updateAsrProfile(profile.id, 'apiKey', event.target.value)} type="password" value={profile.apiKey ?? ''} />
-                  </label>
-                  <button onClick={testCloudAsr} type="button">
-                    <PlugZap size={16} />
-                    测试连接
-                  </button>
+                <div className="provider-card-header-actions">
+                  <button aria-label={`选择 ${profile.displayName}`} onClick={() => selectAsrProfile(profile.id)} type="button">选择</button>
+                  {profile.kind !== 'local' && (
+                    <button
+                      aria-label={`点击配置 ${profile.displayName}`}
+                      onClick={() => setConfigAsrProfileId(profile.id)}
+                      type="button"
+                    >
+                      配置
+                    </button>
+                  )}
                 </div>
-              )}
+              </div>
             </article>
           ))}
         </div>
-
-        {/* Cloud ASR config */}
-        {isCloudAsr && (
-          <div className="form-grid" style={{ marginTop: 12 }}>
-            <label>
-              API 类型
-              <select onChange={(event) => onUpdate('cloudAsrType', event.target.value)} value={settings.cloudAsrType}>
-                <option value="openai-whisper">OpenAI Whisper API</option>
-                <option value="openai-compatible">OpenAI 兼容</option>
-              </select>
-            </label>
-            <label className="wide">
-              Base URL
-              <input
-                onChange={(event) => onUpdate('cloudAsrBaseUrl', event.target.value)}
-                placeholder="https://api.openai.com/v1"
-                value={settings.cloudAsrBaseUrl}
-              />
-            </label>
-            <label>
-              API Key
-              <input
-                onChange={(event) => onUpdate('cloudAsrApiKey', event.target.value)}
-                type="password"
-                value={settings.cloudAsrApiKey}
-              />
-            </label>
-            <label>
-              Model
-              <input
-                onChange={(event) => onUpdate('cloudAsrModel', event.target.value)}
-                placeholder="whisper-1"
-                value={settings.cloudAsrModel}
-              />
-            </label>
-            <div className="field-action">
-              <button onClick={testCloudAsr} type="button">
-                <PlugZap size={16} />
-                测试连接
-              </button>
-              {cloudTestStatus && <span className={`test-status${cloudTestStatus.includes('成功') ? ' success' : ''}`}>{cloudTestStatus}</span>}
-            </div>
-          </div>
-        )}
       </section>
 
       {/* ─── LLM Panel ─── */}
@@ -333,6 +282,51 @@ export default function ModelsView(props: {
           {props.testStatus && <span className={`test-status${props.testStatus.includes('成功') ? ' success' : ''}`}>{props.testStatus}</span>}
         </div>
       </section>
+      {configAsrProfile && (
+        <div className="modal-backdrop" role="presentation">
+          <section aria-modal="true" aria-label={`${configAsrProfile.displayName} 设置`} className="provider-modal" role="dialog">
+            <div className="provider-modal-header">
+              <div>
+                <h2>{configAsrProfile.displayName} 设置</h2>
+                <span>{configAsrProfile.kind === 'cloud-upload' ? '云端上传转写' : '云端流式转写'}</span>
+              </div>
+              <div className="provider-modal-actions">
+                <button
+                  className={configAsrProfile.id === settings.activeAsrProfileId ? 'provider-enable active' : 'provider-enable'}
+                  onClick={() => selectAsrProfile(configAsrProfile.id)}
+                  type="button"
+                >
+                  {configAsrProfile.id === settings.activeAsrProfileId ? '已启用' : '设为当前 ASR'}
+                </button>
+                <button aria-label="关闭配置" className="modal-close" onClick={() => setConfigAsrProfileId(null)} type="button">
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+            <div className="provider-modal-body">
+              <label>
+                {configAsrProfile.displayName} Base URL
+                <input onChange={(event) => updateAsrProfile(configAsrProfile.id, 'baseUrl', event.target.value)} value={configAsrProfile.baseUrl ?? ''} />
+              </label>
+              <label>
+                {configAsrProfile.displayName} Model
+                <input onChange={(event) => updateAsrProfile(configAsrProfile.id, 'model', event.target.value)} value={configAsrProfile.model ?? ''} />
+              </label>
+              <label>
+                {configAsrProfile.displayName} API Key
+                <input onChange={(event) => updateAsrProfile(configAsrProfile.id, 'apiKey', event.target.value)} type="password" value={configAsrProfile.apiKey ?? ''} />
+              </label>
+              <div className="field-action">
+                <button onClick={() => void testCloudAsr(configAsrProfile)} type="button">
+                  <PlugZap size={16} />
+                  测试连接
+                </button>
+                {cloudTestStatus && <span className={`test-status${cloudTestStatus.includes('成功') ? ' success' : ''}`}>{cloudTestStatus}</span>}
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
       {configProvider && (
         <div className="modal-backdrop" role="presentation">
           <section aria-modal="true" aria-label={`${configProvider.displayName} 设置`} className="provider-modal" role="dialog">
