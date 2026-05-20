@@ -19,9 +19,9 @@ describe('cleanup policy', () => {
   it('uses the Chinese voice cleanup prompt and keeps main cleanup calls bounded', () => {
     const mainSource = readFileSync(join(process.cwd(), 'src', 'main', 'main.ts'), 'utf8');
 
-    expect(DEFAULT_CLEANUP_PROMPT).toContain('你是一个中文语音输入整理器');
-    expect(DEFAULT_CLEANUP_PROMPT).toContain('删除明显口癖');
-    expect(DEFAULT_CLEANUP_PROMPT).toContain('只保留最后确认的正确内容');
+    expect(DEFAULT_CLEANUP_PROMPT).toContain('任务：精修语音转写文本，输出可直接发送的干净文字');
+    expect(DEFAULT_CLEANUP_PROMPT).toContain('精准识别改口，直接删除被推翻的前文，无缝拼接最终确认内容');
+    expect(DEFAULT_CLEANUP_PROMPT).toContain('严禁在句末加任何结束标点');
     expect(mainSource).toContain('shouldCleanupTranscript(transcript)');
     expect(mainSource).toContain('timeoutMs: 15_000');
   });
