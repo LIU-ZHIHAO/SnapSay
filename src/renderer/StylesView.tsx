@@ -136,6 +136,12 @@ export default function StylesView(props: {
   };
 
   const handleResetPreset = (id: string) => {
+    const preset = multiPrompt.presets.find(p => p.id === id);
+    if (!preset) return;
+    if (!window.confirm(`确定要将“${preset.name}”恢复为官方出厂预设吗？当前修改将被覆盖。`)) {
+      return;
+    }
+
     let originalPrompt = '';
     if (id === 'default') originalPrompt = DEFAULT_CLEANUP_PROMPT;
     else if (id === 'engineer') originalPrompt = ENGINEER_CLEANUP_PROMPT;

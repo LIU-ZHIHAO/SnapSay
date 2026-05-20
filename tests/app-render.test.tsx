@@ -1,9 +1,13 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/renderer/App';
 import { DEFAULT_CLEANUP_PROMPT } from '../src/shared/cleanupPolicy';
 
 describe('TailKall main renderer', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('renders the dashboard with trigger, ASR, rewrite API, and recent records', async () => {
     render(<App />);
 
@@ -164,6 +168,31 @@ describe('TailKall main renderer', () => {
     fireEvent.click(deleteBtn);
 
     expect(screen.queryByRole('heading', { name: '我的修改风格' })).not.toBeInTheDocument();
+  });
+
+  it('asks for confirmation before resetting a built-in style preset', () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '风格' }));
+    fireEvent.click(screen.getAllByRole('button', { name: '编辑参数' })[0]);
+    fireEvent.change(screen.getByLabelText('大模型提示词 (Prompt) 模板'), {
+      target: { value: '用户改过的默认提示词' }
+    });
+    fireEvent.click(screen.getByRole('button', { name: '保存配置' }));
+
+    expect(screen.getByText('用户改过的默认提示词')).toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByTitle('重置为系统出厂配置')[0]);
+
+    expect(confirmSpy).toHaveBeenCalledWith('确定要将“默认整理”恢复为官方出厂预设吗？当前修改将被覆盖。');
+    expect(screen.getByText('用户改过的默认提示词')).toBeInTheDocument();
+
+    confirmSpy.mockReturnValue(true);
+    fireEvent.click(screen.getAllByTitle('重置为系统出厂配置')[0]);
+
+    expect(screen.queryByText('用户改过的默认提示词')).not.toBeInTheDocument();
+    expect(screen.getAllByText(/你是一个中文语音输入整理器/).length).toBeGreaterThan(0);
   });
 
   it('limits preset display to 5 on dashboard and shows the rest in a dropdown menu', () => {
