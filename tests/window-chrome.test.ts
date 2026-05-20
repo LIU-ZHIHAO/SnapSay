@@ -32,11 +32,12 @@ describe('custom window chrome', () => {
     expect(css).toMatch(/\.window-controls button\s*\{[^}]*app-region:\s*no-drag/s);
   });
 
-  it('keeps the right-side chrome background draggable and scopes no-drag to content views', () => {
+  it('keeps scrollable content outside the draggable chrome region', () => {
     const css = readFileSync(join(process.cwd(), 'src', 'renderer', 'styles.css'), 'utf8');
 
-    expect(cssBlock(css, '.content')).toMatch(/app-region:\s*drag/);
-    expect(cssBlock(css, '.content')).not.toMatch(/app-region:\s*no-drag/);
+    expect(cssBlock(css, '.app-shell')).toMatch(/app-region:\s*drag/);
+    expect(cssBlock(css, '.content')).toMatch(/app-region:\s*no-drag/);
+    expect(cssBlock(css, '.content')).not.toMatch(/app-region:\s*drag/);
     expect(cssBlock(css, '.view-stack')).toMatch(/app-region:\s*no-drag/);
   });
 

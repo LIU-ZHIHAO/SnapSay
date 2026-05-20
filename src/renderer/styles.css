@@ -299,8 +299,8 @@ input[type="number"] {
   padding: 72px 34px 56px;
   background: var(--bg-base);
   scrollbar-gutter: stable;
-  -webkit-app-region: drag;
-  app-region: drag;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
 }
 
 .dashboard-content {
