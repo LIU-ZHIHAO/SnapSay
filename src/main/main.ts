@@ -17,7 +17,7 @@ import { cleanupText, createAsrDaemonProvider, createCloudAsrProvider, createClo
 import { runRecordingPipeline } from './recorderCoordinator.js';
 import { createElectronStoreAdapter, createSettingsStore, type SettingsStore } from './settingsStore.js';
 import type { AsrProfileConfig, LlmProviderConfig } from './settingsStore.js';
-import { applyWordbook, buildWordbookPrompt, extractWordPairCandidates, learnFromCorrections } from './wordbook.js';
+import { applyWordbook, buildWordbookPrompt, extractWordPairCandidates } from './wordbook.js';
 import type { WordbookEntry } from './wordbook.js';
 import { DEFAULT_CLEANUP_PROMPT, shouldCleanupTranscript, resolvePromptText } from '../shared/cleanupPolicy.js';
 
@@ -502,21 +502,21 @@ function installIpcHandlers(): void {
     return { ok: true };
   });
 
-  ipcMain.handle('tailkall:learn-wordbook', () => {
-    if (!settingsStore) {
-      return { ok: false, added: 0, updated: 0 };
-    }
+  // Independently save wordbook without touching other settings
+  ipcMain.handle('tailkall:save-wordbook', (_event, wordbook: WordbookEntry[]) => {
+    if (!settingsStore) return { ok: false };
     const settings = settingsStore.getSettings();
-    const records = settingsStore.listRecords();
-    const result = learnFromCorrections(records, settings.input.wordbook ?? [], settings.input.wordbookLearnedAt);
-    settingsStore.saveSettings({
-      input: {
-        ...settings.input,
-        wordbook: result.updatedWordbook,
-        wordbookLearnedAt: result.learnedAt
-      }
-    });
-    return { ok: true, added: result.added, updated: result.updated, wordbook: result.updatedWordbook };
+    settingsStore.saveSettings({ input: { ...settings.input, wordbook } });
+    return { ok: true };
+  });
+
+  // Extract candidate word pairs from a correction record (for quick-add-to-wordbook)
+  ipcMain.handle('tailkall:extract-word-pairs', (_event, id: string) => {
+    if (!settingsStore) return { ok: false, pairs: [] };
+    const record = settingsStore.listRecords().find((r) => r.id === id);
+    if (!record?.userCorrection) return { ok: false, pairs: [] };
+    const pairs = extractWordPairCandidates(record.transcript, record.userCorrection);
+    return { ok: true, pairs };
   });
 
   ipcMain.handle('tailkall:window-control', (_event, action: 'minimize' | 'toggle-maximize' | 'close') => {

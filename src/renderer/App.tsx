@@ -237,7 +237,8 @@ type TailKallFacade = {
   clearAllRecords?: () => Promise<{ ok: boolean }>;
   testRewriteApi?: (settings: SettingsState) => Promise<{ ok: boolean; message: string }>;
   saveCorrection?: (id: string, text: string) => Promise<void>;
-  learnWordbook?: () => Promise<{ ok: boolean; added: number; updated: number; wordbook?: WordbookEntry[] }>;
+  saveWordbook?: (wordbook: WordbookEntry[]) => Promise<{ ok: boolean }>;
+  extractWordPairs?: (id: string) => Promise<{ ok: boolean; pairs: { from: string; to: string }[] }>;
   windowControl?: (action: 'minimize' | 'toggle-maximize' | 'close') => Promise<boolean>;
   onRecordingStart?: (callback: () => void) => () => void;
   onRecordingStop?: (callback: () => void) => () => void;
@@ -441,7 +442,11 @@ export default function App() {
   const updateSetting = <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => {
     setSettings((current) => {
       const next = { ...current, [key]: value };
-      void getFacade().saveSettings?.(next).catch(() => undefined);
+      if (key === 'wordbook') {
+        void getFacade().saveWordbook?.(value as WordbookEntry[]).catch(() => undefined);
+      } else {
+        void getFacade().saveSettings?.(next).catch(() => undefined);
+      }
       return next;
     });
   };
@@ -541,6 +546,7 @@ export default function App() {
                   setRecords((current) => current.map((item) => (item.id === record.id ? { ...item, original: value } : item)));
                 }}
                 onUpdatePrompt={(newPrompt) => updateSetting('prompt', newPrompt)}
+                onUpdateWordbook={(wb) => updateSetting('wordbook', wb)}
               />
             )}
             {view === 'models' && (
@@ -623,6 +629,7 @@ function Dashboard(props: {
   onSaveCorrection?: (id: string, text: string) => void;
   onUpdateOriginal?: (record: RecordItem, value: string) => void;
   onUpdatePrompt?: (newPrompt: string) => void;
+  onUpdateWordbook?: (wordbook: WordbookEntry[]) => void;
 }) {
   const multiPrompt = parseMultiPrompt(props.settings.prompt);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
@@ -784,6 +791,7 @@ function Metric({ icon, label, value }: { icon: ReactNode; label: string; value:
 
 /* ─── Full card list ──────────────────────────────────────────────────── */
 function FullRecordList(props: {
+  settings: SettingsState;
   records: RecordItem[];
   editingRecordId?: string | null;
   showDiagnosis?: boolean;
@@ -793,10 +801,13 @@ function FullRecordList(props: {
   onEdit?: (record: RecordItem) => void;
   onSaveCorrection?: (id: string, text: string) => void;
   onUpdateOriginal?: (record: RecordItem, value: string) => void;
+  onUpdateWordbook?: (wordbook: WordbookEntry[]) => void;
 }) {
   const [expandedCorrectionId, setExpandedCorrectionId] = useState<string | null>(null);
   const [correctionDraft, setCorrectionDraft] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [quickAddRecordId, setQuickAddRecordId] = useState<string | null>(null);
+  const [quickAddPairs, setQuickAddPairs] = useState<{ from: string; to: string; selected: boolean }[]>([]);
 
   useEffect(() => {
     if (!copiedId) return;
@@ -819,11 +830,72 @@ function FullRecordList(props: {
     setCorrectionDraft(record.userCorrection ?? '');
   };
 
-  const commitCorrection = (record: RecordItem) => {
+  const commitCorrection = async (record: RecordItem) => {
     if (correctionDraft.trim()) {
-      props.onSaveCorrection?.(record.id, correctionDraft.trim());
+      await props.onSaveCorrection?.(record.id, correctionDraft.trim());
+      
+      // Extract word pairs from the correction record
+      try {
+        const res = await window.tailkall?.extractWordPairs?.(record.id);
+        if (res && res.ok && res.pairs && res.pairs.length > 0) {
+          setQuickAddPairs(res.pairs.map((p) => ({ ...p, selected: true })));
+          setQuickAddRecordId(record.id);
+        } else {
+          setQuickAddRecordId(null);
+          setQuickAddPairs([]);
+        }
+      } catch (err) {
+        console.error('Failed to extract word pairs', err);
+      }
     }
-    setExpandedCorrectionId(null);
+  };
+
+  const handleConfirmQuickAdd = () => {
+    const selected = quickAddPairs.filter((p) => p.selected);
+    if (selected.length === 0) {
+      setQuickAddRecordId(null);
+      setQuickAddPairs([]);
+      return;
+    }
+
+    const currentWordbook = [...(props.settings.wordbook ?? [])];
+
+    for (const pair of selected) {
+      const targetWord = pair.to.trim();
+      const variantWord = pair.from.trim();
+      if (!targetWord || !variantWord) continue;
+
+      // Find existing entry with case-insensitive comparison
+      const existingIdx = currentWordbook.findIndex(
+        (e) => e.target.toLowerCase() === targetWord.toLowerCase()
+      );
+
+      if (existingIdx !== -1) {
+        const existing = currentWordbook[existingIdx];
+        const hasVariant = existing.variants.some(
+          (v) => v.toLowerCase() === variantWord.toLowerCase()
+        );
+        const isSameAsTarget = existing.target.toLowerCase() === variantWord.toLowerCase();
+        
+        if (!hasVariant && !isSameAsTarget) {
+          currentWordbook[existingIdx] = {
+            ...existing,
+            variants: [...existing.variants, variantWord]
+          };
+        }
+      } else {
+        const isSameAsTarget = targetWord.toLowerCase() === variantWord.toLowerCase();
+        currentWordbook.push({
+          id: `wb_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+          target: targetWord,
+          variants: isSameAsTarget ? [] : [variantWord]
+        });
+      }
+    }
+
+    props.onUpdateWordbook?.(currentWordbook);
+    setQuickAddRecordId(null);
+    setQuickAddPairs([]);
   };
 
   const statusClass = (s: string) => s === '已输入' ? 'ok' : s === '整理中' ? 'busy' : 'fail';
@@ -869,6 +941,52 @@ function FullRecordList(props: {
                     placeholder="粘贴修正后的文本…"
                     value={correctionDraft}
                   />
+                </div>
+              )}
+
+              {quickAddRecordId === record.id && quickAddPairs.length > 0 && (
+                <div className="quick-add-wordbook-panel">
+                  <div className="quick-add-header">
+                    <span style={{ fontSize: '15px' }}>💡</span>
+                    <h4>检测到拼写纠正，是否一键加入自定义词库？</h4>
+                  </div>
+                  <div className="quick-add-pairs-list">
+                    {quickAddPairs.map((pair, idx) => (
+                      <div key={idx} className="quick-add-pair-item">
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={pair.selected}
+                            onChange={(e) => {
+                              setQuickAddPairs(current => current.map((p, i) => i === idx ? { ...p, selected: e.target.checked } : p));
+                            }}
+                          />
+                          <span className="quick-add-wrong">{pair.from}</span>
+                          <span className="quick-add-arrow">→</span>
+                          <span className="quick-add-correct">{pair.to}</span>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="quick-add-actions">
+                    <button
+                      className="quick-add-btn-confirm"
+                      onClick={() => handleConfirmQuickAdd()}
+                      type="button"
+                    >
+                      确认加入
+                    </button>
+                    <button
+                      className="quick-add-btn-cancel"
+                      onClick={() => {
+                        setQuickAddRecordId(null);
+                        setQuickAddPairs([]);
+                      }}
+                      type="button"
+                    >
+                      忽略
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -935,6 +1053,122 @@ function FullRecordList(props: {
   );
 }
 
+function WordbookEntryRow({
+  entry,
+  onUpdateEntry,
+  onRemove
+}: {
+  entry: WordbookEntry;
+  onUpdateEntry: (entry: WordbookEntry) => void;
+  onRemove: () => void;
+}) {
+  const [isEditingTarget, setIsEditingTarget] = useState(false);
+  const [targetVal, setTargetVal] = useState(entry.target);
+  const [newChipVal, setNewChipVal] = useState('');
+
+  useEffect(() => {
+    setTargetVal(entry.target);
+  }, [entry.target]);
+
+  const handleTargetBlur = () => {
+    setIsEditingTarget(false);
+    if (targetVal.trim() && targetVal.trim() !== entry.target) {
+      onUpdateEntry({ ...entry, target: targetVal.trim() });
+    } else {
+      setTargetVal(entry.target);
+    }
+  };
+
+  const handleRemoveChip = (chipIndex: number) => {
+    const updatedVariants = entry.variants.filter((_, idx) => idx !== chipIndex);
+    onUpdateEntry({ ...entry, variants: updatedVariants });
+  };
+
+  const handleAddChip = () => {
+    const trimmed = newChipVal.trim();
+    if (trimmed) {
+      const parts = trimmed.split(/[,，]/).map(v => v.trim()).filter(Boolean);
+      const newVariants = [...entry.variants];
+      for (const p of parts) {
+        if (!newVariants.some(v => v.toLowerCase() === p.toLowerCase()) && p.toLowerCase() !== entry.target.toLowerCase()) {
+          newVariants.push(p);
+        }
+      }
+      onUpdateEntry({ ...entry, variants: newVariants });
+    }
+    setNewChipVal('');
+  };
+
+  return (
+    <div className="wordbook-entry-card">
+      <div className="wordbook-target-editor">
+        {isEditingTarget ? (
+          <input
+            aria-label="编辑目标词"
+            className="wordbook-target-input"
+            value={targetVal}
+            onChange={(e) => setTargetVal(e.target.value)}
+            onBlur={handleTargetBlur}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleTargetBlur();
+              if (e.key === 'Escape') {
+                setTargetVal(entry.target);
+                setIsEditingTarget(false);
+              }
+            }}
+            autoFocus
+          />
+        ) : (
+          <div
+            className="wordbook-target-text"
+            onClick={() => setIsEditingTarget(true)}
+            title="点击修改目标词"
+          >
+            {entry.target}
+          </div>
+        )}
+      </div>
+
+      <div className="wordbook-chips">
+        {entry.variants.map((variant, idx) => (
+          <span key={idx} className="wordbook-chip">
+            {variant}
+            <button
+              className="wordbook-chip-remove"
+              onClick={() => handleRemoveChip(idx)}
+              type="button"
+              title="删除变体"
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        <input
+          aria-label="添加发音变体"
+          className="wordbook-chip-input"
+          placeholder="+ 添加变体"
+          value={newChipVal}
+          onChange={(e) => setNewChipVal(e.target.value)}
+          onBlur={handleAddChip}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleAddChip();
+          }}
+        />
+      </div>
+
+      <button
+        aria-label={`删除词条 ${entry.target}`}
+        className="wordbook-delete"
+        onClick={onRemove}
+        type="button"
+        title="删除整条记录"
+      >
+        <Trash2 size={14} />
+      </button>
+    </div>
+  );
+}
+
 function SettingsView(props: {
   appearance: Appearance;
   settings: SettingsState;
@@ -942,7 +1176,6 @@ function SettingsView(props: {
   onUpdate: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void;
 }) {
   const { settings, onUpdate } = props;
-  const [learnStatus, setLearnStatus] = useState('');
   const [newTarget, setNewTarget] = useState('');
   const [newVariants, setNewVariants] = useState('');
   const [isCapturing, setIsCapturing] = useState(false);
@@ -1048,28 +1281,9 @@ function SettingsView(props: {
     setNewVariants('');
   };
 
+
   const removeWordbookEntry = (id: string) => {
     onUpdate('wordbook', (settings.wordbook ?? []).filter((e) => e.id !== id));
-  };
-
-  const updateVariants = (id: string, value: string) => {
-    onUpdate('wordbook', (settings.wordbook ?? []).map((e) =>
-      e.id === id ? { ...e, variants: value.split(',').map((v) => v.trim()).filter(Boolean) } : e
-    ));
-  };
-
-  const learnWordbook = async () => {
-    setLearnStatus('学习中…');
-    const result = await getFacade().learnWordbook?.();
-    if (result?.ok) {
-      if (result.wordbook) {
-        onUpdate('wordbook', result.wordbook);
-      }
-      const total = (result.wordbook ?? settings.wordbook ?? []).length;
-      setLearnStatus(`完成：新增 ${result.added} 条，更新 ${result.updated} 条（词库共 ${total} 条）`);
-    } else {
-      setLearnStatus('学习失败');
-    }
   };
 
   return (
@@ -1214,69 +1428,40 @@ function SettingsView(props: {
           <BookOpen size={18} />
           自定义词库
         </h2>
-        <p className="wordbook-desc">词库用于矫正 ASR 识别错误。目标词是正确写法，发音变体是 ASR 可能识别出的错误形式（逗号分隔）。</p>
+        <p className="wordbook-desc">
+          词库用于纠正 ASR 识别出的错误读音或相近词汇。在下方添加您的专有名词或高频词汇（如英文词、电商词），系统将在 ASR 识别后自动替换，或提供给 AI 整理。支持点击目标词就地修改，通过标签查看、添加或删除错误变体。
+        </p>
         {(settings.wordbook ?? []).length > 0 && (
-          <div className="table-wrap wordbook-table-wrap">
-            <table className="wordbook-table">
-              <thead>
-                <tr>
-                  <th style={{ width: 160 }}>目标词</th>
-                  <th>发音变体（逗号分隔）</th>
-                  <th style={{ width: 60 }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {(settings.wordbook ?? []).map((entry) => (
-                  <tr key={entry.id}>
-                    <td className="wordbook-target">{entry.target}</td>
-                    <td>
-                      <input
-                        aria-label={`${entry.target} 的发音变体`}
-                        className="wordbook-variants-input"
-                        onBlur={(e) => updateVariants(entry.id, e.target.value)}
-                        onChange={(e) => updateVariants(entry.id, e.target.value)}
-                        value={entry.variants.join(', ')}
-                      />
-                    </td>
-                    <td>
-                      <button
-                        aria-label={`删除 ${entry.target}`}
-                        className="wordbook-delete"
-                        onClick={() => removeWordbookEntry(entry.id)}
-                        type="button"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="wordbook-list">
+            {(settings.wordbook ?? []).map((entry) => (
+              <WordbookEntryRow
+                key={entry.id}
+                entry={entry}
+                onUpdateEntry={(updatedEntry) => {
+                  const newWb = (settings.wordbook ?? []).map((e) => e.id === entry.id ? updatedEntry : e);
+                  onUpdate('wordbook', newWb);
+                }}
+                onRemove={() => removeWordbookEntry(entry.id)}
+              />
+            ))}
           </div>
         )}
-        <div className="wordbook-add-row">
+        <div className="wordbook-add-row" style={{ marginTop: '16px' }}>
           <input
             aria-label="新词库目标词"
             onChange={(e) => setNewTarget(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') addWordbookEntry(); }}
-            placeholder="目标词，如 Codex"
+            placeholder="新目标词，如 Codex"
             value={newTarget}
           />
           <input
             aria-label="新词库发音变体"
             onChange={(e) => setNewVariants(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') addWordbookEntry(); }}
-            placeholder="变体，如 code x, codec"
+            placeholder="变体（可选，逗号分隔，如 code x, codecs）"
             value={newVariants}
           />
           <button onClick={addWordbookEntry} type="button">添加</button>
-        </div>
-        <div className="field-action learn-action">
-          <button onClick={() => void learnWordbook()} type="button">
-            <BookOpen size={16} />
-            从修正记录中学习
-          </button>
-          {learnStatus && <span className="test-status">{learnStatus}</span>}
         </div>
       </section>
       </div>

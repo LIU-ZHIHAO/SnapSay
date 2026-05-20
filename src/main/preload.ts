@@ -12,7 +12,8 @@ contextBridge.exposeInMainWorld('tailkall', {
   clearAllRecords: () => ipcRenderer.invoke('tailkall:clear-all-records'),
   testRewriteApi: (settings: unknown) => ipcRenderer.invoke('tailkall:test-rewrite-api', settings),
   saveCorrection: (id: string, text: string) => ipcRenderer.invoke('tailkall:save-correction', id, text),
-  learnWordbook: () => ipcRenderer.invoke('tailkall:learn-wordbook'),
+  saveWordbook: (wordbook: unknown) => ipcRenderer.invoke('tailkall:save-wordbook', wordbook),
+  extractWordPairs: (id: string) => ipcRenderer.invoke('tailkall:extract-word-pairs', id),
   windowControl: (action: 'minimize' | 'toggle-maximize' | 'close') =>
     ipcRenderer.invoke('tailkall:window-control', action),
   onRecordingStart: (callback: () => void) => {
