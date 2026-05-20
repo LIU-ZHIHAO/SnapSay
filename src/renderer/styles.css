@@ -197,7 +197,7 @@ input[type="number"] {
   position: fixed;
   top: 0;
   right: 0;
-  z-index: 20;
+  z-index: 1000;
   height: 38px;
   -webkit-app-region: no-drag;
   app-region: no-drag;
@@ -291,7 +291,9 @@ input[type="number"] {
 }
 
 .content {
+  display: flex;
   min-width: 0;
+  min-height: 0;
   overflow: auto;
   padding: 72px 34px 30px;
   background: var(--bg-base);
@@ -299,13 +301,23 @@ input[type="number"] {
   app-region: drag;
 }
 
+.dashboard-content {
+  overflow: hidden;
+}
+
 .view-stack {
   display: flex;
   flex-direction: column;
   gap: 22px;
+  width: 100%;
+  min-height: 0;
   max-width: 1080px;
   -webkit-app-region: no-drag;
   app-region: no-drag;
+}
+
+.dashboard-view {
+  height: 100%;
 }
 
 h1,
@@ -400,6 +412,13 @@ h2 svg {
   box-shadow: var(--shadow-panel);
 }
 
+.dashboard-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .settings-card {
   padding: 22px;
 }
@@ -455,6 +474,8 @@ h2 svg {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-height: 0;
+  overflow: auto;
 }
 
 .record-card {

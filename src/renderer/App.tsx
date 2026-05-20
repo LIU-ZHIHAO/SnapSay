@@ -360,7 +360,7 @@ export default function App() {
         </aside>
 
         <WindowControls />
-        <section className="content">
+        <section className={view === 'dashboard' ? 'content dashboard-content' : 'content'}>
           {view === 'dashboard' && (
             <Dashboard
               settings={settings}
@@ -440,7 +440,7 @@ function Dashboard(props: {
   onUpdateOriginal?: (record: RecordItem, value: string) => void;
 }) {
   return (
-    <div className="view-stack">
+    <div className="view-stack dashboard-view">
       <h1>主页</h1>
       <div className="metric-grid">
         <Metric icon={<Keyboard />} label="当前触发键" value={props.settings.triggerKey} />

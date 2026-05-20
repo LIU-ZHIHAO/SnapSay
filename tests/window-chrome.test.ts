@@ -39,4 +39,12 @@ describe('custom window chrome', () => {
     expect(cssBlock(css, '.content')).not.toMatch(/app-region:\s*no-drag/);
     expect(cssBlock(css, '.view-stack')).toMatch(/app-region:\s*no-drag/);
   });
+
+  it('keeps window controls above draggable content and removes page-level scrolling', () => {
+    const css = readFileSync(join(process.cwd(), 'src', 'renderer', 'styles.css'), 'utf8');
+
+    expect(cssBlock(css, '.window-controls')).toMatch(/z-index:\s*(?:[1-9]\d{2,}|[1-9]\d{3,})/);
+    expect(cssBlock(css, '.dashboard-content')).toMatch(/overflow:\s*hidden/);
+    expect(cssBlock(css, '.record-list')).toMatch(/overflow:\s*auto/);
+  });
 });
