@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Brain, Server, PlugZap } from 'lucide-react';
+import { Brain, Server, PlugZap, X } from 'lucide-react';
 
 type WordbookEntry = {
   id: string;
@@ -80,6 +80,8 @@ export default function ModelsView(props: {
   const isCloudAsr = activeAsrProfile?.kind === 'cloud-upload' || activeAsrProfile?.kind === 'cloud-streaming';
   const [cloudTestStatus, setCloudTestStatus] = useState('');
   const [providerTestStatus, setProviderTestStatus] = useState<Record<string, string>>({});
+  const [configProviderKey, setConfigProviderKey] = useState<string | null>(null);
+  const configProvider = settings.llmProviders.find((provider) => provider.key === configProviderKey);
 
   const updateAsrProfile = <K extends keyof AsrProfileConfig>(id: string, key: K, value: AsrProfileConfig[K]) => {
     onUpdate('asrProfiles', settings.asrProfiles.map((profile) => profile.id === id ? { ...profile, [key]: value } : profile));
@@ -327,44 +329,16 @@ export default function ModelsView(props: {
                   <h3>{provider.displayName}</h3>
                   <span>OpenAI-compatible</span>
                 </div>
-                <button
-                  onClick={() => {
-                    onUpdate('activeLlmProviderKey', provider.key);
-                    onUpdate('provider', provider.displayName);
-                    onUpdate('baseURL', provider.baseUrl);
-                    onUpdate('model', provider.model);
-                    onUpdate('apiKey', provider.apiKey);
-                  }}
-                  type="button"
-                >
-                  设为默认
-                </button>
+                <span aria-label={provider.key === settings.activeLlmProviderKey ? '当前默认' : '未启用'} className={provider.key === settings.activeLlmProviderKey ? 'provider-status active' : 'provider-status'} />
               </div>
-              <div className="provider-card-fields">
-                <label>
-                  {provider.displayName} Base URL
-                  <input onChange={(event) => updateLlmProvider(provider.key, 'baseUrl', event.target.value)} value={provider.baseUrl} />
-                </label>
-                <label>
-                  {provider.displayName} Model
-                  <input onChange={(event) => updateLlmProvider(provider.key, 'model', event.target.value)} value={provider.model} />
-                </label>
-                <label>
-                  {provider.displayName} API Key
-                  <input onChange={(event) => updateLlmProvider(provider.key, 'apiKey', event.target.value)} type="password" value={provider.apiKey} />
-                </label>
-                <div className="field-action">
-                  <button onClick={() => void testLlmProvider(provider)} type="button">
-                    <PlugZap size={16} />
-                    测试连接
-                  </button>
-                  {providerTestStatus[provider.key] && (
-                    <span className={`test-status${providerTestStatus[provider.key].includes('成功') ? ' success' : ''}`}>
-                      {providerTestStatus[provider.key]}
-                    </span>
-                  )}
-                </div>
-              </div>
+              <button
+                aria-label={`点击配置 ${provider.displayName}`}
+                className="provider-config-link"
+                onClick={() => setConfigProviderKey(provider.key)}
+                type="button"
+              >
+                点击配置
+              </button>
             </article>
           ))}
         </div>
@@ -376,6 +350,61 @@ export default function ModelsView(props: {
           {props.testStatus && <span className={`test-status${props.testStatus.includes('成功') ? ' success' : ''}`}>{props.testStatus}</span>}
         </div>
       </section>
+      {configProvider && (
+        <div className="modal-backdrop" role="presentation">
+          <section aria-modal="true" aria-label={`${configProvider.displayName} 设置`} className="provider-modal" role="dialog">
+            <div className="provider-modal-header">
+              <div>
+                <h2>{configProvider.displayName} 设置</h2>
+                <span>大模型服务商</span>
+              </div>
+              <div className="provider-modal-actions">
+                <button
+                  className={configProvider.key === settings.activeLlmProviderKey ? 'provider-enable active' : 'provider-enable'}
+                  onClick={() => {
+                    onUpdate('activeLlmProviderKey', configProvider.key);
+                    onUpdate('provider', configProvider.displayName);
+                    onUpdate('baseURL', configProvider.baseUrl);
+                    onUpdate('model', configProvider.model);
+                    onUpdate('apiKey', configProvider.apiKey);
+                  }}
+                  type="button"
+                >
+                  {configProvider.key === settings.activeLlmProviderKey ? '已启用' : '设为默认'}
+                </button>
+                <button aria-label="关闭配置" className="modal-close" onClick={() => setConfigProviderKey(null)} type="button">
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+            <div className="provider-modal-body">
+              <label>
+                {configProvider.displayName} API Key
+                <input onChange={(event) => updateLlmProvider(configProvider.key, 'apiKey', event.target.value)} type="password" value={configProvider.apiKey} />
+              </label>
+              <label>
+                {configProvider.displayName} Base URL
+                <input onChange={(event) => updateLlmProvider(configProvider.key, 'baseUrl', event.target.value)} value={configProvider.baseUrl} />
+              </label>
+              <label>
+                {configProvider.displayName} Model
+                <input onChange={(event) => updateLlmProvider(configProvider.key, 'model', event.target.value)} value={configProvider.model} />
+              </label>
+              <div className="field-action">
+                <button onClick={() => void testLlmProvider(configProvider)} type="button">
+                  <PlugZap size={16} />
+                  测试连接
+                </button>
+                {providerTestStatus[configProvider.key] && (
+                  <span className={`test-status${providerTestStatus[configProvider.key].includes('成功') ? ' success' : ''}`}>
+                    {providerTestStatus[configProvider.key]}
+                  </span>
+                )}
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
