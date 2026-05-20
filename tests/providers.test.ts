@@ -98,6 +98,27 @@ describe('providers', () => {
     ).resolves.toEqual({ ok: true });
   });
 
+  it('rejects non-header-safe API keys before fetch converts Authorization to ByteString', async () => {
+    const fetch = vi.fn();
+
+    await expect(
+      testCleanupProvider({
+        provider: {
+          type: 'openai-compatible',
+          name: '火山方舟',
+          baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+          apiKey: '整理-key',
+          model: 'deepseek-v3'
+        },
+        fetch
+      })
+    ).resolves.toEqual({
+      ok: false,
+      error: 'API Key 含有请求 Header 不支持的字符，请只粘贴服务商控制台生成的密钥，不要包含中文说明或全角字符。'
+    });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it('resolves the active LLM provider card for cleanup', () => {
     const settings = {
       ...defaultSettings,

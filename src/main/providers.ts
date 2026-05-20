@@ -8,6 +8,8 @@ import { DEFAULT_CLEANUP_PROMPT } from '../shared/cleanupPolicy.js';
 
 export const DEEPSEEK_BASE_URL = 'https://api.deepseek.com/v1';
 const execFileAsync = promisify(execFile);
+const API_KEY_HEADER_ERROR =
+  'API Key 含有请求 Header 不支持的字符，请只粘贴服务商控制台生成的密钥，不要包含中文说明或全角字符。';
 
 export type ChatRole = 'system' | 'user' | 'assistant';
 
@@ -79,7 +81,7 @@ export async function cleanupText(options: {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${provider.apiKey}`
+      Authorization: buildBearerAuthorization(provider.apiKey)
     },
     body: JSON.stringify(
       buildChatCompletionPayload({
@@ -355,11 +357,12 @@ export function createCloudAsrProvider(options: CloudAsrProviderOptions): AsrPro
       const body = concatBuffers(parts);
 
       const url = `${baseUrl}/v1/audio/transcriptions`;
+      const apiKey = normalizeApiKeyForAuthorization(p.apiKey);
       const response = await options.fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': `multipart/form-data; boundary=${boundary}`,
-          Authorization: `Bearer ${p.apiKey}`
+          Authorization: buildBearerAuthorization(apiKey)
         },
         body,
         signal: createTimeoutSignal(options.timeoutMs)
@@ -370,7 +373,7 @@ export function createCloudAsrProvider(options: CloudAsrProviderOptions): AsrPro
         throw new Error(
           sanitizeProviderError(
             `Cloud ASR ${p.model} failed with HTTP ${response.status}: ${errBody}`,
-            p.apiKey
+            apiKey
           )
         );
       }
@@ -438,12 +441,25 @@ async function assertFileExists(
 function normalizeProvider(provider: CleanupProviderConfig): Required<CleanupProviderConfig> {
   return {
     ...provider,
+    apiKey: normalizeApiKeyForAuthorization(provider.apiKey),
     baseUrl: trimTrailingSlash(provider.baseUrl || DEEPSEEK_BASE_URL)
   };
 }
 
 function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/, '');
+}
+
+function normalizeApiKeyForAuthorization(apiKey: string): string {
+  const normalized = apiKey.trim();
+  if (normalized && /[^\x20-\x7E]/.test(normalized)) {
+    throw new Error(API_KEY_HEADER_ERROR);
+  }
+  return normalized;
+}
+
+function buildBearerAuthorization(apiKey: string): string {
+  return `Bearer ${normalizeApiKeyForAuthorization(apiKey)}`;
 }
 
 function createTimeoutSignal(timeoutMs?: number): AbortSignal | undefined {
