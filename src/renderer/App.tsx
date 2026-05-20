@@ -17,7 +17,8 @@ import {
   MessageSquareText,
   Copy,
   Check,
-  ChevronDown
+  ChevronDown,
+  Bug
 } from 'lucide-react';
 import ModelsView from './ModelsView';
 import StylesView from './StylesView';
@@ -187,6 +188,7 @@ type RecordItem = {
   asrDurationMs?: number;
   cleanupDurationMs?: number;
   pasteSucceeded?: boolean;
+  error?: string;
 };
 
 type SettingsState = {
@@ -356,6 +358,15 @@ export default function App() {
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [testStatus, setTestStatus] = useState('未测试');
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [showDiagnosis, setShowDiagnosis] = useState(() => {
+    return localStorage.getItem('tailkall-show-diagnosis') === 'true';
+  });
+
+  const toggleDiagnosis = () => {
+    const next = !showDiagnosis;
+    setShowDiagnosis(next);
+    localStorage.setItem('tailkall-show-diagnosis', String(next));
+  };
 
   useEffect(() => {
     getFacade()
@@ -518,6 +529,8 @@ export default function App() {
                 settings={settings}
                 editingRecordId={editingRecordId}
                 records={records}
+                showDiagnosis={showDiagnosis}
+                onToggleDiagnosis={toggleDiagnosis}
                 onClearAll={clearAllRecords}
                 onCopyRefined={(record) => copyText(record.refined)}
                 onCopyOriginal={(record) => copyText(record.original)}
@@ -600,6 +613,8 @@ function Dashboard(props: {
   settings: SettingsState;
   records: RecordItem[];
   editingRecordId?: string | null;
+  showDiagnosis: boolean;
+  onToggleDiagnosis: () => void;
   onClearAll?: () => void;
   onCopyRefined?: (record: RecordItem) => void;
   onCopyOriginal?: (record: RecordItem) => void;
@@ -732,12 +747,22 @@ function Dashboard(props: {
       <section className="panel dashboard-panel" aria-label="最近记录">
         <div className="panel-header">
           <h2>最近记录</h2>
-          {props.records.length > 0 && (
-            <button className="clear-all-btn" onClick={props.onClearAll} type="button">
-              <Eraser size={14} />
-              清空
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              className={`toggle-diagnosis-btn ${props.showDiagnosis ? 'active' : ''}`}
+              onClick={props.onToggleDiagnosis}
+              type="button"
+            >
+              <Bug size={14} />
+              {props.showDiagnosis ? '隐藏诊断日志' : '显示诊断日志'}
             </button>
-          )}
+            {props.records.length > 0 && (
+              <button className="clear-all-btn" onClick={props.onClearAll} type="button">
+                <Eraser size={14} />
+                清空
+              </button>
+            )}
+          </div>
         </div>
         <FullRecordList {...props} />
       </section>
@@ -761,6 +786,7 @@ function Metric({ icon, label, value }: { icon: ReactNode; label: string; value:
 function FullRecordList(props: {
   records: RecordItem[];
   editingRecordId?: string | null;
+  showDiagnosis?: boolean;
   onCopyRefined?: (record: RecordItem) => void;
   onCopyOriginal?: (record: RecordItem) => void;
   onDelete?: (record: RecordItem) => void;
@@ -805,7 +831,7 @@ function FullRecordList(props: {
   return (
     <div className="record-list">
       {props.records.map((record) => (
-        <div className="record-card" key={record.id}>
+        <div className={`record-card ${record.status === '失败' ? 'failed-card' : ''}`} key={record.id}>
           <div className="record-row">
             <div className="record-content">
               <div className="record-meta">
@@ -843,6 +869,16 @@ function FullRecordList(props: {
                     placeholder="粘贴修正后的文本…"
                     value={correctionDraft}
                   />
+                </div>
+              )}
+
+              {props.showDiagnosis && record.error && (
+                <div className="record-error-log" title={record.error}>
+                  <div className="record-error-title">
+                    <span className="error-icon">⚠️</span>
+                    <span>诊断错误日志</span>
+                  </div>
+                  <div className="record-error-body">{record.error}</div>
                 </div>
               )}
             </div>

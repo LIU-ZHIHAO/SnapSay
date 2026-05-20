@@ -17,7 +17,8 @@ import { cleanupText, createAsrDaemonProvider, createCloudAsrProvider, createClo
 import { runRecordingPipeline } from './recorderCoordinator.js';
 import { createElectronStoreAdapter, createSettingsStore, type SettingsStore } from './settingsStore.js';
 import type { AsrProfileConfig, LlmProviderConfig } from './settingsStore.js';
-import { applyWordbook, learnFromCorrections } from './wordbook.js';
+import { applyWordbook, buildWordbookPrompt, extractWordPairCandidates, learnFromCorrections } from './wordbook.js';
+import type { WordbookEntry } from './wordbook.js';
 import { DEFAULT_CLEANUP_PROMPT, shouldCleanupTranscript, resolvePromptText } from '../shared/cleanupPolicy.js';
 
 type RendererSettings = {
@@ -294,7 +295,8 @@ function installIpcHandlers(): void {
       durationMs: record.durationMs,
       asrDurationMs: record.asrDurationMs,
       cleanupDurationMs: record.cleanupDurationMs,
-      pasteSucceeded: record.pasteSucceeded
+      pasteSucceeded: record.pasteSucceeded,
+      error: record.error
     }));
 
     return {
@@ -337,7 +339,8 @@ function installIpcHandlers(): void {
         longPressAction: settings.longPressAction,
         smartMouseMode: true,
         mouseTrigger: settings.mouseTrigger || 'Mouse Middle',
-        wordbook: [],
+        // BUG FIX: preserve wordbook; wordbook is saved independently via tailkall:save-wordbook
+        wordbook: settingsStore?.getSettings().input.wordbook ?? [],
         asrProfiles: settings.asrProfiles,
         activeAsrProfileId: settings.activeAsrProfileId,
         cloudAsr: settings.cloudAsrBaseUrl ? {
@@ -372,10 +375,12 @@ function installIpcHandlers(): void {
           return transcript;
         }
         updateFloatingState({ visible: true, recording: false, status: 'rewriting' });
+        const basePrompt = resolvePromptText(settings.cleanup.prompt);
+        const wordbookSuffix = buildWordbookPrompt(settings.input.wordbook ?? []);
         return cleanupText({
           provider,
           transcript,
-          prompt: resolvePromptText(settings.cleanup.prompt),
+          prompt: basePrompt + wordbookSuffix,
           fetch: fetch as FetchLike,
           timeoutMs: 15_000
         });
@@ -419,7 +424,8 @@ function installIpcHandlers(): void {
         durationMs: r.durationMs,
         asrDurationMs: r.asrDurationMs,
         cleanupDurationMs: r.cleanupDurationMs,
-        pasteSucceeded: r.pasteSucceeded
+        pasteSucceeded: r.pasteSucceeded,
+        error: r.error
       })));
     }
 

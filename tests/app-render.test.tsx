@@ -241,4 +241,79 @@ describe('TailKall main renderer', () => {
     // 下拉菜单中现在应该可以找到“风格6”
     expect(screen.getByRole('button', { name: '风格6' })).toBeInTheDocument();
   });
+
+  it('renders and toggles error diagnostic logs for failed records on dashboard', async () => {
+    // Mock the window.tailkall object with a failed transcription record
+    window.tailkall = {
+      getDashboard: async () => ({
+        settings: {
+          triggerKey: 'Ctrl + Alt + Space',
+          recordMode: '按住说话',
+          asr: 'whisper.cpp',
+          asrAcceleration: 'GPU 优先',
+          localModelDir: 'D:\\Antigravity\\tailkall\\models',
+          localAsrExePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\Release\\whisper-cli.exe',
+          localAsrModelPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin',
+          ffmpegPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ffmpeg.exe',
+          fasterWhisperModelPath: 'D:\\Antigravity\\tailkall\\models\\faster-whisper\\small',
+          senseVoiceModelPath: 'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
+          pythonPath: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
+          cleanupEnabled: false,
+          provider: 'OpenAI Compatible',
+          baseURL: 'https://api.example.com/v1',
+          model: 'gpt-4.1-mini',
+          apiKey: 'demo-api-key',
+          llmProviders: [],
+          activeLlmProviderKey: 'deepseek',
+          prompt: DEFAULT_CLEANUP_PROMPT,
+          outputMode: '粘贴到当前光标',
+          dataDir: 'D:\\Antigravity\\tailkall\\data',
+          shortPressAction: '语音输入',
+          longPressAction: '语音助手',
+          smartMouseMode: true,
+          mouseTrigger: 'Mouse Middle',
+          wordbook: [],
+          cloudAsrType: 'openai-whisper',
+          cloudAsrBaseUrl: '',
+          cloudAsrApiKey: '',
+          cloudAsrModel: 'whisper-1',
+          asrProfiles: [],
+          activeAsrProfileId: 'local-whisper-cpp'
+        },
+        records: [
+          {
+            id: 'rec-failed-1',
+            time: '2026/05/20 22:45',
+            original: '',
+            refined: '',
+            status: '失败',
+            error: 'Connection timed out to LLM provider at api.deepseek.com'
+          }
+        ]
+      })
+    };
+
+    render(<App />);
+
+    // Wait for the mock dashboard record to load and render
+    const failedStatus = await screen.findByText('失败');
+    expect(failedStatus).toBeInTheDocument();
+
+    // Verify that the error log is NOT visible by default
+    expect(screen.queryByText('Connection timed out to LLM provider at api.deepseek.com')).not.toBeInTheDocument();
+
+    // Click the toggle button to show diagnosis logs
+    const toggleBtn = screen.getByRole('button', { name: '显示诊断日志' });
+    expect(toggleBtn).toBeInTheDocument();
+    fireEvent.click(toggleBtn);
+
+    // Verify the button text changes or gets active
+    expect(screen.getByRole('button', { name: '隐藏诊断日志' })).toBeInTheDocument();
+
+    // Verify the error log is now visible on the screen
+    expect(screen.getByText('Connection timed out to LLM provider at api.deepseek.com')).toBeInTheDocument();
+
+    // Clean up to prevent impacting other tests
+    delete (window as any).tailkall;
+  });
 });
