@@ -90,7 +90,7 @@ export function generateEnglishVariants(word: string): string[] {
   if (spaced !== lower) variants.add(spaced); // napSay → nap say
 
   // 3. 在常见位置插入空格（词中切分）
-  for (let i = 1; i < lower.length - 1; i++) {
+  for (let i = 1; i < lower.length; i++) {
     const split = `${lower.slice(0, i)} ${lower.slice(i)}`;
     if (split.trim() !== lower) variants.add(split); // codex → code x, cod ex, ...
   }
@@ -180,12 +180,9 @@ export function extractWordPairCandidates(
   original: string,
   corrected: string
 ): WordPairCandidate[] {
-  const tokenize = (text: string): string[] =>
-    text
-      .replace(/[\s，。！？、；：""''（）【】《》.,!?;:()\[\]{}"'\n\r]+/g, ' ')
-      .trim()
-      .split(' ')
-      .filter((t) => t.length >= 2);
+  const tokenize = (text: string): string[] => {
+    return text.match(/[\u4e00-\u9fa5]|[a-zA-Z0-9\-_']+/g) || [];
+  };
 
   const origTokens = tokenize(original);
   const corrTokens = tokenize(corrected);
@@ -207,19 +204,88 @@ export function extractWordPairCandidates(
       origWord.toLowerCase() === lcsWord.toLowerCase() &&
       corrWord.toLowerCase() === lcsWord.toLowerCase()
     ) {
-      oi++; ci++; li++;
-    } else if (origWord && corrWord && origWord.toLowerCase() !== corrWord.toLowerCase()) {
-      // 词级别替换
-      pairs.push({ from: origWord, to: corrWord });
-      oi++; ci++;
-    } else if (origWord && (!corrWord || (lcsWord && corrWord.toLowerCase() === lcsWord.toLowerCase()))) {
       oi++;
-    } else {
       ci++;
+      li++;
+      continue;
+    }
+
+    const mismatchOrig: string[] = [];
+    const startOi = oi;
+    while (oi < origTokens.length) {
+      const w = origTokens[oi];
+      if (lcsWord && w.toLowerCase() === lcsWord.toLowerCase()) {
+        break;
+      }
+      if (!isStopToken(w)) {
+        mismatchOrig.push(w);
+      }
+      oi++;
+    }
+
+    const mismatchCorr: string[] = [];
+    const startCi = ci;
+    while (ci < corrTokens.length) {
+      const w = corrTokens[ci];
+      if (lcsWord && w.toLowerCase() === lcsWord.toLowerCase()) {
+        break;
+      }
+      if (!isStopToken(w)) {
+        mismatchCorr.push(w);
+      }
+      ci++;
+    }
+
+    if (mismatchOrig.length > 0 && mismatchCorr.length > 0) {
+      const isChinese = mismatchCorr.some((w) => /[\u4e00-\u9fa5]/.test(w));
+
+      if (isChinese) {
+        let fromStr = mismatchOrig.join('');
+        let toStr = mismatchCorr.join('');
+
+        let leftCount = 0;
+        let leftOi = startOi - 1;
+        let leftCi = startCi - 1;
+        while (leftCount < 2 && leftOi >= 0 && leftCi >= 0) {
+          const oTok = origTokens[leftOi];
+          const cTok = corrTokens[leftCi];
+          if (oTok.toLowerCase() === cTok.toLowerCase() && /[\u4e00-\u9fa5]/.test(cTok) && !isStopToken(cTok)) {
+            fromStr = oTok + fromStr;
+            toStr = cTok + toStr;
+            leftCount++;
+            leftOi--;
+            leftCi--;
+          } else {
+            break;
+          }
+        }
+
+        let rightCount = 0;
+        let rightOi = oi;
+        let rightCi = ci;
+        while (rightCount < 3 && rightOi < origTokens.length && rightCi < corrTokens.length) {
+          const oTok = origTokens[rightOi];
+          const cTok = corrTokens[rightCi];
+          if (oTok.toLowerCase() === cTok.toLowerCase() && /[\u4e00-\u9fa5]/.test(cTok) && !isStopToken(cTok)) {
+            fromStr = fromStr + oTok;
+            toStr = toStr + cTok;
+            rightCount++;
+            rightOi++;
+            rightCi++;
+          } else {
+            break;
+          }
+        }
+
+        pairs.push({ from: fromStr, to: toStr });
+      } else {
+        const fromStr = mismatchOrig.join(' ');
+        const toStr = mismatchCorr.join(' ');
+        pairs.push({ from: fromStr, to: toStr });
+      }
     }
   }
 
-  // 过滤掉明显是停用词的替换
   return pairs.filter(
     (p) => !isStopToken(p.from) && !isStopToken(p.to) && p.from !== p.to
   );
