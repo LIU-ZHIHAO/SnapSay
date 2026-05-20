@@ -631,6 +631,7 @@ function FullRecordList(props: {
   records: RecordItem[];
   editingRecordId?: string | null;
   onCopyRefined?: (record: RecordItem) => void;
+  onCopyOriginal?: (record: RecordItem) => void;
   onDelete?: (record: RecordItem) => void;
   onEdit?: (record: RecordItem) => void;
   onSaveCorrection?: (id: string, text: string) => void;
