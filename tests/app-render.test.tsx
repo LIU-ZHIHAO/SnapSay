@@ -75,9 +75,7 @@ describe('TailKall main renderer', () => {
     expect(screen.queryByLabelText('OpenAI Base URL')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('OpenAI Model')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('OpenAI API Key')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Prompt 模板')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Prompt 模板' }));
-    expect(screen.getByLabelText('Prompt 模板')).toHaveValue(DEFAULT_CLEANUP_PROMPT);
+    expect(screen.getByLabelText('编辑 默认整理 的 Prompt 模板')).toHaveValue(DEFAULT_CLEANUP_PROMPT);
 
     fireEvent.click(screen.getAllByRole('button', { name: /点击配置 OpenAI/ })[0]);
 

@@ -124,6 +124,14 @@
 
 * {
   box-sizing: border-box;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 body {
@@ -198,7 +206,7 @@ input[type="number"] {
   top: 0;
   right: 0;
   z-index: 1000;
-  height: 38px;
+  height: 42px;
   -webkit-app-region: no-drag;
   app-region: no-drag;
 }
@@ -206,17 +214,22 @@ input[type="number"] {
 .window-controls button {
   display: grid;
   place-items: center;
-  width: 46px;
-  height: 38px;
+  width: 50px;
+  height: 42px;
   color: var(--text-secondary);
   background: transparent;
   border: 0;
   border-radius: 0;
   cursor: pointer;
-  font-size: 14px;
-  transition: background 120ms ease, color 120ms ease;
+  transition: background 160ms ease, color 160ms ease;
   -webkit-app-region: no-drag;
   app-region: no-drag;
+}
+
+.window-controls button .control-icon {
+  width: 10px;
+  height: 10px;
+  transition: transform 160ms ease;
 }
 
 .window-controls button:hover {
@@ -224,9 +237,32 @@ input[type="number"] {
   color: var(--text-primary);
 }
 
+.window-controls button:hover .control-icon {
+  transform: scale(1.1);
+}
+
 .window-controls .close:hover {
-  background: #d83b3b;
-  color: #ffffff;
+  background: #e81123 !important;
+  color: #ffffff !important;
+}
+
+.top-drag-zone {
+  height: 72px;
+  flex-shrink: 0;
+  -webkit-app-region: drag;
+  app-region: drag;
+  background: transparent;
+}
+
+.main-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bg-base);
+  -webkit-app-region: drag;
+  app-region: drag;
 }
 
 .app-shell {
@@ -294,11 +330,10 @@ input[type="number"] {
   display: flex;
   min-width: 0;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
   overscroll-behavior: contain;
-  padding: 72px 34px 56px;
+  padding: 0 34px 56px;
   background: var(--bg-base);
-  scrollbar-gutter: stable;
   -webkit-app-region: no-drag;
   app-region: no-drag;
 }
@@ -312,14 +347,21 @@ input[type="number"] {
   flex-direction: column;
   gap: 22px;
   width: 100%;
+  height: 100%;
   min-height: 0;
   max-width: 1080px;
   -webkit-app-region: no-drag;
   app-region: no-drag;
 }
 
-.dashboard-view {
-  height: 100%;
+.scroll-content-container {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding-bottom: 24px;
 }
 
 h1,
@@ -350,7 +392,7 @@ h2 svg {
 
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr 1.3fr 1.7fr;
   gap: 16px;
 }
 
@@ -718,7 +760,7 @@ textarea {
 textarea {
   min-height: 88px;
   padding: 10px 12px;
-  resize: vertical;
+  resize: none;
 }
 
 select {
@@ -977,6 +1019,25 @@ button:focus-visible {
   min-width: 0;
 }
 
+.prompt-config textarea {
+  min-height: 180px;
+  max-height: 240px;
+  resize: none;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.6;
+  background: var(--surface-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  box-shadow: inset 0 2px 4px rgb(22 34 51 / 4%);
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.prompt-config textarea:focus {
+  border-color: var(--accent);
+  box-shadow: inset 0 2px 4px rgb(22 34 51 / 2%), 0 0 0 3px var(--accent-glow);
+}
+
 .prompt-config-toggle {
   display: flex;
   align-items: center;
@@ -1065,6 +1126,44 @@ button:focus-visible {
   border-radius: 999px;
   font-size: 12px;
 }
+
+.shortcut-layout-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  align-items: start;
+  margin-top: 12px;
+}
+
+.mouse-select-card {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 70px;
+  padding: 0 28px;
+  color: var(--text-primary);
+  background: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-panel);
+  box-shadow: inset 0 -3px 0 rgb(22 34 51 / 7%);
+  cursor: pointer;
+  font-size: 22px;
+  font-weight: 750;
+  text-align-last: center;
+  text-align: center;
+  transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+}
+
+.mouse-select-card:hover {
+  background: var(--surface-hover);
+}
+
+.mouse-select-card:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
 
 .press-mode-grid {
   display: grid;
@@ -1429,3 +1528,195 @@ tr:last-child td {
     grid-template-columns: 1fr;
   }
 }
+
+/* ─── AI Style Preset Bar ────────────────────────────────────────────── */
+.style-preset-panel {
+  margin-top: 16px;
+  padding: 14px 20px;
+  background: var(--surface-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.style-preset-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.style-preset-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: 8px;
+}
+
+.style-preset-text h3 {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.style-preset-text p {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 2px 0 0 0;
+}
+
+.style-preset-options {
+  display: flex;
+  align-items: center;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-subtle);
+  padding: 3px;
+  border-radius: 10px;
+  gap: 2px;
+}
+
+.style-preset-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.style-preset-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+  transform: translateY(-0.5px);
+}
+
+.style-preset-btn.active {
+  color: #fff;
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+  box-shadow: 0 3px 8px rgba(139, 92, 246, 0.2);
+  font-weight: 700;
+}
+
+.style-preset-btn svg {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.2s ease;
+}
+
+.style-preset-btn.active svg {
+  transform: scale(1.05);
+}
+
+/* ─── AI Style Prompt Editor ────────────────────────────────────────── */
+.prompt-editor-card {
+  margin-top: 16px;
+  background: var(--surface-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-panel);
+  padding: 16px 20px;
+}
+
+.prompt-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+
+.prompt-editor-tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.prompt-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.prompt-tab:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.prompt-tab.active {
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  font-weight: 700;
+}
+
+.prompt-tab-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.prompt-tab-badge-inactive {
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px dashed var(--border-subtle);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.prompt-tab-badge-inactive:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.prompt-editor-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.prompt-editor-body textarea {
+  min-height: 180px !important;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.prompt-editor-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+

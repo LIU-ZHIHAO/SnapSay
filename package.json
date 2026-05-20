@@ -2,7 +2,7 @@
   "name": "tailkall",
   "version": "0.1.0",
   "private": true,
-  "description": "TailKall Windows voice input assistant",
+  "description": "SnapSay Windows voice input assistant",
   "main": "dist-electron/main/main.js",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 14231",

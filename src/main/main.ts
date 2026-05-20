@@ -18,7 +18,7 @@ import { runRecordingPipeline } from './recorderCoordinator.js';
 import { createElectronStoreAdapter, createSettingsStore, type SettingsStore } from './settingsStore.js';
 import type { AsrProfileConfig, LlmProviderConfig } from './settingsStore.js';
 import { applyWordbook, learnFromCorrections } from './wordbook.js';
-import { DEFAULT_CLEANUP_PROMPT, shouldCleanupTranscript } from '../shared/cleanupPolicy.js';
+import { DEFAULT_CLEANUP_PROMPT, shouldCleanupTranscript, resolvePromptText } from '../shared/cleanupPolicy.js';
 
 type RendererSettings = {
   triggerKey: string;
@@ -180,7 +180,7 @@ async function createMainWindow(): Promise<void> {
     height: 820,
     minWidth: 1040,
     minHeight: 680,
-    title: 'TailKall',
+    title: 'SnapSay',
     frame: false,
     autoHideMenuBar: true,
     titleBarStyle: 'hidden',
@@ -335,7 +335,7 @@ function installIpcHandlers(): void {
         dataDir: settings.dataDir,
         shortPressAction: settings.shortPressAction,
         longPressAction: settings.longPressAction,
-        smartMouseMode: settings.smartMouseMode,
+        smartMouseMode: true,
         mouseTrigger: settings.mouseTrigger || 'Mouse Middle',
         wordbook: [],
         asrProfiles: settings.asrProfiles,
@@ -375,7 +375,7 @@ function installIpcHandlers(): void {
         return cleanupText({
           provider,
           transcript,
-          prompt: settings.cleanup.prompt,
+          prompt: resolvePromptText(settings.cleanup.prompt),
           fetch: fetch as FetchLike,
           timeoutMs: 15_000
         });
@@ -481,7 +481,7 @@ function installIpcHandlers(): void {
     const cleaned = await cleanupText({
       provider: settings.cleanup.provider,
       transcript: record.transcript,
-      prompt: settings.cleanup.prompt,
+      prompt: resolvePromptText(settings.cleanup.prompt),
       fetch: fetch as FetchLike
     });
     const updated = settingsStore?.updateRecord(id, { cleanedText: cleaned, status: 'completed' });

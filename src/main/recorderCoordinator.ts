@@ -24,6 +24,7 @@ export async function runRecordingPipeline(
     const asrStart = Date.now();
     const asr = await options.asrProvider.transcribe(options.audio);
     asrDurationMs = Date.now() - asrStart;
+    console.log(`[ASR] Transcribe completed. Cost: ${asrDurationMs}ms, Audio physical duration: ${options.durationMs}ms`);
     transcript = options.applyWordbook ? options.applyWordbook(asr.text) : asr.text;
 
     const shouldCleanup = options.shouldCleanupText?.(transcript) ?? true;

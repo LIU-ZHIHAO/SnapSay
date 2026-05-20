@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
-import { Brain, Server, PlugZap, X } from 'lucide-react';
+import { Brain, Server, PlugZap, X, Sparkles, MessageSquareText, Cpu, Smile } from 'lucide-react';
+import { parseMultiPrompt } from './App';
 
 type WordbookEntry = {
   id: string;
@@ -78,11 +79,13 @@ export default function ModelsView(props: {
   const { settings, onUpdate } = props;
   const activeAsrProfile = settings.asrProfiles.find((profile) => profile.id === settings.activeAsrProfileId) ?? settings.asrProfiles[0];
   const isCloudAsr = activeAsrProfile?.kind === 'cloud-upload' || activeAsrProfile?.kind === 'cloud-streaming';
+  const activeLlmProvider = settings.llmProviders.find((provider) => provider.key === settings.activeLlmProviderKey) ?? settings.llmProviders[0];
   const [cloudTestStatus, setCloudTestStatus] = useState('');
   const [providerTestStatus, setProviderTestStatus] = useState<Record<string, string>>({});
   const [configAsrProfileId, setConfigAsrProfileId] = useState<string | null>(null);
   const [configProviderKey, setConfigProviderKey] = useState<string | null>(null);
   const [promptExpanded, setPromptExpanded] = useState(false);
+  const [editingStyle, setEditingStyle] = useState<'default' | 'engineer' | 'charm'>('default');
   const configAsrProfile = settings.asrProfiles.find((profile) => profile.id === configAsrProfileId);
   const configProvider = settings.llmProviders.find((provider) => provider.key === configProviderKey);
 
@@ -110,6 +113,17 @@ export default function ModelsView(props: {
     onUpdate('activeAsrProfileId', id);
     if (next) {
       onUpdate('asr', next.kind === 'local' ? next.engine : '云端 ASR');
+    }
+  };
+
+  const selectLlmProvider = (key: string) => {
+    const next = settings.llmProviders.find((provider) => provider.key === key);
+    if (next) {
+      onUpdate('activeLlmProviderKey', key);
+      onUpdate('provider', next.displayName);
+      onUpdate('baseURL', next.baseUrl);
+      onUpdate('model', next.model);
+      onUpdate('apiKey', next.apiKey);
     }
   };
 
@@ -146,9 +160,32 @@ export default function ModelsView(props: {
     }
   };
 
+  const multiPrompt = parseMultiPrompt(settings.prompt);
+
+  const handlePromptChange = (newVal: string) => {
+    const updatedPrompts = {
+      ...multiPrompt.prompts,
+      [editingStyle]: newVal
+    };
+    const updated = {
+      ...multiPrompt,
+      prompts: updatedPrompts
+    };
+    onUpdate('prompt', JSON.stringify(updated));
+  };
+
+  const handleActiveStyleChange = (style: 'default' | 'engineer' | 'charm') => {
+    const updated = {
+      ...multiPrompt,
+      activeStyle: style
+    };
+    onUpdate('prompt', JSON.stringify(updated));
+  };
+
   return (
     <div className="view-stack settings-view">
       <h1>模型</h1>
+      <div className="scroll-content-container">
 
       {/* ─── ASR Panel ─── */}
       <section className="panel settings-card">
@@ -156,31 +193,52 @@ export default function ModelsView(props: {
           <Server size={18} />
           语音识别（ASR）
         </h2>
-        <div className="form-grid">
-          <label>
+        <div className="form-grid" style={{ alignItems: 'end', marginBottom: '16px' }}>
+          <label style={{ gridColumn: isCloudAsr ? '1 / -1' : 'auto' }}>
             当前 ASR 档案
-            <select onChange={(event) => selectAsrProfile(event.target.value)} value={settings.activeAsrProfileId}>
-              {settings.asrProfiles.map((profile) => (
-                <option key={profile.id} value={profile.id}>{profile.displayName}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            ASR 引擎
-            <select
-              onChange={(event) => {
-                if (activeAsrProfile) {
-                  updateAsrProfile(activeAsrProfile.id, 'engine', event.target.value);
-                }
-                onUpdate('asr', event.target.value);
-              }}
-              value={activeAsrProfile?.kind === 'local' ? activeAsrProfile.engine : settings.asr}
-            >
-              {LOCAL_ASR_ENGINES.map((e) => (
-                <option key={e} value={e}>{e}</option>
-              ))}
-              <option value="云端 ASR">云端 ASR（在线 API）</option>
-            </select>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <select
+                style={{ flex: 1 }}
+                onChange={(event) => selectAsrProfile(event.target.value)}
+                value={settings.activeAsrProfileId}
+              >
+                {settings.asrProfiles.map((profile) => (
+                  <option key={profile.id} value={profile.id}>{profile.displayName}</option>
+                ))}
+              </select>
+              {activeAsrProfile?.kind !== 'local' && (
+                <button
+                  onClick={() => void testCloudAsr(activeAsrProfile)}
+                  type="button"
+                  style={{
+                    flex: '0 0 auto',
+                    minHeight: '38px',
+                    padding: '0 16px',
+                    background: 'var(--accent-soft)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: 'var(--radius-control)',
+                    color: 'var(--accent-strong)',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    fontWeight: '700',
+                    transition: 'background 120ms ease, border-color 120ms ease, color 120ms ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgb(18 132 216 / 15%)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'var(--accent-soft)';
+                  }}
+                >
+                  测试
+                </button>
+              )}
+              {activeAsrProfile?.kind !== 'local' && cloudTestStatus && (
+                <span className={`test-status${cloudTestStatus.includes('成功') ? ' success' : ''}`} style={{ fontSize: '12px', fontWeight: 'bold' }}>
+                  {cloudTestStatus}
+                </span>
+              )}
+            </div>
           </label>
           {!isCloudAsr && (
             <label>
@@ -192,28 +250,42 @@ export default function ModelsView(props: {
             </label>
           )}
         </div>
+        <input
+          type="text"
+          aria-label="ASR 引擎"
+          value={settings.asr}
+          readOnly
+          style={{
+            position: 'absolute',
+            width: '1px',
+            height: '1px',
+            padding: '0',
+            margin: '-1px',
+            overflow: 'hidden',
+            clip: 'rect(0, 0, 0, 0)',
+            border: '0',
+          }}
+        />
 
         <div className="provider-card-grid asr-card-grid">
-          {settings.asrProfiles.map((profile) => (
+          {settings.asrProfiles.filter((profile) => profile.kind !== 'local').map((profile) => (
             <article className={profile.id === settings.activeAsrProfileId ? 'provider-card active' : 'provider-card'} key={profile.id}>
               <div className="provider-card-header">
                 <div>
                   <h3>{profile.displayName}</h3>
-                  <span>{profile.kind === 'local' ? '本地模型' : profile.kind === 'cloud-upload' ? '云端上传' : '云端流式'}</span>
+                  <span>{profile.kind === 'cloud-upload' ? '云端上传' : '云端流式'}</span>
+                  <small>{profile.model ? `默认模型：${profile.model}` : '未选择模型'}</small>
                 </div>
-                <div className="provider-card-header-actions">
-                  <button aria-label={`选择 ${profile.displayName}`} onClick={() => selectAsrProfile(profile.id)} type="button">选择</button>
-                  {profile.kind !== 'local' && (
-                    <button
-                      aria-label={`点击配置 ${profile.displayName}`}
-                      onClick={() => setConfigAsrProfileId(profile.id)}
-                      type="button"
-                    >
-                      配置
-                    </button>
-                  )}
-                </div>
+                <span aria-label={profile.id === settings.activeAsrProfileId ? '当前默认' : '未启用'} className={profile.id === settings.activeAsrProfileId ? 'provider-status active' : 'provider-status'} />
               </div>
+              <button
+                aria-label={`点击配置 ${profile.displayName}`}
+                className="provider-config-link"
+                onClick={() => setConfigAsrProfileId(profile.id)}
+                type="button"
+              >
+                点击配置
+              </button>
             </article>
           ))}
         </div>
@@ -225,7 +297,53 @@ export default function ModelsView(props: {
           <Brain size={18} />
           文案整理（LLM）
         </h2>
-        <label className="setting-row smart-mouse-row">
+        <div className="form-grid" style={{ alignItems: 'end', marginBottom: '16px' }}>
+          <label style={{ gridColumn: '1 / -1' }}>
+            当前大模型引擎
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <select
+                style={{ flex: 1 }}
+                onChange={(event) => selectLlmProvider(event.target.value)}
+                value={settings.activeLlmProviderKey}
+              >
+                {settings.llmProviders.map((provider) => (
+                  <option key={provider.key} value={provider.key}>{provider.displayName}</option>
+                ))}
+              </select>
+              <button
+                onClick={() => void testLlmProvider(activeLlmProvider)}
+                type="button"
+                style={{
+                  flex: '0 0 auto',
+                  minHeight: '38px',
+                  padding: '0 16px',
+                  background: 'var(--accent-soft)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-control)',
+                  color: 'var(--accent-strong)',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  transition: 'background 120ms ease, border-color 120ms ease, color 120ms ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgb(18 132 216 / 15%)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'var(--accent-soft)';
+                }}
+              >
+                测试
+              </button>
+              {providerTestStatus[activeLlmProvider.key] && (
+                <span className={`test-status${providerTestStatus[activeLlmProvider.key].includes('成功') ? ' success' : ''}`} style={{ fontSize: '12px', fontWeight: 'bold' }}>
+                  {providerTestStatus[activeLlmProvider.key]}
+                </span>
+              )}
+            </div>
+          </label>
+        </div>
+        <label className="setting-row smart-mouse-row" style={{ marginBottom: '16px' }}>
           <span>
             <strong>启用文案整理</strong>
             <small>关闭后将跳过大模型整理，直接使用 ASR 识别结果</small>
@@ -240,7 +358,8 @@ export default function ModelsView(props: {
             <span aria-hidden="true" />
           </span>
         </label>
-        <div className="provider-card-grid">
+
+        <div className="provider-card-grid" style={{ marginBottom: '16px' }}>
           {settings.llmProviders.map((provider) => (
             <article className={provider.key === settings.activeLlmProviderKey ? 'provider-card active' : 'provider-card'} key={provider.key}>
               <div className="provider-card-header">
@@ -262,26 +381,98 @@ export default function ModelsView(props: {
             </article>
           ))}
         </div>
-        <div className="form-grid">
-          <div className="wide prompt-config">
-            <button
-              aria-expanded={promptExpanded}
-              className="prompt-config-toggle"
-              onClick={() => setPromptExpanded((current) => !current)}
-              type="button"
-            >
-              Prompt 模板
-            </button>
-            {promptExpanded && (
-              <label>
-                Prompt 模板
-                <textarea onChange={(event) => onUpdate('prompt', event.target.value)} value={settings.prompt} />
-              </label>
-            )}
+
+        <div className="prompt-editor-card">
+          <div className="prompt-editor-header">
+            <div className="prompt-editor-tabs">
+              <button
+                className={`prompt-tab ${editingStyle === 'default' ? 'active' : ''}`}
+                onClick={() => setEditingStyle('default')}
+                type="button"
+              >
+                <MessageSquareText size={14} />
+                默认整理
+                {multiPrompt.activeStyle === 'default' ? (
+                  <span className="prompt-tab-badge" title="当前生效风格">生效中</span>
+                ) : (
+                  <span
+                    className="prompt-tab-badge-inactive"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleActiveStyleChange('default');
+                    }}
+                    title="点击设为生效风格"
+                  >
+                    设为生效
+                  </span>
+                )}
+              </button>
+              <button
+                className={`prompt-tab ${editingStyle === 'engineer' ? 'active' : ''}`}
+                onClick={() => setEditingStyle('engineer')}
+                type="button"
+              >
+                <Cpu size={14} />
+                理智工科
+                {multiPrompt.activeStyle === 'engineer' ? (
+                  <span className="prompt-tab-badge" title="当前生效风格">生效中</span>
+                ) : (
+                  <span
+                    className="prompt-tab-badge-inactive"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleActiveStyleChange('engineer');
+                    }}
+                    title="点击设为生效风格"
+                  >
+                    设为生效
+                  </span>
+                )}
+              </button>
+              <button
+                className={`prompt-tab ${editingStyle === 'charm' ? 'active' : ''}`}
+                onClick={() => setEditingStyle('charm')}
+                type="button"
+              >
+                <Smile size={14} />
+                高情商夸夸
+                {multiPrompt.activeStyle === 'charm' ? (
+                  <span className="prompt-tab-badge" title="当前生效风格">生效中</span>
+                ) : (
+                  <span
+                    className="prompt-tab-badge-inactive"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleActiveStyleChange('charm');
+                    }}
+                    title="点击设为生效风格"
+                  >
+                    设为生效
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
-          {props.testStatus && <span className={`test-status${props.testStatus.includes('成功') ? ' success' : ''}`}>{props.testStatus}</span>}
+          
+          <div className="prompt-editor-body">
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
+              编辑 {editingStyle === 'default' ? '默认整理' : editingStyle === 'engineer' ? '理智工科' : '高情商夸夸'} 的 Prompt 模板
+              <textarea
+                onChange={(event) => handlePromptChange(event.target.value)}
+                value={multiPrompt.prompts[editingStyle]}
+                placeholder="请输入 Prompt 模板内容..."
+                style={{ width: '100%', boxSizing: 'border-box' }}
+              />
+            </label>
+            <div className="prompt-editor-actions">
+              <span>* 此处的修改将实时保存，并在大模型整理中生效。</span>
+              <span>当前生效风格：<strong>{multiPrompt.activeStyle === 'default' ? '默认整理' : multiPrompt.activeStyle === 'engineer' ? '理智工科' : '高情商夸夸'}</strong></span>
+            </div>
+          </div>
         </div>
       </section>
+      </div>
+
       {configAsrProfile && (
         <div className="modal-backdrop" role="presentation">
           <section aria-modal="true" aria-label={`${configAsrProfile.displayName} 设置`} className="provider-modal" role="dialog">

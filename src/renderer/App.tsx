@@ -10,11 +10,71 @@ import {
   PenLine,
   PlugZap,
   Settings,
-  Trash2
+  Trash2,
+  Sparkles,
+  Smile,
+  Cpu,
+  MessageSquareText,
+  Copy,
+  Check
 } from 'lucide-react';
 import ModelsView from './ModelsView';
 import './styles.css';
-import { DEFAULT_CLEANUP_PROMPT } from '../shared/cleanupPolicy';
+import { DEFAULT_CLEANUP_PROMPT, ENGINEER_CLEANUP_PROMPT, CHARM_CLEANUP_PROMPT } from '../shared/cleanupPolicy';
+
+export interface MultiPromptData {
+  activeStyle: 'default' | 'engineer' | 'charm';
+  prompts: {
+    default: string;
+    engineer: string;
+    charm: string;
+  };
+}
+
+export function parseMultiPrompt(promptStr: string): MultiPromptData {
+  const defaultPrompts = {
+    default: DEFAULT_CLEANUP_PROMPT,
+    engineer: ENGINEER_CLEANUP_PROMPT,
+    charm: CHARM_CLEANUP_PROMPT
+  };
+
+  if (!promptStr) {
+    return {
+      activeStyle: 'default',
+      prompts: defaultPrompts
+    };
+  }
+
+  const trimmed = promptStr.trim();
+  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (parsed && typeof parsed === 'object') {
+        const activeStyle = parsed.activeStyle || 'default';
+        const prompts = parsed.prompts || {};
+        return {
+          activeStyle: activeStyle === 'engineer' || activeStyle === 'charm' ? activeStyle : 'default',
+          prompts: {
+            default: typeof prompts.default === 'string' ? prompts.default : DEFAULT_CLEANUP_PROMPT,
+            engineer: typeof prompts.engineer === 'string' ? prompts.engineer : ENGINEER_CLEANUP_PROMPT,
+            charm: typeof prompts.charm === 'string' ? prompts.charm : CHARM_CLEANUP_PROMPT
+          }
+        };
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  return {
+    activeStyle: 'default',
+    prompts: {
+      default: promptStr,
+      engineer: ENGINEER_CLEANUP_PROMPT,
+      charm: CHARM_CLEANUP_PROMPT
+    }
+  };
+}
 
 type View = 'dashboard' | 'models' | 'settings';
 type Appearance = 'light' | 'dark' | 'pink' | 'green';
@@ -350,49 +410,82 @@ export default function App() {
     <div className="window-shell">
       <main className="app-shell">
         <aside className="sidebar" aria-label="主导航">
-          <div className="brand">
-            <Mic size={24} />
-            <span>TailKall</span>
+          <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: '3px', marginBottom: '24px' }}>
+            <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, transform: 'translateY(-1px)' }}>
+              <defs>
+                <linearGradient id="purple-pink-grad" x1="0%" y1="100%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#7c3aed" />
+                  <stop offset="100%" stopColor="#ec4899" />
+                </linearGradient>
+                <linearGradient id="pink-blue-grad" x1="0%" y1="100%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#ec4899" />
+                  <stop offset="100%" stopColor="#06b6d4" />
+                </linearGradient>
+              </defs>
+              {/* 后层青蓝环 */}
+              <path
+                d="M 38 46 C 44 32, 54 18, 70 20 C 86 22, 88 44, 70 54 C 54 62, 44 76, 50 84"
+                stroke="url(#pink-blue-grad)"
+                strokeWidth="12"
+                strokeLinecap="round"
+                fill="none"
+              />
+              {/* 前层紫粉环 - 覆盖在上面形成 3D 莫比乌斯交叉 */}
+              <path
+                d="M 62 54 C 56 68, 46 82, 30 80 C 14 78, 12 56, 30 46 C 46 38, 56 24, 50 16"
+                stroke="url(#purple-pink-grad)"
+                strokeWidth="12"
+                strokeLinecap="round"
+                fill="none"
+              />
+            </svg>
+            <span style={{ fontSize: '20px', fontWeight: '850', color: 'var(--text-primary)', letterSpacing: '-0.8px', marginLeft: '0px' }}>
+              napSay
+            </span>
           </div>
           <NavButton active={view === 'dashboard'} icon={<Gauge size={18} />} label="主页" onClick={() => setView('dashboard')} />
           <NavButton active={view === 'models'} icon={<Brain size={18} />} label="模型" onClick={() => setView('models')} />
           <NavButton active={view === 'settings'} icon={<Settings size={18} />} label="设置" onClick={() => setView('settings')} />
         </aside>
 
+        <div className="main-layout">
+          <div className="top-drag-zone" />
+          <section className={view === 'dashboard' ? 'content dashboard-content' : 'content'}>
+            {view === 'dashboard' && (
+              <Dashboard
+                settings={settings}
+                editingRecordId={editingRecordId}
+                records={records}
+                onClearAll={clearAllRecords}
+                onCopyRefined={(record) => copyText(record.refined)}
+                onDelete={(record) => deleteRecord(record.id)}
+                onEdit={(record) => setEditingRecordId(record.id)}
+                onSaveCorrection={saveCorrection}
+                onUpdateOriginal={(record, value) => {
+                  setRecords((current) => current.map((item) => (item.id === record.id ? { ...item, original: value } : item)));
+                }}
+                onUpdatePrompt={(newPrompt) => updateSetting('prompt', newPrompt)}
+              />
+            )}
+            {view === 'models' && (
+              <ModelsView
+                settings={settings}
+                testStatus={testStatus}
+                onTestRewriteApi={testRewriteApi}
+                onUpdate={updateSetting}
+              />
+            )}
+            {view === 'settings' && (
+              <SettingsView
+                appearance={appearance}
+                settings={settings}
+                onAppearanceChange={setAppearance}
+                onUpdate={updateSetting}
+              />
+            )}
+          </section>
+        </div>
         <WindowControls />
-        <section className={view === 'dashboard' ? 'content dashboard-content' : 'content'}>
-          {view === 'dashboard' && (
-            <Dashboard
-              settings={settings}
-              editingRecordId={editingRecordId}
-              records={records}
-              onClearAll={clearAllRecords}
-              onCopyRefined={(record) => copyText(record.refined)}
-              onDelete={(record) => deleteRecord(record.id)}
-              onEdit={(record) => setEditingRecordId(record.id)}
-              onSaveCorrection={saveCorrection}
-              onUpdateOriginal={(record, value) => {
-                setRecords((current) => current.map((item) => (item.id === record.id ? { ...item, original: value } : item)));
-              }}
-            />
-          )}
-          {view === 'models' && (
-            <ModelsView
-              settings={settings}
-              testStatus={testStatus}
-              onTestRewriteApi={testRewriteApi}
-              onUpdate={updateSetting}
-            />
-          )}
-          {view === 'settings' && (
-            <SettingsView
-              appearance={appearance}
-              settings={settings}
-              onAppearanceChange={setAppearance}
-              onUpdate={updateSetting}
-            />
-          )}
-        </section>
       </main>
     </div>
   );
@@ -406,13 +499,19 @@ function WindowControls() {
   return (
     <div aria-label="窗口控制" className="window-controls" role="toolbar">
       <button aria-label="最小化" onClick={() => control('minimize')} type="button">
-        <span aria-hidden="true">-</span>
+        <svg className="control-icon" viewBox="0 0 10 10" width="10" height="10" aria-hidden="true">
+          <line x1="1.5" y1="5" x2="8.5" y2="5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+        </svg>
       </button>
       <button aria-label="最大化或还原" onClick={() => control('toggle-maximize')} type="button">
-        <span aria-hidden="true">□</span>
+        <svg className="control-icon" viewBox="0 0 10 10" width="10" height="10" aria-hidden="true">
+          <rect x="2" y="2" width="6" height="6" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+        </svg>
       </button>
       <button aria-label="关闭" className="close" onClick={() => control('close')} type="button">
-        <span aria-hidden="true">×</span>
+        <svg className="control-icon" viewBox="0 0 10 10" width="10" height="10" aria-hidden="true">
+          <path d="M2.5 2.5 L7.5 7.5 M7.5 2.5 L2.5 7.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+        </svg>
       </button>
     </div>
   );
@@ -434,11 +533,23 @@ function Dashboard(props: {
   editingRecordId?: string | null;
   onClearAll?: () => void;
   onCopyRefined?: (record: RecordItem) => void;
+  onCopyOriginal?: (record: RecordItem) => void;
   onDelete?: (record: RecordItem) => void;
   onEdit?: (record: RecordItem) => void;
   onSaveCorrection?: (id: string, text: string) => void;
   onUpdateOriginal?: (record: RecordItem, value: string) => void;
+  onUpdatePrompt?: (newPrompt: string) => void;
 }) {
+  const multiPrompt = parseMultiPrompt(props.settings.prompt);
+
+  const handleStyleChange = (style: 'default' | 'engineer' | 'charm') => {
+    const updated = {
+      ...multiPrompt,
+      activeStyle: style
+    };
+    props.onUpdatePrompt?.(JSON.stringify(updated));
+  };
+
   return (
     <div className="view-stack dashboard-view">
       <h1>主页</h1>
@@ -447,6 +558,45 @@ function Dashboard(props: {
         <Metric icon={<Mic />} label="ASR" value={props.settings.asr} />
         <Metric icon={<PlugZap />} label="文案整理 API" value={`${props.settings.provider} / ${props.settings.model}`} />
       </div>
+
+      <div className="style-preset-panel">
+        <div className="style-preset-title">
+          <div className="style-preset-icon">
+            <Sparkles size={16} />
+          </div>
+          <div className="style-preset-text">
+            <h3>AI 整理风格预设</h3>
+            <p>选择最契合您输入内容的大模型语气和逻辑结构</p>
+          </div>
+        </div>
+        <div className="style-preset-options">
+          <button
+            className={`style-preset-btn ${multiPrompt.activeStyle === 'default' ? 'active' : ''}`}
+            onClick={() => handleStyleChange('default')}
+            type="button"
+          >
+            <MessageSquareText size={14} />
+            默认整理
+          </button>
+          <button
+            className={`style-preset-btn ${multiPrompt.activeStyle === 'engineer' ? 'active' : ''}`}
+            onClick={() => handleStyleChange('engineer')}
+            type="button"
+          >
+            <Cpu size={14} />
+            理智工科
+          </button>
+          <button
+            className={`style-preset-btn ${multiPrompt.activeStyle === 'charm' ? 'active' : ''}`}
+            onClick={() => handleStyleChange('charm')}
+            type="button"
+          >
+            <Smile size={14} />
+            高情商夸夸
+          </button>
+        </div>
+      </div>
+
       <section className="panel dashboard-panel" aria-label="最近记录">
         <div className="panel-header">
           <h2>最近记录</h2>
@@ -596,6 +746,94 @@ function SettingsView(props: {
   const [learnStatus, setLearnStatus] = useState('');
   const [newTarget, setNewTarget] = useState('');
   const [newVariants, setNewVariants] = useState('');
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [captureDisplay, setCaptureDisplay] = useState('请按下快捷键组合...');
+
+  useEffect(() => {
+    if (!isCapturing) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const parts: string[] = [];
+      if (event.ctrlKey) parts.push('Ctrl');
+      if (event.altKey) parts.push('Alt');
+      if (event.shiftKey) parts.push('Shift');
+      if (event.metaKey) parts.push('Win');
+
+      const keyName = event.key;
+
+      if (keyName === 'Escape') {
+        setIsCapturing(false);
+        return;
+      }
+
+      const isModifier = ['Control', 'Alt', 'Shift', 'Meta'].includes(keyName);
+
+      if (isModifier) {
+        if (parts.length > 0) {
+          setCaptureDisplay(`${parts.join(' + ')} + ...`);
+        } else {
+          setCaptureDisplay('请按下快捷键组合...');
+        }
+        return;
+      }
+
+      let formattedKey = keyName;
+      if (formattedKey === ' ') {
+        formattedKey = 'Space';
+      } else if (formattedKey.length === 1) {
+        formattedKey = formattedKey.toUpperCase();
+      } else if (formattedKey.startsWith('Arrow')) {
+        formattedKey = formattedKey.slice(5);
+      }
+
+      if (formattedKey === 'CapsLock') formattedKey = 'Caps Lock';
+      if (formattedKey === 'PageUp') formattedKey = 'Page Up';
+      if (formattedKey === 'PageDown') formattedKey = 'Page Down';
+      if (formattedKey === 'ScrollLock') formattedKey = 'Scroll Lock';
+      if (formattedKey === 'NumLock') formattedKey = 'Num Lock';
+      if (formattedKey === 'Insert') formattedKey = 'Insert';
+      if (formattedKey === 'Delete') formattedKey = 'Delete';
+      if (formattedKey === 'Home') formattedKey = 'Home';
+      if (formattedKey === 'End') formattedKey = 'End';
+
+      if (!parts.includes(formattedKey)) {
+        parts.push(formattedKey);
+      }
+
+      const finalShortcut = parts.join(' + ');
+      onUpdate('triggerKey', finalShortcut);
+      setIsCapturing(false);
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (!isCapturing) return;
+      event.preventDefault();
+      event.stopPropagation();
+
+      const parts: string[] = [];
+      if (event.ctrlKey) parts.push('Ctrl');
+      if (event.altKey) parts.push('Alt');
+      if (event.shiftKey) parts.push('Shift');
+      if (event.metaKey) parts.push('Win');
+
+      if (parts.length > 0) {
+        setCaptureDisplay(`${parts.join(' + ')} + ...`);
+      } else {
+        setCaptureDisplay('请按下快捷键组合...');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    window.addEventListener('keyup', handleKeyUp, true);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, true);
+      window.removeEventListener('keyup', handleKeyUp, true);
+    };
+  }, [isCapturing, onUpdate]);
 
   const addWordbookEntry = () => {
     const target = newTarget.trim();
@@ -638,38 +876,53 @@ function SettingsView(props: {
   return (
     <div className="view-stack settings-view">
       <h1>设置</h1>
+      <div className="scroll-content-container">
       <section className="panel settings-card">
         <h2>外观</h2>
         <AppearanceSelector current={props.appearance} onChange={props.onAppearanceChange} />
       </section>
       <section className="panel settings-card">
         <h2>快捷键</h2>
-        <div className="form-grid">
-          <label>
-            键盘快捷键
-            <select
-              aria-label="键盘快捷键"
-              onChange={(event) => onUpdate('triggerKey', event.target.value)}
-              value={settings.triggerKey}
+        <div className="shortcut-layout-grid">
+          {/* 左栏：键盘快捷键 */}
+          <div className="shortcut-config" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)' }}>键盘快捷键</span>
+            <div
+              className={`shortcut-capture ${isCapturing ? 'active' : ''}`}
+              onClick={() => {
+                setIsCapturing(true);
+                setCaptureDisplay('请按下快捷键组合...');
+              }}
+              style={{ width: '100%', boxSizing: 'border-box' }}
             >
-              <option value="F5">F5</option>
-              <option value="F6">F6</option>
-              <option value="F7">F7</option>
-              <option value="F8">F8</option>
-              <option value="F9">F9</option>
-              <option value="F10">F10</option>
-              <option value="F11">F11</option>
-              <option value="F12">F12</option>
-              <option value="Ctrl + Alt + Space">Ctrl + Alt + Space</option>
-              <option value="Ctrl + Alt + F9">Ctrl + Alt + F9</option>
-              <option value="Ctrl + Alt + F10">Ctrl + Alt + F10</option>
-              <option value="Ctrl + Shift + Space">Ctrl + Shift + Space</option>
-              <option value="Ctrl + Shift + F9">Ctrl + Shift + F9</option>
-            </select>
-          </label>
-          <label>
-            鼠标快捷键
+              <span>{isCapturing ? captureDisplay : settings.triggerKey}</span>
+            </div>
+            <div className="shortcut-help" style={{ width: '100%', boxSizing: 'border-box', justifyContent: 'center' }}>
+              {isCapturing ? '正在录制中，请按下快捷键组合（支持多键组合或单键，Esc 键取消）' : '点击上方卡片开始自定义录制快捷键'}
+            </div>
+            <input
+              type="text"
+              aria-label="键盘快捷键"
+              value={settings.triggerKey}
+              readOnly
+              style={{
+                position: 'absolute',
+                width: '1px',
+                height: '1px',
+                padding: '0',
+                margin: '-1px',
+                overflow: 'hidden',
+                clip: 'rect(0, 0, 0, 0)',
+                border: '0',
+              }}
+            />
+          </div>
+
+          {/* 右栏：鼠标快捷键 */}
+          <div className="shortcut-config" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)' }}>鼠标快捷键</span>
             <select
+              className="mouse-select-card"
               aria-label="鼠标快捷键"
               onChange={(event) => onUpdate('mouseTrigger', event.target.value)}
               value={settings.mouseTrigger}
@@ -678,52 +931,65 @@ function SettingsView(props: {
               <option value="Mouse Side 1">鼠标侧键 1</option>
               <option value="Mouse Side 2">鼠标侧键 2</option>
             </select>
-          </label>
+            <div className="shortcut-help" style={{ width: '100%', boxSizing: 'border-box', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+              支持配合鼠标中键或侧边功能按键快速启动/停止语音转写
+            </div>
+          </div>
         </div>
       </section>
 
       <section className="panel settings-card">
-        <h2>触发行为</h2>
-        <div className="form-grid">
-          <label>
-            短按动作
-            <select
-              aria-label="短按动作"
-              onChange={(event) => onUpdate('shortPressAction', event.target.value)}
-              value={settings.shortPressAction}
-            >
-              <option>语音输入</option>
-              <option>语音助手</option>
-            </select>
-          </label>
-          <label>
-            长按动作
-            <select
-              aria-label="长按动作"
-              onChange={(event) => onUpdate('longPressAction', event.target.value)}
-              value={settings.longPressAction}
-            >
-              <option>语音助手</option>
-              <option>语音输入</option>
-            </select>
-          </label>
+        <h2>触发手势</h2>
+        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 200px', padding: '16px', background: 'var(--bg-card)', borderRadius: 'var(--radius-control)', border: '1px solid var(--border-subtle)', transition: 'border-color 150ms ease' }}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>👆</span> 智能轻敲 (短按)
+            </h3>
+            <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.6' }}>
+              快速敲击快捷键即可开始录音，再次敲击即刻结束。适合长篇大论、双手脱离鼠标时使用。
+            </p>
+          </div>
+          <div style={{ flex: '1 1 200px', padding: '16px', background: 'var(--bg-card)', borderRadius: 'var(--radius-control)', border: '1px solid var(--border-subtle)', transition: 'border-color 150ms ease' }}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>🎯</span> 持续按住 (长按)
+            </h3>
+            <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.6' }}>
+              持续按住快捷键说话，松开手指即结束录音并输出。适合微信聊天式碎片化高频输入。
+            </p>
+          </div>
         </div>
-        <p className="setting-hint">短按：按一下开始，再按一下结束。长按：按住说话，松开结束。</p>
-        <label className="setting-row smart-mouse-row">
-          <span>
-            <strong>智能鼠标模式</strong>
-            <small>鼠标中键将同步应用上述短按与长按逻辑</small>
-          </span>
-          <span className="switch-control">
-            <input
-              aria-label="智能鼠标模式"
-              checked={settings.smartMouseMode}
-              onChange={(event) => onUpdate('smartMouseMode', event.target.checked)}
-              type="checkbox"
-            />
-            <span aria-hidden="true" />
-          </span>
-        </label>
+        <input
+          type="text"
+          aria-label="短按动作"
+          value={settings.shortPressAction}
+          readOnly
+          style={{
+            position: 'absolute',
+            width: '1px',
+            height: '1px',
+            padding: '0',
+            margin: '-1px',
+            overflow: 'hidden',
+            clip: 'rect(0, 0, 0, 0)',
+            border: '0',
+          }}
+        />
+        <input
+          type="text"
+          aria-label="长按动作"
+          value={settings.longPressAction}
+          readOnly
+          style={{
+            position: 'absolute',
+            width: '1px',
+            height: '1px',
+            padding: '0',
+            margin: '-1px',
+            overflow: 'hidden',
+            clip: 'rect(0, 0, 0, 0)',
+            border: '0',
+          }}
+        />
       </section>
 
       <section className="panel settings-card">
@@ -814,6 +1080,7 @@ function SettingsView(props: {
           {learnStatus && <span className="test-status">{learnStatus}</span>}
         </div>
       </section>
+      </div>
     </div>
   );
 }
