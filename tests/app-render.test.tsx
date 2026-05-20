@@ -75,7 +75,6 @@ describe('TailKall main renderer', () => {
     expect(screen.queryByLabelText('OpenAI Base URL')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('OpenAI Model')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('OpenAI API Key')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('编辑 默认整理 的 Prompt 模板')).toHaveValue(DEFAULT_CLEANUP_PROMPT);
 
     fireEvent.click(screen.getAllByRole('button', { name: /点击配置 OpenAI/ })[0]);
 
@@ -104,7 +103,142 @@ describe('TailKall main renderer', () => {
     render(<App />);
 
     expect(screen.getByText('会议结论：优化登录体验与首屏性能，排查快捷键冲突。负责人分别跟进，下次例会同步结果。')).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: '复制' })[0]).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: '复制整理文本' })[0]).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: '复制原始文本' })[0]).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: '删除' })[0]).toBeInTheDocument();
+  });
+
+  it('switches to styles and allows preset activation and customization', () => {
+    render(<App />);
+
+    const stylesBtn = screen.getByRole('button', { name: '风格' });
+    expect(stylesBtn).toBeInTheDocument();
+    fireEvent.click(stylesBtn);
+
+    expect(screen.getByRole('heading', { name: 'AI 整理风格' })).toBeInTheDocument();
+
+    expect(screen.getByRole('heading', { name: '默认整理' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '理智工科' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '高情商夸夸' })).toBeInTheDocument();
+
+    expect(screen.getByText('生效中')).toBeInTheDocument();
+
+    const setButtons = screen.getAllByRole('button', { name: '设为生效' });
+    expect(setButtons.length).toBeGreaterThan(0);
+  });
+
+  it('allows adding, editing and deleting a custom style preset', () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '风格' }));
+
+    const addBtn = screen.getByRole('button', { name: '新增风格' });
+    fireEvent.click(addBtn);
+
+    expect(screen.getByRole('region', { name: '新增风格' })).toBeInTheDocument();
+
+    const nameInput = screen.getByPlaceholderText('输入风格名称，例如：会议纪要提炼、微信回复助手');
+    const promptInput = screen.getByPlaceholderText('请输入你的自定义整理提示词，例如：请把我说的杂乱无章的语音，提取并提炼成简明扼要的三句话要点...');
+
+    fireEvent.change(nameInput, { target: { value: '我的自定义风格' } });
+    fireEvent.change(promptInput, { target: { value: '这是自定义Prompt' } });
+
+    fireEvent.click(screen.getByRole('button', { name: '保存配置' }));
+
+    expect(screen.queryByRole('region', { name: '新增风格' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '我的自定义风格' })).toBeInTheDocument();
+
+    const editBtn = screen.getAllByRole('button', { name: '编辑参数' });
+    fireEvent.click(editBtn[3]);
+
+    expect(screen.getByRole('region', { name: '编辑风格' })).toBeInTheDocument();
+    const editNameInput = screen.getByPlaceholderText('输入风格名称，例如：会议纪要提炼、微信回复助手');
+    expect(editNameInput).toHaveValue('我的自定义风格');
+
+    fireEvent.change(editNameInput, { target: { value: '我的修改风格' } });
+    fireEvent.click(screen.getByRole('button', { name: '保存配置' }));
+
+    expect(screen.getByRole('heading', { name: '我的修改风格' })).toBeInTheDocument();
+
+    const deleteBtn = screen.getByTitle('删除此自定义风格');
+    fireEvent.click(deleteBtn);
+
+    expect(screen.queryByRole('heading', { name: '我的修改风格' })).not.toBeInTheDocument();
+  });
+
+  it('limits preset display to 5 on dashboard and shows the rest in a dropdown menu', () => {
+    // 构造一个包含 6 个预设的 settings.prompt 序列化值
+    const customPromptData = {
+      activeStyle: 'default',
+      presets: [
+        { id: 'default', name: '默认整理', prompt: 'Prompt 1', isBuiltIn: true },
+        { id: 'engineer', name: '理智工科', prompt: 'Prompt 2', isBuiltIn: true },
+        { id: 'charm', name: '高情商夸夸', prompt: 'Prompt 3', isBuiltIn: true },
+        { id: 'style4', name: '风格4', prompt: 'Prompt 4', isBuiltIn: false },
+        { id: 'style5', name: '风格5', prompt: 'Prompt 5', isBuiltIn: false },
+        { id: 'style6', name: '风格6', prompt: 'Prompt 6', isBuiltIn: false }
+      ]
+    };
+    
+    // 我们可以在渲染 App 前覆盖 localStorage 模拟 settings 状态，
+    // 不过我们也可以直接模拟 settings 的加载或交互。
+    // 在这里，我们可以通过在“风格”页面中新增 3 个自定义风格来让预设总数达到 6 个！
+    render(<App />);
+
+    // 先进风格页面
+    fireEvent.click(screen.getByRole('button', { name: '风格' }));
+
+    // 添加第 1 个自定义预设（总数达 4 个）
+    fireEvent.click(screen.getByRole('button', { name: '新增风格' }));
+    fireEvent.change(screen.getByPlaceholderText('输入风格名称，例如：会议纪要提炼、微信回复助手'), { target: { value: '风格4' } });
+    fireEvent.change(screen.getByPlaceholderText('请输入你的自定义整理提示词，例如：请把我说的杂乱无章的语音，提取并提炼成简明扼要的三句话要点...'), { target: { value: 'Prompt 4' } });
+    fireEvent.click(screen.getByRole('button', { name: '保存配置' }));
+
+    // 添加第 2 个自定义预设（总数达 5 个）
+    fireEvent.click(screen.getByRole('button', { name: '新增风格' }));
+    fireEvent.change(screen.getByPlaceholderText('输入风格名称，例如：会议纪要提炼、微信回复助手'), { target: { value: '风格5' } });
+    fireEvent.change(screen.getByPlaceholderText('请输入你的自定义整理提示词，例如：请把我说的杂乱无章的语音，提取并提炼成简明扼要的三句话要点...'), { target: { value: 'Prompt 5' } });
+    fireEvent.click(screen.getByRole('button', { name: '保存配置' }));
+
+    // 添加第 3 个自定义预设（总数达 6 个）
+    fireEvent.click(screen.getByRole('button', { name: '新增风格' }));
+    fireEvent.change(screen.getByPlaceholderText('输入风格名称，例如：会议纪要提炼、微信回复助手'), { target: { value: '风格6' } });
+    fireEvent.change(screen.getByPlaceholderText('请输入你的自定义整理提示词，例如：请把我说的杂乱无章的语音，提取并提炼成简明扼要的三句话要点...'), { target: { value: 'Prompt 6' } });
+    fireEvent.click(screen.getByRole('button', { name: '保存配置' }));
+
+    // 回到主页
+    fireEvent.click(screen.getByRole('button', { name: '主页' }));
+
+    // 检查主排显示的风格只有 5 个（即 默认整理、理智工科、高情商夸夸、风格4、风格6。因为风格6是新加的且被自动设为激活，故必在主排）
+    expect(screen.getByRole('button', { name: '默认整理' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '理智工科' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '高情商夸夸' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '风格4' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '风格6' })).toBeInTheDocument();
+
+    // 风格5 没有被激活且超出 5 个，因此它不应该在主排显示
+    expect(screen.queryByRole('button', { name: '风格5' })).not.toBeInTheDocument();
+
+    // 应该显示“更多风格”按钮
+    const moreBtn = screen.getByRole('button', { name: '更多整理风格' });
+    expect(moreBtn).toBeInTheDocument();
+
+    // 点击“更多风格”按钮弹出下拉菜单
+    fireEvent.click(moreBtn);
+
+    // 下拉菜单中应该能找到被挤出的“风格5”
+    expect(screen.getByRole('button', { name: '风格5' })).toBeInTheDocument();
+
+    // 点击“风格5”使其生效
+    fireEvent.click(screen.getByRole('button', { name: '风格5' }));
+
+    // 此时“风格5”成为生效风格，根据重新排列逻辑，主排应该包含“风格5”（因为它被激活了），而“风格6”会被挤到下拉菜单中！
+    expect(screen.getByRole('button', { name: '风格5' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '风格6' })).not.toBeInTheDocument();
+
+    // 点击“更多风格”按钮
+    fireEvent.click(screen.getByRole('button', { name: '更多整理风格' }));
+    // 下拉菜单中现在应该可以找到“风格6”
+    expect(screen.getByRole('button', { name: '风格6' })).toBeInTheDocument();
   });
 });

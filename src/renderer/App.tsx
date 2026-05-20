@@ -16,32 +16,47 @@ import {
   Cpu,
   MessageSquareText,
   Copy,
-  Check
+  Check,
+  ChevronDown
 } from 'lucide-react';
 import ModelsView from './ModelsView';
+import StylesView from './StylesView';
 import './styles.css';
 import { DEFAULT_CLEANUP_PROMPT, ENGINEER_CLEANUP_PROMPT, CHARM_CLEANUP_PROMPT } from '../shared/cleanupPolicy';
 
+export interface StylePreset {
+  id: string;
+  name: string;
+  prompt: string;
+  isBuiltIn?: boolean;
+}
+
 export interface MultiPromptData {
-  activeStyle: 'default' | 'engineer' | 'charm';
-  prompts: {
-    default: string;
-    engineer: string;
-    charm: string;
-  };
+  activeStyle: string;
+  prompts: Record<string, string>;
+  presets: StylePreset[];
 }
 
 export function parseMultiPrompt(promptStr: string): MultiPromptData {
-  const defaultPrompts = {
-    default: DEFAULT_CLEANUP_PROMPT,
-    engineer: ENGINEER_CLEANUP_PROMPT,
-    charm: CHARM_CLEANUP_PROMPT
+  const defaultPresets: StylePreset[] = [
+    { id: 'default', name: '默认整理', prompt: DEFAULT_CLEANUP_PROMPT, isBuiltIn: true },
+    { id: 'engineer', name: '理智工科', prompt: ENGINEER_CLEANUP_PROMPT, isBuiltIn: true },
+    { id: 'charm', name: '高情商夸夸', prompt: CHARM_CLEANUP_PROMPT, isBuiltIn: true }
+  ];
+
+  const makePromptsMap = (presets: StylePreset[]) => {
+    const map: Record<string, string> = {};
+    for (const p of presets) {
+      map[p.id] = p.prompt;
+    }
+    return map;
   };
 
   if (!promptStr) {
     return {
       activeStyle: 'default',
-      prompts: defaultPrompts
+      prompts: makePromptsMap(defaultPresets),
+      presets: defaultPresets
     };
   }
 
@@ -51,32 +66,78 @@ export function parseMultiPrompt(promptStr: string): MultiPromptData {
       const parsed = JSON.parse(trimmed);
       if (parsed && typeof parsed === 'object') {
         const activeStyle = parsed.activeStyle || 'default';
-        const prompts = parsed.prompts || {};
-        return {
-          activeStyle: activeStyle === 'engineer' || activeStyle === 'charm' ? activeStyle : 'default',
-          prompts: {
-            default: typeof prompts.default === 'string' ? prompts.default : DEFAULT_CLEANUP_PROMPT,
-            engineer: typeof prompts.engineer === 'string' ? prompts.engineer : ENGINEER_CLEANUP_PROMPT,
-            charm: typeof prompts.charm === 'string' ? prompts.charm : CHARM_CLEANUP_PROMPT
+
+        // 如果存在 presets 数组，则为新结构
+        if (Array.isArray(parsed.presets)) {
+          const presets: StylePreset[] = parsed.presets.map((p: any) => ({
+            id: String(p.id || ''),
+            name: String(p.name || ''),
+            prompt: String(p.prompt || ''),
+            isBuiltIn: Boolean(p.isBuiltIn)
+          })).filter((p: any) => p.id && p.name);
+
+          // 补全缺失的内置预设，防止数据丢失
+          for (const dp of defaultPresets) {
+            if (!presets.some(p => p.id === dp.id)) {
+              presets.unshift(dp);
+            }
           }
-        };
+
+          return {
+            activeStyle,
+            prompts: makePromptsMap(presets),
+            presets
+          };
+        }
+
+        // 如果是老版包含 prompts 字典的结构
+        if (parsed.prompts && typeof parsed.prompts === 'object') {
+          const oldPrompts = parsed.prompts;
+          const presets: StylePreset[] = [
+            { id: 'default', name: '默认整理', prompt: typeof oldPrompts.default === 'string' ? oldPrompts.default : DEFAULT_CLEANUP_PROMPT, isBuiltIn: true },
+            { id: 'engineer', name: '理智工科', prompt: typeof oldPrompts.engineer === 'string' ? oldPrompts.engineer : ENGINEER_CLEANUP_PROMPT, isBuiltIn: true },
+            { id: 'charm', name: '高情商夸夸', prompt: typeof oldPrompts.charm === 'string' ? oldPrompts.charm : CHARM_CLEANUP_PROMPT, isBuiltIn: true }
+          ];
+
+          // 处理老结构中可能存在的其他自定义 prompt
+          for (const key of Object.keys(oldPrompts)) {
+            if (key !== 'default' && key !== 'engineer' && key !== 'charm') {
+              presets.push({
+                id: key,
+                name: key.startsWith('custom-') ? `自定义风格-${key.substring(7, 11)}` : key,
+                prompt: String(oldPrompts[key]),
+                isBuiltIn: false
+              });
+            }
+          }
+
+          return {
+            activeStyle,
+            prompts: makePromptsMap(presets),
+            presets
+          };
+        }
       }
     } catch {
       // ignore
     }
   }
 
+  // 纯文本格式兼容：将其封装为 default 预设
+  const presets: StylePreset[] = [
+    { id: 'default', name: '默认整理', prompt: promptStr, isBuiltIn: true },
+    { id: 'engineer', name: '理智工科', prompt: ENGINEER_CLEANUP_PROMPT, isBuiltIn: true },
+    { id: 'charm', name: '高情商夸夸', prompt: CHARM_CLEANUP_PROMPT, isBuiltIn: true }
+  ];
+
   return {
     activeStyle: 'default',
-    prompts: {
-      default: promptStr,
-      engineer: ENGINEER_CLEANUP_PROMPT,
-      charm: CHARM_CLEANUP_PROMPT
-    }
+    prompts: makePromptsMap(presets),
+    presets
   };
 }
 
-type View = 'dashboard' | 'models' | 'settings';
+type View = 'dashboard' | 'models' | 'styles' | 'settings';
 type Appearance = 'light' | 'dark' | 'pink' | 'green';
 
 const APPEARANCES: { id: Appearance; label: string }[] = [
@@ -445,6 +506,7 @@ export default function App() {
           </div>
           <NavButton active={view === 'dashboard'} icon={<Gauge size={18} />} label="主页" onClick={() => setView('dashboard')} />
           <NavButton active={view === 'models'} icon={<Brain size={18} />} label="模型" onClick={() => setView('models')} />
+          <NavButton active={view === 'styles'} icon={<Sparkles size={18} />} label="风格" onClick={() => setView('styles')} />
           <NavButton active={view === 'settings'} icon={<Settings size={18} />} label="设置" onClick={() => setView('settings')} />
         </aside>
 
@@ -473,6 +535,12 @@ export default function App() {
                 settings={settings}
                 testStatus={testStatus}
                 onTestRewriteApi={testRewriteApi}
+                onUpdate={updateSetting}
+              />
+            )}
+            {view === 'styles' && (
+              <StylesView
+                settings={settings}
                 onUpdate={updateSetting}
               />
             )}
@@ -542,14 +610,52 @@ function Dashboard(props: {
   onUpdatePrompt?: (newPrompt: string) => void;
 }) {
   const multiPrompt = parseMultiPrompt(props.settings.prompt);
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
 
-  const handleStyleChange = (style: 'default' | 'engineer' | 'charm') => {
+  useEffect(() => {
+    if (!isMoreOpen) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.style-preset-more-container')) {
+        setIsMoreOpen(false);
+      }
+    };
+    document.addEventListener('click', handleOutsideClick);
+    return () => {
+      document.removeEventListener('click', handleOutsideClick);
+    };
+  }, [isMoreOpen]);
+
+  const handleStyleChange = (style: string) => {
     const updated = {
       ...multiPrompt,
       activeStyle: style
     };
     props.onUpdatePrompt?.(JSON.stringify(updated));
+    setIsMoreOpen(false);
   };
+
+  // Limit presets shown on home screen (max 5 items)
+  const allPresets = multiPrompt.presets;
+  const activeId = multiPrompt.activeStyle;
+
+  let mainPresets: typeof allPresets = [];
+  let morePresets: typeof allPresets = [];
+
+  if (allPresets.length <= 5) {
+    mainPresets = allPresets;
+  } else {
+    const activeIndex = allPresets.findIndex(p => p.id === activeId);
+    if (activeIndex !== -1 && activeIndex < 5) {
+      mainPresets = allPresets.slice(0, 5);
+      morePresets = allPresets.slice(5);
+    } else {
+      const firstFour = allPresets.slice(0, 4);
+      const activePreset = allPresets.find(p => p.id === activeId) || allPresets[0];
+      mainPresets = [...firstFour, activePreset];
+      morePresets = allPresets.filter(p => !mainPresets.some(mp => mp.id === p.id));
+    }
+  }
 
   return (
     <div className="view-stack dashboard-view">
@@ -571,30 +677,55 @@ function Dashboard(props: {
           </div>
         </div>
         <div className="style-preset-options">
-          <button
-            className={`style-preset-btn ${multiPrompt.activeStyle === 'default' ? 'active' : ''}`}
-            onClick={() => handleStyleChange('default')}
-            type="button"
-          >
-            <MessageSquareText size={14} />
-            默认整理
-          </button>
-          <button
-            className={`style-preset-btn ${multiPrompt.activeStyle === 'engineer' ? 'active' : ''}`}
-            onClick={() => handleStyleChange('engineer')}
-            type="button"
-          >
-            <Cpu size={14} />
-            理智工科
-          </button>
-          <button
-            className={`style-preset-btn ${multiPrompt.activeStyle === 'charm' ? 'active' : ''}`}
-            onClick={() => handleStyleChange('charm')}
-            type="button"
-          >
-            <Smile size={14} />
-            高情商夸夸
-          </button>
+          {mainPresets.map((preset) => (
+            <button
+              key={preset.id}
+              className={`style-preset-btn ${multiPrompt.activeStyle === preset.id ? 'active' : ''}`}
+              onClick={() => handleStyleChange(preset.id)}
+              type="button"
+            >
+              {preset.id === 'default' ? <MessageSquareText size={14} /> :
+               preset.id === 'engineer' ? <Cpu size={14} /> :
+               preset.id === 'charm' ? <Smile size={14} /> :
+               <Sparkles size={14} />}
+              {preset.name}
+            </button>
+          ))}
+
+          {morePresets.length > 0 && (
+            <div className="style-preset-more-container" style={{ position: 'relative', display: 'inline-block' }}>
+              <button
+                className={`style-preset-btn ${isMoreOpen ? 'active' : ''}`}
+                onClick={() => setIsMoreOpen(!isMoreOpen)}
+                type="button"
+                style={{ paddingRight: '8px' }}
+                aria-label="更多整理风格"
+              >
+                <Sparkles size={14} />
+                更多风格
+                <ChevronDown size={12} style={{ transition: 'transform 0.2s', transform: isMoreOpen ? 'rotate(180deg)' : 'none' }} />
+              </button>
+
+              {isMoreOpen && (
+                <div className="style-preset-dropdown">
+                  {morePresets.map((preset) => (
+                    <button
+                      key={preset.id}
+                      className="style-preset-dropdown-item"
+                      onClick={() => handleStyleChange(preset.id)}
+                      type="button"
+                    >
+                      {preset.id === 'default' ? <MessageSquareText size={13} /> :
+                       preset.id === 'engineer' ? <Cpu size={13} /> :
+                       preset.id === 'charm' ? <Smile size={13} /> :
+                       <Sparkles size={13} />}
+                      <span style={{ flexGrow: 1, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{preset.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

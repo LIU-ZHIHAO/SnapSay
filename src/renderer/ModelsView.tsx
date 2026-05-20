@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Brain, Server, PlugZap, X, Sparkles, MessageSquareText, Cpu, Smile } from 'lucide-react';
-import { parseMultiPrompt } from './App';
+import { Brain, Server, PlugZap, X } from 'lucide-react';
 
 type WordbookEntry = {
   id: string;
@@ -84,8 +83,7 @@ export default function ModelsView(props: {
   const [providerTestStatus, setProviderTestStatus] = useState<Record<string, string>>({});
   const [configAsrProfileId, setConfigAsrProfileId] = useState<string | null>(null);
   const [configProviderKey, setConfigProviderKey] = useState<string | null>(null);
-  const [promptExpanded, setPromptExpanded] = useState(false);
-  const [editingStyle, setEditingStyle] = useState<'default' | 'engineer' | 'charm'>('default');
+
   const configAsrProfile = settings.asrProfiles.find((profile) => profile.id === configAsrProfileId);
   const configProvider = settings.llmProviders.find((provider) => provider.key === configProviderKey);
 
@@ -160,27 +158,7 @@ export default function ModelsView(props: {
     }
   };
 
-  const multiPrompt = parseMultiPrompt(settings.prompt);
 
-  const handlePromptChange = (newVal: string) => {
-    const updatedPrompts = {
-      ...multiPrompt.prompts,
-      [editingStyle]: newVal
-    };
-    const updated = {
-      ...multiPrompt,
-      prompts: updatedPrompts
-    };
-    onUpdate('prompt', JSON.stringify(updated));
-  };
-
-  const handleActiveStyleChange = (style: 'default' | 'engineer' | 'charm') => {
-    const updated = {
-      ...multiPrompt,
-      activeStyle: style
-    };
-    onUpdate('prompt', JSON.stringify(updated));
-  };
 
   return (
     <div className="view-stack settings-view">
@@ -382,94 +360,7 @@ export default function ModelsView(props: {
           ))}
         </div>
 
-        <div className="prompt-editor-card">
-          <div className="prompt-editor-header">
-            <div className="prompt-editor-tabs">
-              <button
-                className={`prompt-tab ${editingStyle === 'default' ? 'active' : ''}`}
-                onClick={() => setEditingStyle('default')}
-                type="button"
-              >
-                <MessageSquareText size={14} />
-                默认整理
-                {multiPrompt.activeStyle === 'default' ? (
-                  <span className="prompt-tab-badge" title="当前生效风格">生效中</span>
-                ) : (
-                  <span
-                    className="prompt-tab-badge-inactive"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleActiveStyleChange('default');
-                    }}
-                    title="点击设为生效风格"
-                  >
-                    设为生效
-                  </span>
-                )}
-              </button>
-              <button
-                className={`prompt-tab ${editingStyle === 'engineer' ? 'active' : ''}`}
-                onClick={() => setEditingStyle('engineer')}
-                type="button"
-              >
-                <Cpu size={14} />
-                理智工科
-                {multiPrompt.activeStyle === 'engineer' ? (
-                  <span className="prompt-tab-badge" title="当前生效风格">生效中</span>
-                ) : (
-                  <span
-                    className="prompt-tab-badge-inactive"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleActiveStyleChange('engineer');
-                    }}
-                    title="点击设为生效风格"
-                  >
-                    设为生效
-                  </span>
-                )}
-              </button>
-              <button
-                className={`prompt-tab ${editingStyle === 'charm' ? 'active' : ''}`}
-                onClick={() => setEditingStyle('charm')}
-                type="button"
-              >
-                <Smile size={14} />
-                高情商夸夸
-                {multiPrompt.activeStyle === 'charm' ? (
-                  <span className="prompt-tab-badge" title="当前生效风格">生效中</span>
-                ) : (
-                  <span
-                    className="prompt-tab-badge-inactive"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleActiveStyleChange('charm');
-                    }}
-                    title="点击设为生效风格"
-                  >
-                    设为生效
-                  </span>
-                )}
-              </button>
-            </div>
-          </div>
-          
-          <div className="prompt-editor-body">
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
-              编辑 {editingStyle === 'default' ? '默认整理' : editingStyle === 'engineer' ? '理智工科' : '高情商夸夸'} 的 Prompt 模板
-              <textarea
-                onChange={(event) => handlePromptChange(event.target.value)}
-                value={multiPrompt.prompts[editingStyle]}
-                placeholder="请输入 Prompt 模板内容..."
-                style={{ width: '100%', boxSizing: 'border-box' }}
-              />
-            </label>
-            <div className="prompt-editor-actions">
-              <span>* 此处的修改将实时保存，并在大模型整理中生效。</span>
-              <span>当前生效风格：<strong>{multiPrompt.activeStyle === 'default' ? '默认整理' : multiPrompt.activeStyle === 'engineer' ? '理智工科' : '高情商夸夸'}</strong></span>
-            </div>
-          </div>
-        </div>
+
       </section>
       </div>
 
