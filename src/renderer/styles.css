@@ -203,49 +203,45 @@ input[type="number"] {
 .window-controls {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   position: fixed;
-  top: 16px;
+  top: 14px;
   right: 18px;
   z-index: 1000;
-  height: 32px;
-  padding: 0 8px;
-  background: var(--surface-app);
-  border: 1px solid var(--border-subtle);
-  border-radius: 9999px;
   -webkit-app-region: no-drag;
   app-region: no-drag;
-  box-shadow: var(--shadow-soft);
-  transition: all 200ms ease;
-  backdrop-filter: blur(8px);
-}
-
-.window-controls:hover {
-  border-color: var(--border-strong);
-  box-shadow: 0 4px 12px rgba(22, 34, 51, 0.08);
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .window-controls button {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 38px;
+  height: 30px;
   color: var(--text-secondary);
   background: transparent;
   border: 0;
-  border-radius: 50%;
+  border-radius: 6px;
   cursor: pointer;
-  transition: all 150ms ease;
+  transition: all 120ms ease;
   -webkit-app-region: no-drag;
   app-region: no-drag;
   padding: 0;
 }
 
 .window-controls button .control-icon {
-  width: 9px;
-  height: 9px;
-  transition: transform 150ms ease;
+  width: 11px;
+  height: 11px;
+  transition: transform 120ms ease;
+}
+
+.window-controls button .control-icon line,
+.window-controls button .control-icon rect,
+.window-controls button .control-icon path {
+  stroke-width: 1.4;
 }
 
 .window-controls button:hover {
@@ -254,11 +250,11 @@ input[type="number"] {
 }
 
 .window-controls button:hover .control-icon {
-  transform: scale(1.08);
+  transform: scale(1.05);
 }
 
 .window-controls .close:hover {
-  background: var(--danger) !important;
+  background: #e81123 !important;
   color: #ffffff !important;
 }
 
