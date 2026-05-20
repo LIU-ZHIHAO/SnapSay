@@ -81,6 +81,7 @@ export default function ModelsView(props: {
   const [cloudTestStatus, setCloudTestStatus] = useState('');
   const [providerTestStatus, setProviderTestStatus] = useState<Record<string, string>>({});
   const [configProviderKey, setConfigProviderKey] = useState<string | null>(null);
+  const [promptExpanded, setPromptExpanded] = useState(false);
   const configProvider = settings.llmProviders.find((provider) => provider.key === configProviderKey);
 
   const updateAsrProfile = <K extends keyof AsrProfileConfig>(id: string, key: K, value: AsrProfileConfig[K]) => {
@@ -89,6 +90,17 @@ export default function ModelsView(props: {
 
   const updateLlmProvider = <K extends keyof LlmProviderConfig>(keyName: string, key: K, value: LlmProviderConfig[K]) => {
     onUpdate('llmProviders', settings.llmProviders.map((provider) => provider.key === keyName ? { ...provider, [key]: value } : provider));
+    if (keyName === settings.activeLlmProviderKey) {
+      if (key === 'baseUrl') {
+        onUpdate('baseURL', value as SettingsState['baseURL']);
+      }
+      if (key === 'model') {
+        onUpdate('model', value as SettingsState['model']);
+      }
+      if (key === 'apiKey') {
+        onUpdate('apiKey', value as SettingsState['apiKey']);
+      }
+    }
   };
 
   const selectAsrProfile = (id: string) => {
@@ -328,6 +340,7 @@ export default function ModelsView(props: {
                 <div>
                   <h3>{provider.displayName}</h3>
                   <span>OpenAI-compatible</span>
+                  <small>{provider.model ? `默认模型：${provider.model}` : '未选择模型'}</small>
                 </div>
                 <span aria-label={provider.key === settings.activeLlmProviderKey ? '当前默认' : '未启用'} className={provider.key === settings.activeLlmProviderKey ? 'provider-status active' : 'provider-status'} />
               </div>
@@ -343,10 +356,22 @@ export default function ModelsView(props: {
           ))}
         </div>
         <div className="form-grid">
-          <label className="wide">
-            Prompt 模板
-            <textarea onChange={(event) => onUpdate('prompt', event.target.value)} value={settings.prompt} />
-          </label>
+          <div className="wide prompt-config">
+            <button
+              aria-expanded={promptExpanded}
+              className="prompt-config-toggle"
+              onClick={() => setPromptExpanded((current) => !current)}
+              type="button"
+            >
+              Prompt 模板
+            </button>
+            {promptExpanded && (
+              <label>
+                Prompt 模板
+                <textarea onChange={(event) => onUpdate('prompt', event.target.value)} value={settings.prompt} />
+              </label>
+            )}
+          </div>
           {props.testStatus && <span className={`test-status${props.testStatus.includes('成功') ? ' success' : ''}`}>{props.testStatus}</span>}
         </div>
       </section>
@@ -370,7 +395,7 @@ export default function ModelsView(props: {
                   }}
                   type="button"
                 >
-                  {configProvider.key === settings.activeLlmProviderKey ? '已启用' : '设为默认'}
+                  {configProvider.key === settings.activeLlmProviderKey ? '已启用' : '设为默认模型'}
                 </button>
                 <button aria-label="关闭配置" className="modal-close" onClick={() => setConfigProviderKey(null)} type="button">
                   <X size={18} />

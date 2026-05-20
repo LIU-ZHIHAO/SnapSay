@@ -67,10 +67,13 @@ describe('TailKall main renderer', () => {
     expect(screen.getAllByText('OpenAI').length).toBeGreaterThan(0);
     expect(screen.getAllByText('DeepSeek').length).toBeGreaterThan(0);
     expect(screen.getAllByText('硅基流动').length).toBeGreaterThan(0);
+    expect(screen.getByText('默认模型：deepseek-chat')).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /点击配置/ }).length).toBeGreaterThan(1);
     expect(screen.queryByLabelText('OpenAI Base URL')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('OpenAI Model')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('OpenAI API Key')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Prompt 模板')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Prompt 模板' }));
     expect(screen.getByLabelText('Prompt 模板')).toHaveValue(DEFAULT_CLEANUP_PROMPT);
 
     fireEvent.click(screen.getAllByRole('button', { name: /点击配置 OpenAI/ })[0]);
@@ -79,6 +82,7 @@ describe('TailKall main renderer', () => {
     expect(within(dialog).getByLabelText('OpenAI Base URL')).toHaveValue('https://api.openai.com/v1');
     expect(within(dialog).getByLabelText('OpenAI Model')).toHaveValue('gpt-4.1-mini');
     expect(within(dialog).getByLabelText('OpenAI API Key')).toHaveAttribute('type', 'password');
+    expect(within(dialog).getByRole('button', { name: '设为默认模型' })).toBeInTheDocument();
     expect(within(dialog).getByRole('button', { name: /测试连接/ })).toBeInTheDocument();
   });
 
