@@ -55,6 +55,12 @@ export function parseTriggerLabelToBinding(label: string): TriggerBinding | unde
   if (/^mouse middle$/i.test(normalized) || normalized === '鼠标中键') {
     return { type: 'mouse', button: 'middle' };
   }
+  if (/^mouse left$/i.test(normalized) || normalized === '鼠标左键') {
+    return { type: 'mouse', button: 'left' };
+  }
+  if (/^mouse right$/i.test(normalized) || normalized === '鼠标右键') {
+    return { type: 'mouse', button: 'right' };
+  }
   if (/^mouse side 1$/i.test(normalized) || normalized === '鼠标侧键1') {
     return { type: 'mouse', button: 'x1' };
   }

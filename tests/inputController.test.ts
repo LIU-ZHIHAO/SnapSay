@@ -52,6 +52,14 @@ describe('inputController', () => {
       type: 'mouse',
       button: 'middle'
     });
+    expect(parseTriggerLabelToBinding('Mouse Left')).toEqual({
+      type: 'mouse',
+      button: 'left'
+    });
+    expect(parseTriggerLabelToBinding('Mouse Right')).toEqual({
+      type: 'mouse',
+      button: 'right'
+    });
     expect(parseTriggerLabelToBinding('Mouse Side 2')).toEqual({
       type: 'mouse',
       button: 'x2'

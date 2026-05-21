@@ -1297,6 +1297,8 @@ function SettingsView(props: {
   const [newVariants, setNewVariants] = useState('');
   const [isCapturing, setIsCapturing] = useState(false);
   const [captureDisplay, setCaptureDisplay] = useState('请按下快捷键组合...');
+  const [isCapturingMouse, setIsCapturingMouse] = useState(false);
+  const [mouseCaptureDisplay, setMouseCaptureDisplay] = useState('请按下鼠标按键');
   const microphoneOptions = [
     { value: '', label: '系统默认麦克风' },
     ...props.microphoneDevices.map((device) => ({ value: device.deviceId, label: device.label }))
@@ -1394,6 +1396,41 @@ function SettingsView(props: {
     };
   }, [isCapturing, onUpdate]);
 
+  useEffect(() => {
+    if (!isCapturingMouse) return;
+
+    const handleMouseDown = (event: MouseEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const nextTrigger = mouseButtonToTriggerLabel(event.button);
+      if (!nextTrigger) {
+        setMouseCaptureDisplay('暂不支持该鼠标按键');
+        return;
+      }
+
+      onUpdate('mouseTrigger', nextTrigger);
+      setMouseCaptureDisplay(mouseTriggerDisplay(nextTrigger));
+      setIsCapturingMouse(false);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopPropagation();
+      setIsCapturingMouse(false);
+    };
+
+    window.addEventListener('mousedown', handleMouseDown, true);
+    window.addEventListener('keydown', handleKeyDown, true);
+    window.addEventListener('contextmenu', preventCaptureContextMenu, true);
+    return () => {
+      window.removeEventListener('mousedown', handleMouseDown, true);
+      window.removeEventListener('keydown', handleKeyDown, true);
+      window.removeEventListener('contextmenu', preventCaptureContextMenu, true);
+    };
+  }, [isCapturingMouse, onUpdate]);
+
   const addWordbookEntry = () => {
     const target = newTarget.trim();
     if (!target) return;
@@ -1461,20 +1498,37 @@ function SettingsView(props: {
           {/* 右栏：鼠标快捷键 */}
           <div className="shortcut-config" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)' }}>鼠标快捷键</span>
-            <CustomSelect
-              ariaLabel="鼠标快捷键"
-              isLargeCard={true}
-              onChange={(val) => onUpdate('mouseTrigger', val)}
-              options={[
-                { value: 'Mouse Middle', label: '鼠标中键' },
-                { value: 'Mouse Side 1', label: '鼠标侧键 1' },
-                { value: 'Mouse Side 2', label: '鼠标侧键 2' }
-              ]}
-              value={settings.mouseTrigger}
-            />
+            <button
+              aria-label="鼠标快捷键"
+              className={`shortcut-capture mouse-capture ${isCapturingMouse ? 'active' : ''}`}
+              onClick={() => {
+                setIsCapturingMouse(true);
+                setMouseCaptureDisplay('请按下鼠标按键');
+              }}
+              style={{ width: '100%', boxSizing: 'border-box' }}
+              type="button"
+            >
+              <span>{isCapturingMouse ? mouseCaptureDisplay : mouseTriggerDisplay(settings.mouseTrigger)}</span>
+            </button>
             <div className="shortcut-help" style={{ width: '100%', boxSizing: 'border-box', justifyContent: 'center', color: 'var(--text-secondary)' }}>
-              支持配合鼠标中键或侧边功能按键快速启动/停止语音转写
+              {isCapturingMouse ? '正在录制中，请点击鼠标按键（Esc 键取消）' : '点击上方卡片开始识别鼠标按键'}
             </div>
+            <input
+              type="text"
+              aria-label="鼠标快捷键值"
+              value={settings.mouseTrigger}
+              readOnly
+              style={{
+                position: 'absolute',
+                width: '1px',
+                height: '1px',
+                padding: '0',
+                margin: '-1px',
+                overflow: 'hidden',
+                clip: 'rect(0, 0, 0, 0)',
+                border: '0',
+              }}
+            />
           </div>
         </div>
       </section>
@@ -1638,6 +1692,44 @@ function SettingsView(props: {
       </div>
     </div>
   );
+}
+
+function preventCaptureContextMenu(event: Event): void {
+  event.preventDefault();
+}
+
+function mouseButtonToTriggerLabel(button: number): string | undefined {
+  switch (button) {
+    case 0:
+      return 'Mouse Left';
+    case 1:
+      return 'Mouse Middle';
+    case 2:
+      return 'Mouse Right';
+    case 3:
+      return 'Mouse Side 1';
+    case 4:
+      return 'Mouse Side 2';
+    default:
+      return undefined;
+  }
+}
+
+function mouseTriggerDisplay(value: string): string {
+  switch (value) {
+    case 'Mouse Left':
+      return '鼠标左键';
+    case 'Mouse Right':
+      return '鼠标右键';
+    case 'Mouse Middle':
+      return '鼠标中键';
+    case 'Mouse Side 1':
+      return '鼠标侧键 1';
+    case 'Mouse Side 2':
+      return '鼠标侧键 2';
+    default:
+      return value || '未设置';
+  }
 }
 
 function AppearanceSelector(props: { current: Appearance; onChange: (appearance: Appearance) => void }) {

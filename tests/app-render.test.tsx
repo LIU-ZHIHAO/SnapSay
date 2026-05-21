@@ -133,6 +133,26 @@ describe('TailKall main renderer', () => {
     expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
   });
 
+  it('captures mouse trigger buttons instead of showing a fixed dropdown', async () => {
+    const saveSettings = vi.fn().mockResolvedValue(undefined);
+    window.tailkall = { saveSettings };
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: '设置' }));
+
+    const mouseCapture = screen.getByRole('button', { name: '鼠标快捷键' });
+    fireEvent.click(mouseCapture);
+    expect(mouseCapture).toHaveTextContent('请按下鼠标按键');
+    expect(screen.queryByRole('button', { name: '鼠标侧键 1' })).not.toBeInTheDocument();
+
+    fireEvent.mouseDown(window, { button: 3 });
+
+    await waitFor(() => {
+      expect(saveSettings).toHaveBeenCalledWith(expect.objectContaining({ mouseTrigger: 'Mouse Side 1' }));
+    });
+    expect(screen.getByLabelText('鼠标快捷键值')).toHaveValue('Mouse Side 1');
+  });
+
   it('lists microphones in settings and saves the selected device', async () => {
     const saveSettings = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'mediaDevices', {
