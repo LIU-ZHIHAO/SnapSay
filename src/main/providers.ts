@@ -115,13 +115,16 @@ export async function testCleanupProvider(options: {
   provider: CleanupProviderConfig;
   fetch: FetchLike;
   timeoutMs?: number;
-}): Promise<{ ok: true } | { ok: false; error: string }> {
+  now?: () => number;
+}): Promise<{ ok: true; durationMs: number } | { ok: false; error: string }> {
   try {
     const configError = validateCleanupProviderTestConfig(options.provider);
     if (configError) {
       return { ok: false, error: configError };
     }
 
+    const now = options.now ?? Date.now;
+    const start = now();
     await cleanupText({
       provider: options.provider,
       transcript: 'ping',
@@ -129,7 +132,7 @@ export async function testCleanupProvider(options: {
       fetch: options.fetch,
       timeoutMs: options.timeoutMs ?? 5000
     });
-    return { ok: true };
+    return { ok: true, durationMs: Math.max(0, now() - start) };
   } catch (error) {
     return {
       ok: false,
@@ -149,6 +152,13 @@ function validateCleanupProviderTestConfig(provider: CleanupProviderConfig): str
   }
 
   return `整理模型配置不完整：请填写 ${missing.join('、')} 后再测试连接。`;
+}
+
+export function formatProviderTestDuration(durationMs: number): string {
+  const roundedSeconds = Math.round(durationMs / 100) / 10;
+  return Number.isInteger(roundedSeconds)
+    ? `${roundedSeconds}秒`
+    : `${roundedSeconds.toFixed(1)}秒`;
 }
 
 export function maskApiKey(apiKey: string): string {

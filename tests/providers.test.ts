@@ -5,6 +5,7 @@ import {
   createMockAsrProvider,
   createPythonAsrProvider,
   createWhisperCppAsrProvider,
+  formatProviderTestDuration,
   maskApiKey,
   resolveActiveCleanupProvider,
   testCleanupProvider,
@@ -93,9 +94,18 @@ describe('providers', () => {
           apiKey: 'sk-live-9999',
           model: 'cleanup-model'
         },
-        fetch
+        fetch,
+        now: vi.fn()
+          .mockReturnValueOnce(1000)
+          .mockReturnValueOnce(2200)
       })
-    ).resolves.toEqual({ ok: true });
+    ).resolves.toEqual({ ok: true, durationMs: 1200 });
+  });
+
+  it('formats provider test latency with one decimal only when needed', () => {
+    expect(formatProviderTestDuration(1000)).toBe('1秒');
+    expect(formatProviderTestDuration(1200)).toBe('1.2秒');
+    expect(formatProviderTestDuration(1260)).toBe('1.3秒');
   });
 
   it('rejects non-header-safe API keys before fetch converts Authorization to ByteString', async () => {

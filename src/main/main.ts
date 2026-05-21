@@ -13,7 +13,7 @@ import {
   type MouseTrigger,
   type TriggerBinding
 } from './inputController.js';
-import { cleanupText, createAsrDaemonProvider, createCloudAsrProvider, createCloudStreamingAsrProvider, createPythonAsrProvider, createWhisperCppAsrProvider, resolveActiveCleanupProvider, testCleanupProvider, type FetchLike } from './providers.js';
+import { cleanupText, createAsrDaemonProvider, createCloudAsrProvider, createCloudStreamingAsrProvider, createPythonAsrProvider, createWhisperCppAsrProvider, formatProviderTestDuration, resolveActiveCleanupProvider, testCleanupProvider, type FetchLike } from './providers.js';
 import { runRecordingPipeline } from './recorderCoordinator.js';
 import { createElectronStoreAdapter, createSettingsStore, type SettingsStore, type TranscriptionRecord } from './settingsStore.js';
 import type { AsrProfileConfig, LlmProviderConfig } from './settingsStore.js';
@@ -475,7 +475,9 @@ function installIpcHandlers(): void {
       provider,
       fetch: fetch as FetchLike
     });
-    return result.ok ? { ok: true, message: '连接成功' } : { ok: false, message: result.error };
+    return result.ok
+      ? { ok: true, message: `连接成功（${formatProviderTestDuration(result.durationMs)}）`, durationMs: result.durationMs }
+      : { ok: false, message: result.error };
   });
 
   ipcMain.handle('tailkall:rewrite-record', async (_event, id: string) => {
