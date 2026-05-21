@@ -19,6 +19,8 @@ import {
   Check,
   ChevronDown,
   Bug,
+  Clock,
+  FileText
 } from 'lucide-react';
 import ModelsView from './ModelsView';
 import StylesView from './StylesView';
@@ -753,9 +755,9 @@ function Dashboard(props: {
           />
         </div>
         <div aria-label="录音统计" className="overview-stats">
-          <OverviewStat label="时长" value={durationStr} />
-          <OverviewStat label="字数" value={charsStr} />
-          <OverviewStat label="语速" value={speechRateStr} />
+          <OverviewStat icon={<Clock size={13} />} label="时长" value={durationStr} />
+          <OverviewStat icon={<FileText size={13} />} label="字数" value={charsStr} />
+          <OverviewStat icon={<Gauge size={13} />} label="语速" value={speechRateStr} />
         </div>
         <div className="overview-style">
           <div className="overview-style-current" title={activePreset?.name}>
@@ -848,9 +850,10 @@ function CompactMetric({ icon, label, value, title }: { icon: ReactNode; label: 
   );
 }
 
-function OverviewStat({ label, value }: { label: string; value: string }) {
+function OverviewStat({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
     <div className="overview-stat" title={`${label} ${value}`}>
+      <span className="overview-stat-icon">{icon}</span>
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
