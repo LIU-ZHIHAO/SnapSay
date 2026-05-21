@@ -2451,5 +2451,125 @@ tr:last-child td {
   border-color: var(--border-strong);
 }
 
+/* ─── Custom Select & Dropdown Styling ─────────────────────────────── */
+.custom-select-container {
+  position: relative;
+  width: 100%;
+}
 
+.custom-select-trigger {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 38px;
+  padding: 0 12px;
+  color: var(--text-primary);
+  background: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  outline: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  transition: background 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
 
+.custom-select-trigger:hover {
+  border-color: var(--border-strong);
+}
+
+.custom-select-trigger:focus,
+.custom-select-trigger.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.custom-select-trigger .select-chevron {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.custom-select-trigger:hover .select-chevron {
+  color: var(--text-secondary);
+}
+
+.custom-select-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 12px; /* Super rounded corners */
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 16px -6px rgba(0, 0, 0, 0.04);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 1000;
+  max-height: 240px;
+  overflow-y: auto;
+  animation: dropdownFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Dark mode overrides for the custom select dropdown */
+.dark .custom-select-dropdown {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(51, 65, 85, 0.8);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 16px -6px rgba(0, 0, 0, 0.2);
+}
+
+.custom-select-dropdown-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 8px; /* Beautiful rounded corners for items */
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.custom-select-dropdown-item:hover {
+  color: var(--text-primary);
+  background: var(--surface-hover);
+}
+
+.custom-select-dropdown-item.selected {
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+}
+
+/* Large card variant specifically */
+.custom-select-container.large-card .custom-select-trigger.mouse-select-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 70px;
+  padding: 0 28px;
+  font-size: 22px;
+  font-weight: 750;
+  text-align: center;
+  border-radius: var(--radius-panel);
+}
+
+.custom-select-container.large-card .custom-select-dropdown {
+  border-radius: var(--radius-panel);
+  padding: 8px;
+}
+
+.custom-select-container.large-card .custom-select-dropdown-item {
+  padding: 12px 18px;
+  font-size: 16px;
+  border-radius: 10px;
+}

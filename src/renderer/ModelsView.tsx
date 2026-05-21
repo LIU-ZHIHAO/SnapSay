@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Brain, Server, PlugZap, X } from 'lucide-react';
+import { CustomSelect } from './App';
 
 type WordbookEntry = {
   id: string;
@@ -175,15 +176,15 @@ export default function ModelsView(props: {
           <label style={{ gridColumn: isCloudAsr ? '1 / -1' : 'auto' }}>
             当前 ASR 档案
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <select
+              <CustomSelect
                 style={{ flex: 1 }}
-                onChange={(event) => selectAsrProfile(event.target.value)}
+                onChange={(val) => selectAsrProfile(val)}
+                options={settings.asrProfiles.map((profile) => ({
+                  value: profile.id,
+                  label: profile.displayName
+                }))}
                 value={settings.activeAsrProfileId}
-              >
-                {settings.asrProfiles.map((profile) => (
-                  <option key={profile.id} value={profile.id}>{profile.displayName}</option>
-                ))}
-              </select>
+              />
               {activeAsrProfile?.kind !== 'local' && (
                 <button
                   onClick={() => void testCloudAsr(activeAsrProfile)}
@@ -221,10 +222,14 @@ export default function ModelsView(props: {
           {!isCloudAsr && (
             <label>
               加速策略
-              <select onChange={(event) => onUpdate('asrAcceleration', event.target.value)} value={settings.asrAcceleration}>
-                <option>GPU 优先</option>
-                <option>CPU</option>
-              </select>
+              <CustomSelect
+                onChange={(val) => onUpdate('asrAcceleration', val)}
+                options={[
+                  { value: 'GPU 优先', label: 'GPU 优先' },
+                  { value: 'CPU', label: 'CPU' }
+                ]}
+                value={settings.asrAcceleration}
+              />
             </label>
           )}
         </div>
@@ -279,15 +284,15 @@ export default function ModelsView(props: {
           <label style={{ gridColumn: '1 / -1' }}>
             当前大模型引擎
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <select
+              <CustomSelect
                 style={{ flex: 1 }}
-                onChange={(event) => selectLlmProvider(event.target.value)}
+                onChange={(val) => selectLlmProvider(val)}
+                options={settings.llmProviders.map((provider) => ({
+                  value: provider.key,
+                  label: provider.displayName
+                }))}
                 value={settings.activeLlmProviderKey}
-              >
-                {settings.llmProviders.map((provider) => (
-                  <option key={provider.key} value={provider.key}>{provider.displayName}</option>
-                ))}
-              </select>
+              />
               <button
                 onClick={() => void testLlmProvider(activeLlmProvider)}
                 type="button"

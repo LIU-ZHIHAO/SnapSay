@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, useRef, type ReactNode } from 'react';
 import {
   BookOpen,
   Brain,
@@ -1334,16 +1334,17 @@ function SettingsView(props: {
           {/* 右栏：鼠标快捷键 */}
           <div className="shortcut-config" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)' }}>鼠标快捷键</span>
-            <select
-              className="mouse-select-card"
-              aria-label="鼠标快捷键"
-              onChange={(event) => onUpdate('mouseTrigger', event.target.value)}
+            <CustomSelect
+              ariaLabel="鼠标快捷键"
+              isLargeCard={true}
+              onChange={(val) => onUpdate('mouseTrigger', val)}
+              options={[
+                { value: 'Mouse Middle', label: '鼠标中键' },
+                { value: 'Mouse Side 1', label: '鼠标侧键 1' },
+                { value: 'Mouse Side 2', label: '鼠标侧键 2' }
+              ]}
               value={settings.mouseTrigger}
-            >
-              <option value="Mouse Middle">鼠标中键</option>
-              <option value="Mouse Side 1">鼠标侧键 1</option>
-              <option value="Mouse Side 2">鼠标侧键 2</option>
-            </select>
+            />
             <div className="shortcut-help" style={{ width: '100%', boxSizing: 'border-box', justifyContent: 'center', color: 'var(--text-secondary)' }}>
               支持配合鼠标中键或侧边功能按键快速启动/停止语音转写
             </div>
@@ -1410,11 +1411,15 @@ function SettingsView(props: {
         <div className="form-grid">
           <label>
             输出模式
-            <select onChange={(event) => onUpdate('outputMode', event.target.value)} value={settings.outputMode}>
-              <option>粘贴到当前光标</option>
-              <option>复制到剪贴板</option>
-              <option>仅保存记录</option>
-            </select>
+            <CustomSelect
+              onChange={(val) => onUpdate('outputMode', val)}
+              options={[
+                { value: '粘贴到当前光标', label: '粘贴到当前光标' },
+                { value: '复制到剪贴板', label: '复制到剪贴板' },
+                { value: '仅保存记录', label: '仅保存记录' }
+              ]}
+              value={settings.outputMode}
+            />
           </label>
           <label className="wide">
             数据目录
@@ -1487,3 +1492,96 @@ function AppearanceSelector(props: { current: Appearance; onChange: (appearance:
     </div>
   );
 }
+
+export interface CustomSelectOption {
+  value: string;
+  label: string;
+}
+
+interface CustomSelectProps {
+  options: CustomSelectOption[];
+  value: string;
+  onChange: (value: string) => void;
+  className?: string;
+  style?: React.CSSProperties;
+  ariaLabel?: string;
+  isLargeCard?: boolean;
+}
+
+export function CustomSelect({
+  options,
+  value,
+  onChange,
+  className = '',
+  style,
+  ariaLabel,
+  isLargeCard = false
+}: CustomSelectProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const selectedOption = options.find(opt => opt.value === value) || options[0];
+
+  return (
+    <div
+      ref={containerRef}
+      className={`custom-select-container ${isLargeCard ? 'large-card' : ''} ${className}`}
+      style={style}
+    >
+      <button
+        type="button"
+        className={`custom-select-trigger ${isLargeCard ? 'mouse-select-card' : ''} ${isOpen ? 'active' : ''}`}
+        onClick={() => setIsOpen(!isOpen)}
+        aria-label={ariaLabel}
+        aria-expanded={isOpen}
+        style={isLargeCard ? { position: 'relative' } : undefined}
+      >
+        <span style={isLargeCard ? { margin: '0 auto' } : undefined}>
+          {selectedOption ? selectedOption.label : ''}
+        </span>
+        <ChevronDown
+          size={isLargeCard ? 20 : 14}
+          className="select-chevron"
+          style={{
+            transition: 'transform 0.15s ease',
+            transform: isOpen ? 'rotate(180deg)' : 'none',
+            position: isLargeCard ? 'absolute' : 'static',
+            right: isLargeCard ? '24px' : 'auto',
+            marginLeft: isLargeCard ? '0' : 'auto'
+          }}
+        />
+      </button>
+
+      {isOpen && (
+        <div className="custom-select-dropdown">
+          {options.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              className={`custom-select-dropdown-item ${opt.value === value ? 'selected' : ''}`}
+              onClick={() => {
+                onChange(opt.value);
+                setIsOpen(false);
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
