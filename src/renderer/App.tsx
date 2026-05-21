@@ -533,27 +533,27 @@ export default function App() {
           <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: '0px', marginBottom: '24px' }}>
             <svg width="24" height="24" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, transform: 'translateY(-1px)' }}>
               <defs>
-                <linearGradient id="purple-pink-grad" x1="0%" y1="100%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#7c3aed" />
+                <linearGradient id="blue-pink-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#06b6d4" />
                   <stop offset="100%" stopColor="#ec4899" />
                 </linearGradient>
-                <linearGradient id="pink-blue-grad" x1="0%" y1="100%" x2="100%" y2="0%">
+                <linearGradient id="pink-purple-grad" x1="0%" y1="0%" x2="100%" y2="100%">
                   <stop offset="0%" stopColor="#ec4899" />
-                  <stop offset="100%" stopColor="#06b6d4" />
+                  <stop offset="100%" stopColor="#7c3aed" />
                 </linearGradient>
               </defs>
-              {/* Path 1: Purple/Pink ribbon (outer bottom loop -> center waist -> inner top loop) */}
+              {/* Path 1: Top-left curve -> top-right loop -> center */}
               <path
-                d="M 37 58 C 18 64, 8 74, 15 82 C 21 90, 44 90, 56 80 C 69 70, 56 50, 44 38 C 31 26, 37 16, 53 16 C 69 16, 79 24, 73 32"
-                stroke="url(#purple-pink-grad)"
+                d="M 25 35 C 25 22, 38 15, 55 15 C 72 15, 85 20, 85 30 C 85 40, 72 45, 62 45 C 52 45, 50 48, 50 50"
+                stroke="url(#blue-pink-grad)"
                 strokeWidth="15"
                 strokeLinecap="round"
                 fill="none"
               />
-              {/* Path 2: Pink/Blue ribbon (inner bottom loop -> center waist -> outer top loop) */}
+              {/* Path 2: Center -> bottom-left loop -> bottom-right curve */}
               <path
-                d="M 63 42 C 82 36, 92 26, 85 18 C 79 10, 56 10, 44 20 C 31 30, 44 50, 56 62 C 69 74, 63 84, 47 84 C 31 84, 21 76, 27 68"
-                stroke="url(#pink-blue-grad)"
+                d="M 50 50 C 50 52, 48 55, 38 55 C 28 55, 15 60, 15 70 C 15 80, 28 85, 45 85 C 62 85, 75 78, 75 65"
+                stroke="url(#pink-purple-grad)"
                 strokeWidth="15"
                 strokeLinecap="round"
                 fill="none"
