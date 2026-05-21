@@ -758,10 +758,12 @@ function Dashboard(props: {
           <OverviewStat icon={<Gauge size={13} />} label="语速" value={speechRateStr} type="speed" />
         </div>
         <div className="overview-style">
-          <div className="overview-style-current" title={activePreset?.name}>
-            <Sparkles size={14} />
-            <span>风格</span>
-            <strong>{activePreset?.name ?? '默认整理'}</strong>
+          <div className="overview-style-label" title={activePreset?.name}>
+            <span className="overview-style-icon"><Sparkles size={13} /></span>
+            <div className="overview-style-text">
+              <span>风格</span>
+              <strong>{activePreset?.name ?? '默认整理'}</strong>
+            </div>
           </div>
           <div className="style-preset-options compact">
             {mainPresets.map((preset) => (
