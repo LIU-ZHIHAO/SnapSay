@@ -616,9 +616,10 @@ h2 svg {
 }
 
 .dashboard-style-dropdown {
-  right: 8px;
-  top: calc(100% + 8px);
-  min-width: 190px;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  min-width: 150px;
 }
 
 .style-preset-dropdown-item.selected {
@@ -2556,6 +2557,23 @@ tr:last-child td {
   gap: 2px;
   z-index: 100;
   animation: dropdownFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* Custom Sleek Scrollbar for Style Preset Dropdown */
+.style-preset-dropdown::-webkit-scrollbar {
+  width: 4px;
+}
+.style-preset-dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+.style-preset-dropdown::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 4px;
+}
+.style-preset-dropdown::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
 }
 
 /* Dark mode overrides for the dropdown */
@@ -2580,7 +2598,7 @@ tr:last-child td {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 7px 10px;
   border-radius: 6px;
   border: 1px solid transparent;
   background: transparent;
