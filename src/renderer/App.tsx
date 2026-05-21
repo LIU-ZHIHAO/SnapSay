@@ -18,7 +18,9 @@ import {
   Copy,
   Check,
   ChevronDown,
-  Bug
+  Bug,
+  Clock,
+  FileText
 } from 'lucide-react';
 import ModelsView from './ModelsView';
 import StylesView from './StylesView';
@@ -679,6 +681,26 @@ function Dashboard(props: {
     }
   }
 
+  // Calculate recording statistics
+  const totalDurationMs = props.records.reduce((acc, r) => acc + (r.durationMs || 0), 0);
+  const totalChars = props.records.reduce((acc, r) => acc + (r.original || '').length, 0);
+  const avgSpeechRate = totalDurationMs > 0 ? Math.round((totalChars * 60000) / totalDurationMs) : 0;
+
+  // Format statistics
+  let durationStr = '0秒';
+  if (totalDurationMs > 0) {
+    if (totalDurationMs < 60000) {
+      durationStr = `${Math.round(totalDurationMs / 1000)}秒`;
+    } else {
+      const minutes = Math.floor(totalDurationMs / 60000);
+      const seconds = Math.round((totalDurationMs % 60000) / 1000);
+      durationStr = seconds > 0 ? `${minutes}分${seconds}秒` : `${minutes}分钟`;
+    }
+  }
+
+  const charsStr = `${totalChars.toLocaleString()} 字`;
+  const speechRateStr = `${avgSpeechRate} 字/分钟`;
+
   return (
     <div className="view-stack dashboard-view">
       <h1>主页</h1>
@@ -686,6 +708,12 @@ function Dashboard(props: {
         <Metric icon={<Keyboard />} label="当前触发键" value={props.settings.triggerKey} />
         <Metric icon={<Mic />} label="ASR" value={props.settings.asr} />
         <Metric icon={<PlugZap />} label="文案整理 API" value={`${props.settings.provider} / ${props.settings.model}`} />
+      </div>
+
+      <div className="stats-grid">
+        <StatCard icon={<Clock />} label="总录音时长" value={durationStr} />
+        <StatCard icon={<FileText />} label="总录音字数" value={charsStr} />
+        <StatCard icon={<Gauge />} label="平均语速" value={speechRateStr} />
       </div>
 
       <div className="style-preset-panel">
@@ -784,6 +812,18 @@ function Metric({ icon, label, value }: { icon: ReactNode; label: string; value:
       <div>
         <div className="metric-label">{label}</div>
         <div className="metric-value">{value}</div>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return (
+    <div className="stat-card">
+      <div className="stat-card-icon">{icon}</div>
+      <div>
+        <div className="stat-card-label">{label}</div>
+        <div className="stat-card-value" title={value}>{value}</div>
       </div>
     </div>
   );

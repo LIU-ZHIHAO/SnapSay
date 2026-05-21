@@ -29,6 +29,13 @@ describe('TailKall main renderer', () => {
     expect(screen.getByText('文案整理 API')).toBeInTheDocument();
     expect(screen.getByText('OpenAI Compatible / gpt-4.1-mini')).toBeInTheDocument();
 
+    expect(screen.getByText('总录音时长')).toBeInTheDocument();
+    expect(screen.getByText('8秒')).toBeInTheDocument();
+    expect(screen.getByText('总录音字数')).toBeInTheDocument();
+    expect(screen.getByText('77 字')).toBeInTheDocument();
+    expect(screen.getByText('平均语速')).toBeInTheDocument();
+    expect(screen.getByText('563 字/分钟')).toBeInTheDocument();
+
     const recent = screen.getByRole('region', { name: '最近记录' });
     expect(within(recent).getByText('2026/05/19 09:18')).toBeInTheDocument();
     expect(within(recent).getByText('会议结论：优化登录体验与首屏性能，排查快捷键冲突。负责人分别跟进，下次例会同步结果。')).toBeInTheDocument();
@@ -363,6 +370,13 @@ describe('TailKall main renderer', () => {
     // Wait for the mock dashboard record to load and render
     const failedStatus = await screen.findByText('失败');
     expect(failedStatus).toBeInTheDocument();
+
+    expect(screen.getByText('总录音时长')).toBeInTheDocument();
+    expect(screen.getByText('0秒')).toBeInTheDocument();
+    expect(screen.getByText('总录音字数')).toBeInTheDocument();
+    expect(screen.getByText('0 字')).toBeInTheDocument();
+    expect(screen.getByText('平均语速')).toBeInTheDocument();
+    expect(screen.getByText('0 字/分钟')).toBeInTheDocument();
 
     // Verify that the error log is NOT visible by default
     expect(screen.queryByText('Connection timed out to LLM provider at api.deepseek.com')).not.toBeInTheDocument();
