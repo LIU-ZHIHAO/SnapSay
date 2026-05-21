@@ -26,6 +26,7 @@ import {
 import ModelsView from './ModelsView';
 import StylesView from './StylesView';
 import './styles.css';
+import logoUrl from './logo.png';
 import { DEFAULT_CLEANUP_PROMPT, ENGINEER_CLEANUP_PROMPT, CHARM_CLEANUP_PROMPT } from '../shared/cleanupPolicy';
 
 export interface StylePreset {
@@ -531,34 +532,7 @@ export default function App() {
       <main className="app-shell">
         <aside className="sidebar" aria-label="主导航">
           <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: '0px', marginBottom: '24px' }}>
-            <svg width="24" height="24" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, transform: 'translateY(-1px)' }}>
-              <defs>
-                <linearGradient id="blue-pink-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#06b6d4" />
-                  <stop offset="100%" stopColor="#ec4899" />
-                </linearGradient>
-                <linearGradient id="pink-purple-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#ec4899" />
-                  <stop offset="100%" stopColor="#7c3aed" />
-                </linearGradient>
-              </defs>
-              {/* Path 1: Top-right curve -> top-left loop -> center */}
-              <path
-                d="M 75 35 C 75 22, 62 15, 45 15 C 28 15, 15 20, 15 30 C 15 40, 28 45, 38 45 C 48 45, 50 48, 50 50"
-                stroke="url(#blue-pink-grad)"
-                strokeWidth="15"
-                strokeLinecap="round"
-                fill="none"
-              />
-              {/* Path 2: Center -> bottom-right loop -> bottom-left curve */}
-              <path
-                d="M 50 50 C 50 52, 52 55, 62 55 C 72 55, 85 60, 85 70 C 85 80, 72 85, 55 85 C 38 85, 25 78, 25 65"
-                stroke="url(#pink-purple-grad)"
-                strokeWidth="15"
-                strokeLinecap="round"
-                fill="none"
-              />
-            </svg>
+            <img src={logoUrl} alt="Logo" width="24" height="24" style={{ flexShrink: 0, transform: 'translateY(-1px)' }} />
             <span style={{ fontSize: '20px', fontWeight: '850', color: 'var(--text-primary)', letterSpacing: '-0.8px', marginLeft: '0px' }}>
               napSay
             </span>
