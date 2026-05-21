@@ -529,7 +529,7 @@ export default function App() {
       <main className="app-shell">
         <aside className="sidebar" aria-label="主导航">
           <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: '1px', marginBottom: '24px' }}>
-            <svg width="18" height="26" viewBox="18 6 60 88" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, transform: 'translateY(-1.5px)' }}>
+            <svg width="16" height="24" viewBox="26 14 48 72" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, transform: 'translateY(-1px)' }}>
               <defs>
                 <linearGradient id="purple-pink-grad" x1="0%" y1="100%" x2="100%" y2="0%">
                   <stop offset="0%" stopColor="#7c3aed" />
@@ -540,24 +540,24 @@ export default function App() {
                   <stop offset="100%" stopColor="#06b6d4" />
                 </linearGradient>
               </defs>
-              {/* Path 1: Purple/Pink ribbon (bottom-left loop & inner top loop) */}
+              {/* Path 1: Purple/Pink ribbon (outer bottom loop -> center waist -> inner top loop) */}
               <path
-                d="M 36 28 C 36 14, 66 10, 70 24 C 74 38, 56 48, 42 54 C 28 60, 20 70, 26 82 C 32 94, 66 90, 66 76"
+                d="M 42 58 C 30 64, 24 74, 28 82 C 32 90, 46 90, 54 80 C 62 70, 54 50, 46 38 C 38 26, 42 16, 52 16 C 62 16, 68 24, 64 32"
                 stroke="url(#purple-pink-grad)"
-                strokeWidth="10"
+                strokeWidth="9.5"
                 strokeLinecap="round"
                 fill="none"
               />
-              {/* Path 2: Pink/Blue ribbon (top-right loop & outer bottom loop) */}
+              {/* Path 2: Pink/Blue ribbon (inner bottom loop -> center waist -> outer top loop) */}
               <path
-                d="M 42 26 C 42 12, 72 8, 76 22 C 80 36, 62 46, 48 52 C 34 58, 26 68, 32 80 C 38 92, 72 88, 72 74"
+                d="M 58 42 C 70 36, 76 26, 72 18 C 68 10, 54 10, 46 20 C 38 30, 46 50, 54 62 C 62 74, 58 84, 48 84 C 38 84, 32 76, 36 68"
                 stroke="url(#pink-blue-grad)"
-                strokeWidth="10"
+                strokeWidth="9.5"
                 strokeLinecap="round"
                 fill="none"
               />
             </svg>
-            <span style={{ fontSize: '20px', fontWeight: '850', color: 'var(--text-primary)', letterSpacing: '-0.8px', marginLeft: '-3px' }}>
+            <span style={{ fontSize: '20px', fontWeight: '850', color: 'var(--text-primary)', letterSpacing: '-0.8px', marginLeft: '0px' }}>
               napSay
             </span>
           </div>
@@ -746,18 +746,13 @@ function Dashboard(props: {
       <section aria-label="主页概览" className="dashboard-overview">
         <div className="overview-primary">
           <CompactMetric icon={<Keyboard size={15} />} label="触发键" value={props.settings.triggerKey} />
-          <CompactMetric icon={<Mic size={15} />} label="ASR" value={shortenAsrLabel(props.settings.asr)} title={props.settings.asr} />
+          <CompactMetric icon={<Mic size={15} />} label="语音模型" value={shortenAsrLabel(props.settings.asr)} title={props.settings.asr} />
           <CompactMetric
             icon={<PlugZap size={15} />}
             label="整理模型"
             value={shortenModelLabel(props.settings.model)}
             title={`${props.settings.provider} / ${props.settings.model}`}
           />
-        </div>
-        <div aria-label="录音统计" className="overview-stats">
-          <OverviewStat icon={<Clock size={13} />} label="时长" value={durationStr} />
-          <OverviewStat icon={<FileText size={13} />} label="字数" value={charsStr} />
-          <OverviewStat icon={<Gauge size={13} />} label="语速" value={speechRateStr} />
         </div>
         <div className="overview-style">
           <div className="overview-style-current" title={activePreset?.name}>
@@ -818,6 +813,11 @@ function Dashboard(props: {
             )}
           </div>
         </div>
+        <div aria-label="录音统计" className="overview-stats">
+          <OverviewStat icon={<Clock size={13} />} label="时长" value={durationStr} type="duration" />
+          <OverviewStat icon={<FileText size={13} />} label="字数" value={charsStr} type="chars" />
+          <OverviewStat icon={<Gauge size={13} />} label="语速" value={speechRateStr} type="speed" />
+        </div>
       </section>
 
       <section className="panel dashboard-panel" aria-label="最近记录">
@@ -850,9 +850,9 @@ function CompactMetric({ icon, label, value, title }: { icon: ReactNode; label: 
   );
 }
 
-function OverviewStat({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+function OverviewStat({ icon, label, value, type }: { icon: ReactNode; label: string; value: string; type?: string }) {
   return (
-    <div className="overview-stat" title={`${label} ${value}`}>
+    <div className={`overview-stat${type ? ` stat-${type}` : ''}`} title={`${label} ${value}`}>
       <span className="overview-stat-icon">{icon}</span>
       <span>{label}</span>
       <strong>{value}</strong>
@@ -873,8 +873,11 @@ function shortenAsrLabel(value: string): string {
 function shortenModelLabel(value: string): string {
   const model = value.trim();
   const normalized = model.toLowerCase();
-  if (normalized.includes('deepseek') && /v3/i.test(model)) return 'DeepSeek V3';
-  if (normalized.includes('deepseek') && /r1/i.test(model)) return 'DeepSeek R1';
+  if (normalized.includes('deepseek')) {
+    if (/r1/i.test(model)) return 'DeepSeek R1';
+    if (/v3|chat/i.test(model)) return 'DeepSeek V3';
+    return 'DeepSeek';
+  }
   const gpt = /^gpt[-_]?([0-9]+(?:\.[0-9]+)?)/i.exec(model);
   if (gpt) return `GPT-${gpt[1]}`;
   const qwen = /^qwen[-_]?([0-9]+(?:\.[0-9]+)?)/i.exec(model);
