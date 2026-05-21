@@ -5,6 +5,7 @@ import {
   ClipboardCopy,
   Eraser,
   Gauge,
+  Home,
   Keyboard,
   Mic,
   PenLine,
@@ -561,7 +562,7 @@ export default function App() {
               napSay
             </span>
           </div>
-          <NavButton active={view === 'dashboard'} icon={<Gauge size={18} />} label="主页" onClick={() => setView('dashboard')} />
+          <NavButton active={view === 'dashboard'} icon={<Home size={18} />} label="主页" onClick={() => setView('dashboard')} />
           <NavButton active={view === 'models'} icon={<Brain size={18} />} label="模型" onClick={() => setView('models')} />
           <NavButton active={view === 'styles'} icon={<Sparkles size={18} />} label="风格" onClick={() => setView('styles')} />
           <NavButton active={view === 'settings'} icon={<Settings size={18} />} label="设置" onClick={() => setView('settings')} />
