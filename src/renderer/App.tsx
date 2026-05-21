@@ -237,6 +237,7 @@ type TailKallFacade = {
   pasteRecord?: (id: string) => Promise<void>;
   deleteRecord?: (id: string) => Promise<void>;
   clearAllRecords?: () => Promise<{ ok: boolean }>;
+  clearDiagnosticLogs?: () => Promise<{ ok: boolean; records?: RecordItem[] }>;
   testRewriteApi?: (settings: SettingsState) => Promise<{ ok: boolean; message: string }>;
   saveCorrection?: (id: string, text: string) => Promise<void>;
   saveWordbook?: (wordbook: WordbookEntry[]) => Promise<{ ok: boolean }>;
@@ -463,6 +464,15 @@ export default function App() {
     setRecords([]);
   };
 
+  const clearDiagnosticLogs = async () => {
+    const result = await getFacade().clearDiagnosticLogs?.();
+    if (result?.records) {
+      setRecords(result.records);
+      return;
+    }
+    setRecords((current) => current.map((record) => ({ ...record, error: undefined })));
+  };
+
   const saveCorrection = async (id: string, text: string) => {
     await getFacade().saveCorrection?.(id, text);
     setRecords((current) =>
@@ -559,6 +569,7 @@ export default function App() {
                 appearance={appearance}
                 settings={settings}
                 records={records}
+                onClearDiagnosticLogs={clearDiagnosticLogs}
                 onAppearanceChange={setAppearance}
                 onUpdate={updateSetting}
               />
@@ -1194,6 +1205,7 @@ function SettingsView(props: {
   appearance: Appearance;
   settings: SettingsState;
   records: RecordItem[];
+  onClearDiagnosticLogs: () => void;
   onAppearanceChange: (appearance: Appearance) => void;
   onUpdate: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void;
 }) {
@@ -1507,10 +1519,17 @@ function SettingsView(props: {
       </section>
 
       <section aria-label="诊断日志" className="panel settings-card diagnostic-log-section">
-        <h2>
-          <Bug size={18} />
-          诊断日志
-        </h2>
+        <div className="diagnostic-log-header">
+          <h2>
+            <Bug size={18} />
+            诊断日志
+          </h2>
+          {diagnosticRecords.length > 0 && (
+            <button className="diagnostic-log-clear" onClick={props.onClearDiagnosticLogs} type="button">
+              清空诊断日志
+            </button>
+          )}
+        </div>
         {diagnosticRecords.length > 0 ? (
           <div className="diagnostic-log-list">
             {diagnosticRecords.map((record) => (

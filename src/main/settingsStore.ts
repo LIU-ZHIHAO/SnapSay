@@ -122,6 +122,7 @@ export type SettingsStore = {
     patch: Partial<Omit<TranscriptionRecord, 'id' | 'createdAt'>>
   ): TranscriptionRecord | undefined;
   deleteRecord(id: string): boolean;
+  clearDiagnosticLogs(): number;
   clearAllRecords(): void;
 };
 
@@ -310,6 +311,22 @@ export function createSettingsStore(options: { store: KeyValueStore }): Settings
       }
       writeRecords(next);
       return true;
+    },
+    clearDiagnosticLogs(): number {
+      let cleared = 0;
+      const records = readRecords().map((record) => {
+        if (!record.error) {
+          return record;
+        }
+        cleared += 1;
+        return {
+          ...record,
+          error: undefined,
+          updatedAt: new Date().toISOString()
+        };
+      });
+      writeRecords(records);
+      return cleared;
     },
     clearAllRecords(): void {
       writeRecords([]);

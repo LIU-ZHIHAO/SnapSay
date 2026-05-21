@@ -130,4 +130,26 @@ describe('settingsStore', () => {
     expect(store.listRecords()).toHaveLength(1);
     expect(store.deleteRecord('missing')).toBe(false);
   });
+
+  it('clears diagnostic errors without deleting transcription records', () => {
+    const store = createSettingsStore({ store: createMemoryStore() });
+
+    const first = store.addRecord({
+      transcript: 'failed raw',
+      status: 'failed',
+      error: 'Cleanup provider DeepSeek failed with HTTP 402: insufficient balance'
+    });
+    const second = store.addRecord({
+      transcript: 'failed again',
+      status: 'failed',
+      error: 'Cleanup provider DeepSeek failed with HTTP 402: insufficient balance'
+    });
+
+    const cleared = store.clearDiagnosticLogs();
+
+    expect(cleared).toBe(2);
+    expect(store.listRecords()).toHaveLength(2);
+    expect(store.listRecords().map((record) => record.id).sort()).toEqual([first.id, second.id].sort());
+    expect(store.listRecords().every((record) => record.error === undefined)).toBe(true);
+  });
 });

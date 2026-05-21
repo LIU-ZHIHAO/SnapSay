@@ -2148,6 +2148,38 @@ tr:last-child td {
   margin-bottom: 0;
 }
 
+.diagnostic-log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.diagnostic-log-header h2 {
+  margin: 0;
+}
+
+.diagnostic-log-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 12px;
+  color: var(--text-secondary);
+  background: var(--surface-app);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.diagnostic-log-clear:hover {
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  border-color: rgb(18 132 216 / 28%);
+}
+
 .diagnostic-log-list {
   display: flex;
   flex-direction: column;

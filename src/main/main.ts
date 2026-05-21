@@ -15,7 +15,7 @@ import {
 } from './inputController.js';
 import { cleanupText, createAsrDaemonProvider, createCloudAsrProvider, createCloudStreamingAsrProvider, createPythonAsrProvider, createWhisperCppAsrProvider, resolveActiveCleanupProvider, testCleanupProvider, type FetchLike } from './providers.js';
 import { runRecordingPipeline } from './recorderCoordinator.js';
-import { createElectronStoreAdapter, createSettingsStore, type SettingsStore } from './settingsStore.js';
+import { createElectronStoreAdapter, createSettingsStore, type SettingsStore, type TranscriptionRecord } from './settingsStore.js';
 import type { AsrProfileConfig, LlmProviderConfig } from './settingsStore.js';
 import { applyWordbook, buildWordbookPrompt, extractWordPairCandidates } from './wordbook.js';
 import type { WordbookEntry } from './wordbook.js';
@@ -276,28 +276,33 @@ function toRendererSettings(): RendererSettings {
   };
 }
 
+function toRendererRecord(record: TranscriptionRecord) {
+  return {
+    id: record.id,
+    time: new Date(record.createdAt).toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    }),
+    original: record.transcript,
+    refined: record.cleanedText ?? record.transcript,
+    userCorrection: record.userCorrection,
+    status: record.status === 'completed' ? '已输入' : '失败',
+    asr: [record.asrProvider, record.asrModel].filter(Boolean).join(' / '),
+    cleanup: [record.cleanupProvider, record.cleanupModel].filter(Boolean).join(' / '),
+    durationMs: record.durationMs,
+    asrDurationMs: record.asrDurationMs,
+    cleanupDurationMs: record.cleanupDurationMs,
+    pasteSucceeded: record.pasteSucceeded,
+    error: record.error
+  };
+}
+
 function installIpcHandlers(): void {
   ipcMain.handle('tailkall:get-dashboard', () => {
-    const records = settingsStore?.listRecords().map((record) => ({
-      id: record.id,
-      time: new Date(record.createdAt).toLocaleString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      }),
-      original: record.transcript,
-      refined: record.cleanedText ?? record.transcript,
-      status: record.status === 'completed' ? '已输入' : '失败',
-      asr: [record.asrProvider, record.asrModel].filter(Boolean).join(' / '),
-      cleanup: [record.cleanupProvider, record.cleanupModel].filter(Boolean).join(' / '),
-      durationMs: record.durationMs,
-      asrDurationMs: record.asrDurationMs,
-      cleanupDurationMs: record.cleanupDurationMs,
-      pasteSucceeded: record.pasteSucceeded,
-      error: record.error
-    }));
+    const records = settingsStore?.listRecords().map(toRendererRecord);
 
     return {
       settings: toRendererSettings(),
@@ -410,23 +415,7 @@ function installIpcHandlers(): void {
     } else {
       // Send full records list to avoid race condition with getDashboard
       const allRecords = settingsStore?.listRecords() ?? [];
-      mainWindow?.webContents.send('tailkall:records-synced', allRecords.map((r) => ({
-        id: r.id,
-        time: new Date(r.createdAt).toLocaleString('zh-CN', {
-          year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
-        }),
-        original: r.transcript,
-        refined: r.cleanedText ?? r.transcript,
-        userCorrection: r.userCorrection,
-        status: r.status === 'completed' ? '已输入' : '失败',
-        asr: [r.asrProvider, r.asrModel].filter(Boolean).join(' / '),
-        cleanup: [r.cleanupProvider, r.cleanupModel].filter(Boolean).join(' / '),
-        durationMs: r.durationMs,
-        asrDurationMs: r.asrDurationMs,
-        cleanupDurationMs: r.cleanupDurationMs,
-        pasteSucceeded: r.pasteSucceeded,
-        error: r.error
-      })));
+      mainWindow?.webContents.send('tailkall:records-synced', allRecords.map(toRendererRecord));
     }
 
     return { ok: record.status === 'completed', record };
@@ -461,6 +450,13 @@ function installIpcHandlers(): void {
     settingsStore?.clearAllRecords();
     mainWindow?.webContents.send('tailkall:records-cleared');
     return { ok: true };
+  });
+
+  ipcMain.handle('tailkall:clear-diagnostic-logs', () => {
+    const cleared = settingsStore?.clearDiagnosticLogs() ?? 0;
+    const records = settingsStore?.listRecords().map(toRendererRecord) ?? [];
+    mainWindow?.webContents.send('tailkall:records-synced', records);
+    return { ok: true, cleared, records };
   });
 
   ipcMain.handle('tailkall:test-rewrite-api', async (_event, settings: RendererSettings) => {

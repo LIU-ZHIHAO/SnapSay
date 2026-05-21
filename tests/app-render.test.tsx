@@ -360,6 +360,14 @@ describe('TailKall main renderer', () => {
             refined: '',
             status: '失败',
             error: 'Cleanup provider DeepSeek failed with HTTP 402: insufficient balance'
+          },
+          {
+            id: 'rec-failed-2',
+            time: '2026/05/20 22:46',
+            original: '',
+            refined: '',
+            status: '失败',
+            error: 'Cleanup provider DeepSeek failed with HTTP 402: insufficient balance'
           }
         ]
       })
@@ -368,8 +376,8 @@ describe('TailKall main renderer', () => {
     render(<App />);
 
     // Wait for the mock dashboard record to load and render
-    const failedStatus = await screen.findByText('失败');
-    expect(failedStatus).toBeInTheDocument();
+    const failedStatuses = await screen.findAllByText('失败');
+    expect(failedStatuses).toHaveLength(2);
 
     expect(screen.getByText('总录音时长')).toBeInTheDocument();
     expect(screen.getByText('0秒')).toBeInTheDocument();
@@ -384,11 +392,91 @@ describe('TailKall main renderer', () => {
     fireEvent.click(screen.getByRole('button', { name: '设置' }));
 
     const logRegion = screen.getByRole('region', { name: '诊断日志' });
-    expect(within(logRegion).getByText('大模型 / 接口错误')).toBeInTheDocument();
+    expect(within(logRegion).getAllByText('大模型 / 接口错误')).toHaveLength(2);
     expect(within(logRegion).getByText('2026/05/20 22:45')).toBeInTheDocument();
-    expect(within(logRegion).getByText('Cleanup provider DeepSeek failed with HTTP 402: insufficient balance')).toBeInTheDocument();
+    expect(within(logRegion).getByText('2026/05/20 22:46')).toBeInTheDocument();
+    expect(within(logRegion).getAllByText('Cleanup provider DeepSeek failed with HTTP 402: insufficient balance')).toHaveLength(2);
 
     // Clean up to prevent impacting other tests
     delete (window as any).tailkall;
+  });
+
+  it('clears diagnostic logs without clearing recent records', async () => {
+    const clearDiagnosticLogs = vi.fn().mockResolvedValue({
+      ok: true,
+      records: [
+        {
+          id: 'rec-failed-1',
+          time: '2026/05/20 22:45',
+          original: '',
+          refined: '',
+          status: '失败'
+        }
+      ]
+    });
+
+    window.tailkall = {
+      clearDiagnosticLogs,
+      getDashboard: async () => ({
+        settings: {
+          triggerKey: 'Ctrl + Alt + Space',
+          recordMode: '按住说话',
+          asr: 'whisper.cpp',
+          asrAcceleration: 'GPU 优先',
+          localModelDir: 'D:\\Antigravity\\tailkall\\models',
+          localAsrExePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\Release\\whisper-cli.exe',
+          localAsrModelPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin',
+          ffmpegPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ffmpeg.exe',
+          fasterWhisperModelPath: 'D:\\Antigravity\\tailkall\\models\\faster-whisper\\small',
+          senseVoiceModelPath: 'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
+          pythonPath: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
+          cleanupEnabled: false,
+          provider: 'OpenAI Compatible',
+          baseURL: 'https://api.example.com/v1',
+          model: 'gpt-4.1-mini',
+          apiKey: 'demo-api-key',
+          llmProviders: [],
+          activeLlmProviderKey: 'deepseek',
+          prompt: DEFAULT_CLEANUP_PROMPT,
+          outputMode: '粘贴到当前光标',
+          dataDir: 'D:\\Antigravity\\tailkall\\data',
+          shortPressAction: '语音输入',
+          longPressAction: '语音助手',
+          smartMouseMode: true,
+          mouseTrigger: 'Mouse Middle',
+          wordbook: [],
+          cloudAsrType: 'openai-whisper',
+          cloudAsrBaseUrl: '',
+          cloudAsrApiKey: '',
+          cloudAsrModel: 'whisper-1',
+          asrProfiles: [],
+          activeAsrProfileId: 'local-whisper-cpp'
+        },
+        records: [
+          {
+            id: 'rec-failed-1',
+            time: '2026/05/20 22:45',
+            original: '',
+            refined: '',
+            status: '失败',
+            error: 'Cleanup provider DeepSeek failed with HTTP 402: insufficient balance'
+          }
+        ]
+      })
+    };
+
+    render(<App />);
+    expect(await screen.findByText('失败')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '设置' }));
+    expect(screen.getByText('Cleanup provider DeepSeek failed with HTTP 402: insufficient balance')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '清空诊断日志' }));
+
+    expect(clearDiagnosticLogs).toHaveBeenCalledOnce();
+    expect(await screen.findByText('暂无诊断日志')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '主页' }));
+    expect(screen.getByText('失败')).toBeInTheDocument();
   });
 });
