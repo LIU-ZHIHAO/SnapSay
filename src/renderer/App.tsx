@@ -143,13 +143,14 @@ export function parseMultiPrompt(promptStr: string): MultiPromptData {
 }
 
 type View = 'dashboard' | 'models' | 'styles' | 'settings';
-type Appearance = 'light' | 'dark' | 'pink' | 'green';
+type Appearance = 'light' | 'dark' | 'pink' | 'green' | 'red-glass';
 
 const APPEARANCES: { id: Appearance; label: string }[] = [
   { id: 'light', label: '浅色' },
   { id: 'dark', label: '深色' },
   { id: 'pink', label: '柔粉' },
-  { id: 'green', label: '青绿' }
+  { id: 'green', label: '青绿' },
+  { id: 'red-glass', label: '红薯琉璃' }
 ];
 
 type WordbookEntry = {
