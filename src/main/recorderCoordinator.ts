@@ -17,6 +17,7 @@ export async function runRecordingPipeline(
 ): Promise<TranscriptionRecord> {
   let transcript = '';
   let cleanedText: string | undefined;
+  let cleanupError: string | undefined;
   let asrDurationMs: number | undefined;
   let cleanupDurationMs: number | undefined;
 
@@ -30,8 +31,13 @@ export async function runRecordingPipeline(
     const shouldCleanup = options.shouldCleanupText?.(transcript) ?? true;
     if (shouldCleanup) {
       const cleanupStart = Date.now();
-      cleanedText = await options.cleanupText(transcript);
-      cleanupDurationMs = Date.now() - cleanupStart;
+      try {
+        cleanedText = await options.cleanupText(transcript);
+      } catch (error) {
+        cleanupError = error instanceof Error ? error.message : String(error);
+      } finally {
+        cleanupDurationMs = Date.now() - cleanupStart;
+      }
     }
 
     await options.pasteText(cleanedText ?? transcript);
@@ -44,6 +50,7 @@ export async function runRecordingPipeline(
       asrModel: options.asrProvider.name,
       cleanupProvider: cleanedText ? 'api' : undefined,
       cleanupModel: cleanedText ? options.settingsStore.getSettings().cleanup.provider?.model : undefined,
+      error: cleanupError,
       durationMs: options.durationMs,
       asrDurationMs,
       cleanupDurationMs,

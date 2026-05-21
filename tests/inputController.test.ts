@@ -151,21 +151,25 @@ describe('recorderCoordinator', () => {
     expect(store.listRecords()[0]).toEqual(record);
   });
 
-  it('saves a failed record when cleanup fails', async () => {
+  it('pastes ASR text and records the cleanup error when cleanup fails', async () => {
     const store = createSettingsStore({ store: createMemoryStore() });
+    const paste = vi.fn().mockResolvedValue({ status: 'pasted' });
 
     const record = await runRecordingPipeline({
       audio: new ArrayBuffer(0),
       durationMs: 1000,
       asrProvider: createMockAsrProvider('raw text'),
       cleanupText: vi.fn().mockRejectedValue(new Error('cleanup failed')),
-      pasteText: vi.fn(),
+      pasteText: paste,
       settingsStore: store
     });
 
-    expect(record.status).toBe('failed');
+    expect(record.status).toBe('completed');
     expect(record.transcript).toBe('raw text');
+    expect(record.cleanedText).toBeUndefined();
     expect(record.error).toContain('cleanup failed');
+    expect(record.pasteSucceeded).toBe(true);
+    expect(paste).toHaveBeenCalledWith('raw text');
     expect(store.listRecords()[0]).toEqual(record);
   });
 
