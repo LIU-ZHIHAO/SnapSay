@@ -752,35 +752,14 @@ function Dashboard(props: {
     <div className="view-stack dashboard-view">
       <h1>主页</h1>
       <section aria-label="主页概览" className="dashboard-overview">
-        <div className="dashboard-summary-line">
-          <div className="dashboard-summary-meta">
-            <span title={props.settings.triggerKey}>
-              <Keyboard size={15} />
-              {props.settings.triggerKey}
-            </span>
-            <span title={props.settings.asr}>
-              <Mic size={15} />
-              {shortenAsrLabel(props.settings.asr)}
-            </span>
-            <span title={`${props.settings.provider} / ${props.settings.model}`}>
-              <PlugZap size={15} />
-              {shortenModelLabel(props.settings.model)}
-            </span>
-          </div>
-          <button className="template-manage-btn" onClick={props.onOpenStyles} type="button">
-            <PenLine size={15} />
-            修饰模板
-          </button>
-        </div>
-
-        <div className="dashboard-stat-grid" aria-label="录音统计">
-          <OverviewStat icon={<Clock size={16} />} label="时长" value={durationStr} type="duration" />
-          <OverviewStat icon={<FileText size={16} />} label="字数" value={charsStr} type="chars" />
-          <OverviewStat icon={<Gauge size={16} />} label="语速" value={speechRateStr} type="speed" />
+        <div className="dashboard-stat-grid" aria-label="系统配置" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+          <OverviewStat icon={<Keyboard size={16} />} label="快捷键" value={props.settings.triggerKey} type="shortcut" />
+          <OverviewStat icon={<Mic size={16} />} label="语音模型" value={shortenAsrLabel(props.settings.asr)} type="asr" />
+          <OverviewStat icon={<PlugZap size={16} />} label="转写模型" value={shortenModelLabel(props.settings.model)} type="model" />
           <div className="dashboard-style-switch">
             <button
               aria-expanded={isMoreOpen}
-              aria-label={`当前风格 ${activePreset.name}`}
+              aria-label={`改写风格 ${activePreset.name}`}
               className="dashboard-style-trigger"
               onClick={() => setIsMoreOpen((open) => !open)}
               title="点击切换修饰风格"
@@ -788,7 +767,7 @@ function Dashboard(props: {
             >
               <span className="overview-stat-icon style-icon"><Sparkles size={16} /></span>
               <span className="dashboard-style-text">
-                <span>当前风格</span>
+                <span>改写风格</span>
                 <strong>{activePreset.name}</strong>
               </span>
               <ChevronDown size={15} className={isMoreOpen ? 'style-chevron open' : 'style-chevron'} />
@@ -813,6 +792,12 @@ function Dashboard(props: {
               </div>
             )}
           </div>
+        </div>
+
+        <div className="dashboard-stat-grid" aria-label="录音统计" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+          <OverviewStat icon={<Clock size={16} />} label="时长" value={durationStr} type="duration" />
+          <OverviewStat icon={<FileText size={16} />} label="字数" value={charsStr} type="chars" />
+          <OverviewStat icon={<Gauge size={16} />} label="语速" value={speechRateStr} type="speed" />
         </div>
       </section>
 

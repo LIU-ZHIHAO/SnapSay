@@ -530,8 +530,13 @@ h2 svg {
   background-color: var(--surface-hover);
 }
 
+.overview-stat:first-child {
+  border-radius: 9px 0 0 9px;
+}
+
 .overview-stat:last-child {
   border-right: 0;
+  border-radius: 0 9px 9px 0;
 }
 
 .overview-stat span,
@@ -582,7 +587,7 @@ h2 svg {
   color: var(--text-primary);
   background: transparent;
   border: 0;
-  border-radius: 0 10px 10px 0;
+  border-radius: 0 9px 9px 0;
   cursor: pointer;
   text-align: left;
 }
@@ -687,6 +692,72 @@ h2 svg {
   background: #f5f3ff;
   color: #7c3aed;
   border-color: #ddd6fe;
+}
+
+/* Custom color schemes for shortcut key card */
+.overview-stat.stat-shortcut .overview-stat-icon {
+  background: #eff6ff;
+  color: #2563eb;
+  border-color: #bfdbfe;
+}
+[data-appearance="dark"] .overview-stat.stat-shortcut .overview-stat-icon {
+  background: rgba(59, 130, 246, 0.12);
+  color: #60a5fa;
+  border-color: rgba(59, 130, 246, 0.2);
+}
+[data-appearance="pink"] .overview-stat.stat-shortcut .overview-stat-icon {
+  background: #eff6ff;
+  color: #2563eb;
+  border-color: #bfdbfe;
+}
+[data-appearance="green"] .overview-stat.stat-shortcut .overview-stat-icon {
+  background: #eff6ff;
+  color: #2563eb;
+  border-color: #bfdbfe;
+}
+
+/* Custom color schemes for ASR/voice model card */
+.overview-stat.stat-asr .overview-stat-icon {
+  background: #ecfeff;
+  color: #0891b2;
+  border-color: #a5f3fc;
+}
+[data-appearance="dark"] .overview-stat.stat-asr .overview-stat-icon {
+  background: rgba(6, 182, 212, 0.12);
+  color: #22d3ee;
+  border-color: rgba(6, 182, 212, 0.2);
+}
+[data-appearance="pink"] .overview-stat.stat-asr .overview-stat-icon {
+  background: #ecfeff;
+  color: #0891b2;
+  border-color: #a5f3fc;
+}
+[data-appearance="green"] .overview-stat.stat-asr .overview-stat-icon {
+  background: #ecfeff;
+  color: #0891b2;
+  border-color: #a5f3fc;
+}
+
+/* Custom color schemes for Rewrite/LLM model card */
+.overview-stat.stat-model .overview-stat-icon {
+  background: #e0e7ff;
+  color: #4f46e5;
+  border-color: #c7d2fe;
+}
+[data-appearance="dark"] .overview-stat.stat-model .overview-stat-icon {
+  background: rgba(99, 102, 241, 0.12);
+  color: #818cf8;
+  border-color: rgba(99, 102, 241, 0.2);
+}
+[data-appearance="pink"] .overview-stat.stat-model .overview-stat-icon {
+  background: #fdf2f8;
+  color: #db2777;
+  border-color: #fbcfe8;
+}
+[data-appearance="green"] .overview-stat.stat-model .overview-stat-icon {
+  background: #e0e7ff;
+  color: #4f46e5;
+  border-color: #c7d2fe;
 }
 
 .overview-style {
