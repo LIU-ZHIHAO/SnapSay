@@ -528,8 +528,8 @@ export default function App() {
     <div className="window-shell">
       <main className="app-shell">
         <aside className="sidebar" aria-label="主导航">
-          <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: '1px', marginBottom: '24px' }}>
-            <svg width="17" height="24" viewBox="20 8 60 84" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, transform: 'translateY(-1px)' }}>
+          <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: '0px', marginBottom: '24px' }}>
+            <svg width="24" height="24" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, transform: 'translateY(-1px)' }}>
               <defs>
                 <linearGradient id="purple-pink-grad" x1="0%" y1="100%" x2="100%" y2="0%">
                   <stop offset="0%" stopColor="#7c3aed" />
@@ -542,17 +542,17 @@ export default function App() {
               </defs>
               {/* Path 1: Purple/Pink ribbon (outer bottom loop -> center waist -> inner top loop) */}
               <path
-                d="M 42 58 C 30 64, 24 74, 28 82 C 32 90, 46 90, 54 80 C 62 70, 54 50, 46 38 C 38 26, 42 16, 52 16 C 62 16, 68 24, 64 32"
+                d="M 37 58 C 18 64, 8 74, 15 82 C 21 90, 44 90, 56 80 C 69 70, 56 50, 44 38 C 31 26, 37 16, 53 16 C 69 16, 79 24, 73 32"
                 stroke="url(#purple-pink-grad)"
-                strokeWidth="9.5"
+                strokeWidth="15"
                 strokeLinecap="round"
                 fill="none"
               />
               {/* Path 2: Pink/Blue ribbon (inner bottom loop -> center waist -> outer top loop) */}
               <path
-                d="M 58 42 C 70 36, 76 26, 72 18 C 68 10, 54 10, 46 20 C 38 30, 46 50, 54 62 C 62 74, 58 84, 48 84 C 38 84, 32 76, 36 68"
+                d="M 63 42 C 82 36, 92 26, 85 18 C 79 10, 56 10, 44 20 C 31 30, 44 50, 56 62 C 69 74, 63 84, 47 84 C 31 84, 21 76, 27 68"
                 stroke="url(#pink-blue-grad)"
-                strokeWidth="9.5"
+                strokeWidth="15"
                 strokeLinecap="round"
                 fill="none"
               />
