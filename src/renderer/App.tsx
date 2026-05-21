@@ -533,9 +533,10 @@ export default function App() {
       <main className="app-shell">
         <aside className="sidebar" aria-label="主导航">
           <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: '0px', marginBottom: '24px' }}>
-            <img src={logoUrl} alt="Logo" width="32" height="32" style={{ flexShrink: 0, transform: 'translateY(4px)' }} />
-            <span style={{ fontSize: '20px', fontWeight: '850', color: 'var(--text-primary)', letterSpacing: '-0.8px', marginLeft: '0px' }}>
-              napSay
+            <img src={logoUrl} alt="Logo" width="32" height="32" style={{ flexShrink: 0, transform: 'translateY(2.5px)' }} />
+            <span style={{ fontSize: '20px', fontWeight: '700', letterSpacing: '-0.5px', marginLeft: '4px', fontFamily: 'Inter, system-ui, sans-serif' }}>
+              <span style={{ color: 'var(--text-primary)' }}>nap</span>
+              <span style={{ color: 'var(--accent)' }}>Say</span>
             </span>
           </div>
           <NavButton active={view === 'dashboard'} icon={<Home size={18} />} label="主页" onClick={() => setView('dashboard')} />
