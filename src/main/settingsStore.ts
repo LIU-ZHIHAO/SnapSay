@@ -68,6 +68,7 @@ export type AppSettings = {
     pythonPath: string;
     outputMode: string;
     dataDir: string;
+    microphoneDeviceId: string;
     shortPressAction: string;
     longPressAction: string;
     smartMouseMode: boolean;
@@ -158,6 +159,7 @@ export const defaultSettings: AppSettings = {
     pythonPath: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
     outputMode: '粘贴到当前光标',
     dataDir: 'D:\\Antigravity\\tailkall\\data',
+    microphoneDeviceId: '',
     shortPressAction: '语音输入',
     longPressAction: '语音助手',
     smartMouseMode: true,

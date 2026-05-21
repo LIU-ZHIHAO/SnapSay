@@ -43,6 +43,7 @@ type RendererSettings = {
   prompt: string;
   outputMode: string;
   dataDir: string;
+  microphoneDeviceId: string;
   shortPressAction: string;
   longPressAction: string;
   smartMouseMode: boolean;
@@ -263,6 +264,7 @@ function toRendererSettings(): RendererSettings {
     prompt: settings?.cleanup.prompt ?? DEFAULT_CLEANUP_PROMPT,
     outputMode: settings?.input.outputMode ?? '粘贴到当前光标',
     dataDir: settings?.input.dataDir ?? defaultDataRoot(),
+    microphoneDeviceId: settings?.input.microphoneDeviceId ?? '',
     shortPressAction: settings?.input.shortPressAction ?? '语音输入',
     longPressAction: settings?.input.longPressAction ?? '语音助手',
     smartMouseMode: settings?.input.smartMouseMode ?? true,
@@ -340,6 +342,7 @@ function installIpcHandlers(): void {
         pythonPath: settings.pythonPath,
         outputMode: settings.outputMode,
         dataDir: settings.dataDir,
+        microphoneDeviceId: settings.microphoneDeviceId || '',
         shortPressAction: settings.shortPressAction,
         longPressAction: settings.longPressAction,
         smartMouseMode: true,

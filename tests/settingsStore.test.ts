@@ -17,6 +17,7 @@ describe('settingsStore', () => {
       expect.arrayContaining(['openai', 'deepseek', 'openrouter', 'custom-openai'])
     );
     expect(store.getSettings().input.activeAsrProfileId).toBe('local-sensevoice');
+    expect(store.getSettings().input.microphoneDeviceId).toBe('');
     expect(store.getSettings().input.asrProfiles.map((profile) => profile.kind)).toEqual(
       expect.arrayContaining(['local', 'cloud-upload', 'cloud-streaming'])
     );
@@ -54,6 +55,7 @@ describe('settingsStore', () => {
         shortPressAction: '语音输入',
         longPressAction: '语音助手',
         smartMouseMode: true,
+        microphoneDeviceId: 'mic-2',
         wordbook: []
       }
     });
@@ -65,6 +67,7 @@ describe('settingsStore', () => {
     expect(store.getSettings().input.recordMode).toBe('点击开始/停止');
     expect(store.getSettings().input.asr).toBe('faster-whisper');
     expect(store.getSettings().input.asrAcceleration).toBe('GPU 优先');
+    expect(store.getSettings().input.microphoneDeviceId).toBe('mic-2');
     expect(store.getSettings().input.outputMode).toBe('仅保存记录');
   });
 

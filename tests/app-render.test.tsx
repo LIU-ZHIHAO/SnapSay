@@ -1,11 +1,51 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/renderer/App';
 import { DEFAULT_CLEANUP_PROMPT } from '../src/shared/cleanupPolicy';
 
+function demoDashboardSettings() {
+  return {
+    triggerKey: 'Ctrl + Alt + Space',
+    recordMode: '按住说话',
+    asr: 'whisper.cpp',
+    asrAcceleration: 'GPU 优先',
+    localModelDir: 'D:\\Antigravity\\tailkall\\models',
+    localAsrExePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\Release\\whisper-cli.exe',
+    localAsrModelPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin',
+    ffmpegPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ffmpeg.exe',
+    fasterWhisperModelPath: 'D:\\Antigravity\\tailkall\\models\\faster-whisper\\small',
+    senseVoiceModelPath: 'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
+    pythonPath: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
+    cleanupEnabled: false,
+    provider: 'OpenAI Compatible',
+    baseURL: 'https://api.example.com/v1',
+    model: 'gpt-4.1-mini',
+    apiKey: 'demo-api-key',
+    llmProviders: [],
+    activeLlmProviderKey: 'deepseek',
+    prompt: DEFAULT_CLEANUP_PROMPT,
+    outputMode: '粘贴到当前光标',
+    dataDir: 'D:\\Antigravity\\tailkall\\data',
+    shortPressAction: '语音输入',
+    longPressAction: '语音助手',
+    smartMouseMode: true,
+    mouseTrigger: 'Mouse Middle',
+    microphoneDeviceId: '',
+    wordbook: [],
+    cloudAsrType: 'openai-whisper',
+    cloudAsrBaseUrl: '',
+    cloudAsrApiKey: '',
+    cloudAsrModel: 'whisper-1',
+    asrProfiles: [],
+    activeAsrProfileId: 'local-whisper-cpp'
+  };
+}
+
 describe('TailKall main renderer', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    delete (navigator as { mediaDevices?: MediaDevices }).mediaDevices;
     delete window.tailkall;
   });
 
@@ -22,23 +62,58 @@ describe('TailKall main renderer', () => {
     expect(screen.getByRole('button', { name: '模型' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '设置' })).toBeInTheDocument();
     expect(screen.queryByLabelText('切换主题')).not.toBeInTheDocument();
-    expect(screen.getByText('当前触发键')).toBeInTheDocument();
+    expect(screen.getByText('触发键')).toBeInTheDocument();
     expect(screen.getByText('Ctrl + Alt + Space')).toBeInTheDocument();
     expect(screen.getByText('ASR')).toBeInTheDocument();
     expect(screen.getByText('whisper.cpp')).toBeInTheDocument();
-    expect(screen.getByText('文案整理 API')).toBeInTheDocument();
-    expect(screen.getByText('OpenAI Compatible / gpt-4.1-mini')).toBeInTheDocument();
+    expect(screen.getByText('整理模型')).toBeInTheDocument();
+    expect(screen.getByText('GPT-4.1')).toBeInTheDocument();
 
-    expect(screen.getByText('总录音时长')).toBeInTheDocument();
+    expect(screen.getByText('时长')).toBeInTheDocument();
     expect(screen.getByText('8秒')).toBeInTheDocument();
-    expect(screen.getByText('总录音字数')).toBeInTheDocument();
+    expect(screen.getByText('字数')).toBeInTheDocument();
     expect(screen.getByText('77 字')).toBeInTheDocument();
-    expect(screen.getByText('平均语速')).toBeInTheDocument();
+    expect(screen.getByText('语速')).toBeInTheDocument();
     expect(screen.getByText('563 字/分钟')).toBeInTheDocument();
 
     const recent = screen.getByRole('region', { name: '最近记录' });
     expect(within(recent).getByText('2026/05/19 09:18')).toBeInTheDocument();
     expect(within(recent).getByText('会议结论：优化登录体验与首屏性能，排查快捷键冲突。负责人分别跟进，下次例会同步结果。')).toBeInTheDocument();
+  });
+
+  it('renders a compact dashboard summary with shortened ASR and model labels', async () => {
+    window.tailkall = {
+      getDashboard: async () => ({
+        settings: {
+          ...demoDashboardSettings(),
+          asr: 'SenseVoice / FunASR',
+          provider: '火山方舟',
+          model: 'deepseek-v3-2-251201'
+        },
+        records: [
+          {
+            id: 'rec-compact',
+            time: '2026/05/21 09:18',
+            original: '这是一段需要统计字数的测试文本',
+            refined: '这是一段需要统计字数的测试文本',
+            status: '已输入',
+            durationMs: 9200
+          }
+        ]
+      })
+    };
+
+    render(<App />);
+
+    const overview = await screen.findByRole('region', { name: '主页概览' });
+    expect(within(overview).getByText('SenseVoice')).toBeInTheDocument();
+    expect(within(overview).getByText('DeepSeek V3')).toBeInTheDocument();
+    expect(within(overview).queryByText(/火山方舟/)).not.toBeInTheDocument();
+    expect(within(overview).queryByText(/251201/)).not.toBeInTheDocument();
+    expect(within(overview).getByText('9秒')).toBeInTheDocument();
+    expect(within(overview).getByText('15 字')).toBeInTheDocument();
+    expect(within(overview).getByText('98 字/分钟')).toBeInTheDocument();
+    expect(within(overview).getAllByText('默认整理').length).toBeGreaterThan(0);
   });
 
   it('switches to settings and shows shortcut and behavior config', () => {
@@ -56,6 +131,94 @@ describe('TailKall main renderer', () => {
     expect(screen.getByRole('radiogroup', { name: '界面风格' })).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: '浅色' })).toHaveAttribute('aria-checked', 'true');
     expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
+  });
+
+  it('lists microphones in settings and saves the selected device', async () => {
+    const saveSettings = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: {
+        enumerateDevices: vi.fn().mockResolvedValue([
+          { kind: 'audioinput', deviceId: 'mic-1', label: '笔记本麦克风' },
+          { kind: 'audioinput', deviceId: 'mic-2', label: 'USB 麦克风' },
+          { kind: 'videoinput', deviceId: 'camera-1', label: 'Camera' }
+        ])
+      }
+    });
+    window.tailkall = { saveSettings };
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: '设置' }));
+
+    const microphoneSelect = await screen.findByRole('button', { name: '麦克风' });
+    expect(microphoneSelect).toHaveTextContent('系统默认麦克风');
+
+    fireEvent.click(microphoneSelect);
+    expect(screen.getByRole('button', { name: '笔记本麦克风' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'USB 麦克风' }));
+
+    await waitFor(() => {
+      expect(saveSettings).toHaveBeenCalledWith(expect.objectContaining({ microphoneDeviceId: 'mic-2' }));
+    });
+  });
+
+  it('records with the selected microphone device id', async () => {
+    let startRecording: (() => void) | undefined;
+    let stopRecording: (() => void) | undefined;
+    const getUserMedia = vi.fn().mockResolvedValue({
+      getTracks: () => [{ stop: vi.fn() }]
+    });
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: {
+        enumerateDevices: vi.fn().mockResolvedValue([
+          { kind: 'audioinput', deviceId: 'mic-2', label: 'USB 麦克风' }
+        ]),
+        getUserMedia
+      }
+    });
+    class FakeMediaRecorder {
+      mimeType = 'audio/webm';
+      ondataavailable: ((event: { data: Blob }) => void) | null = null;
+      onstop: (() => void) | null = null;
+      constructor(public stream: unknown) {}
+      start() {
+        this.ondataavailable?.({ data: new Blob(['audio']) });
+      }
+      stop() {
+        this.onstop?.();
+      }
+    }
+    vi.stubGlobal('MediaRecorder', FakeMediaRecorder);
+    const getDashboard = vi.fn().mockResolvedValue({
+      settings: {
+        ...demoDashboardSettings(),
+        microphoneDeviceId: 'mic-2'
+      },
+      records: []
+    });
+    window.tailkall = {
+      getDashboard,
+      onRecordingStart: (callback) => {
+        startRecording = callback;
+        return () => undefined;
+      },
+      onRecordingStop: (callback) => {
+        stopRecording = callback;
+        return () => undefined;
+      },
+      submitRecording: vi.fn().mockResolvedValue({ ok: true })
+    };
+
+    render(<App />);
+    await waitFor(() => expect(startRecording).toBeDefined());
+    await waitFor(() => expect(getDashboard).toHaveBeenCalled());
+
+    startRecording?.();
+    await waitFor(() => {
+      expect(getUserMedia).toHaveBeenCalledWith({ audio: { deviceId: { exact: 'mic-2' } } });
+    });
+    stopRecording?.();
   });
 
   it('switches to models and shows ASR and LLM configuration', () => {
@@ -340,6 +503,7 @@ describe('TailKall main renderer', () => {
           prompt: DEFAULT_CLEANUP_PROMPT,
           outputMode: '粘贴到当前光标',
           dataDir: 'D:\\Antigravity\\tailkall\\data',
+          microphoneDeviceId: '',
           shortPressAction: '语音输入',
           longPressAction: '语音助手',
           smartMouseMode: true,
@@ -379,11 +543,11 @@ describe('TailKall main renderer', () => {
     const failedStatuses = await screen.findAllByText('失败');
     expect(failedStatuses).toHaveLength(2);
 
-    expect(screen.getByText('总录音时长')).toBeInTheDocument();
+    expect(screen.getByText('时长')).toBeInTheDocument();
     expect(screen.getByText('0秒')).toBeInTheDocument();
-    expect(screen.getByText('总录音字数')).toBeInTheDocument();
+    expect(screen.getByText('字数')).toBeInTheDocument();
     expect(screen.getByText('0 字')).toBeInTheDocument();
-    expect(screen.getByText('平均语速')).toBeInTheDocument();
+    expect(screen.getByText('语速')).toBeInTheDocument();
     expect(screen.getByText('0 字/分钟')).toBeInTheDocument();
 
     expect(screen.queryByRole('button', { name: '显示诊断日志' })).not.toBeInTheDocument();
@@ -440,6 +604,7 @@ describe('TailKall main renderer', () => {
           prompt: DEFAULT_CLEANUP_PROMPT,
           outputMode: '粘贴到当前光标',
           dataDir: 'D:\\Antigravity\\tailkall\\data',
+          microphoneDeviceId: '',
           shortPressAction: '语音输入',
           longPressAction: '语音助手',
           smartMouseMode: true,

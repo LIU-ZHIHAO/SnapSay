@@ -19,8 +19,6 @@ import {
   Check,
   ChevronDown,
   Bug,
-  Clock,
-  FileText
 } from 'lucide-react';
 import ModelsView from './ModelsView';
 import StylesView from './StylesView';
@@ -193,6 +191,11 @@ type RecordItem = {
   error?: string;
 };
 
+type MicrophoneDevice = {
+  deviceId: string;
+  label: string;
+};
+
 type SettingsState = {
   triggerKey: string;
   recordMode: string;
@@ -215,6 +218,7 @@ type SettingsState = {
   prompt: string;
   outputMode: string;
   dataDir: string;
+  microphoneDeviceId: string;
   shortPressAction: string;
   longPressAction: string;
   smartMouseMode: boolean;
@@ -293,6 +297,7 @@ const demoSettings: SettingsState = {
   prompt: DEFAULT_CLEANUP_PROMPT,
   outputMode: '粘贴到当前光标',
   dataDir: 'D:\\Antigravity\\tailkall\\data',
+  microphoneDeviceId: '',
   shortPressAction: '语音输入',
   longPressAction: '语音助手',
   smartMouseMode: true,
@@ -359,6 +364,7 @@ export default function App() {
   const [view, setView] = useState<View>('dashboard');
   const [settings, setSettings] = useState<SettingsState>(demoSettings);
   const [records, setRecords] = useState<RecordItem[]>(demoRecords);
+  const [microphoneDevices, setMicrophoneDevices] = useState<MicrophoneDevice[]>([]);
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [testStatus, setTestStatus] = useState('未测试');
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
@@ -400,6 +406,33 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    let disposed = false;
+    const enumerateMicrophones = async () => {
+      try {
+        const devices = await navigator.mediaDevices?.enumerateDevices?.();
+        if (!devices || disposed) {
+          return;
+        }
+        const microphones = devices
+          .filter((device) => device.kind === 'audioinput')
+          .map((device, index) => ({
+            deviceId: device.deviceId,
+            label: device.label || `麦克风 ${index + 1}`
+          }));
+        setMicrophoneDevices(microphones);
+      } catch {
+        if (!disposed) {
+          setMicrophoneDevices([]);
+        }
+      }
+    };
+    void enumerateMicrophones();
+    return () => {
+      disposed = true;
+    };
+  }, []);
+
+  useEffect(() => {
     const facade = getFacade();
     const offStart = facade.onRecordingStart?.(() => {
       void startBrowserRecording();
@@ -411,10 +444,13 @@ export default function App() {
       offStart?.();
       offStop?.();
     };
-  }, [mediaRecorder]);
+  }, [mediaRecorder, settings.microphoneDeviceId]);
 
   const startBrowserRecording = async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const audioConstraint = settings.microphoneDeviceId
+      ? { deviceId: { exact: settings.microphoneDeviceId } }
+      : true;
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraint });
     const chunks: BlobPart[] = [];
     const recorder = new MediaRecorder(stream);
     const startedAt = Date.now();
@@ -568,6 +604,7 @@ export default function App() {
               <SettingsView
                 appearance={appearance}
                 settings={settings}
+                microphoneDevices={microphoneDevices}
                 records={records}
                 onClearDiagnosticLogs={clearDiagnosticLogs}
                 onAppearanceChange={setAppearance}
@@ -699,84 +736,87 @@ function Dashboard(props: {
 
   const charsStr = `${totalChars.toLocaleString()} 字`;
   const speechRateStr = `${avgSpeechRate} 字/分钟`;
+  const activePreset = allPresets.find((preset) => preset.id === activeId) ?? allPresets[0];
 
   return (
     <div className="view-stack dashboard-view">
       <h1>主页</h1>
-      <div className="metric-grid">
-        <Metric icon={<Keyboard />} label="当前触发键" value={props.settings.triggerKey} />
-        <Metric icon={<Mic />} label="ASR" value={props.settings.asr} />
-        <Metric icon={<PlugZap />} label="文案整理 API" value={`${props.settings.provider} / ${props.settings.model}`} />
-      </div>
-
-      <div className="stats-grid">
-        <StatCard icon={<Clock />} label="总录音时长" value={durationStr} />
-        <StatCard icon={<FileText />} label="总录音字数" value={charsStr} />
-        <StatCard icon={<Gauge />} label="平均语速" value={speechRateStr} />
-      </div>
-
-      <div className="style-preset-panel">
-        <div className="style-preset-title">
-          <div className="style-preset-icon">
-            <Sparkles size={16} />
-          </div>
-          <div className="style-preset-text">
-            <h3>AI 整理风格预设</h3>
-            <p>选择最契合您输入内容的大模型语气和逻辑结构</p>
-          </div>
+      <section aria-label="主页概览" className="dashboard-overview">
+        <div className="overview-primary">
+          <CompactMetric icon={<Keyboard size={15} />} label="触发键" value={props.settings.triggerKey} />
+          <CompactMetric icon={<Mic size={15} />} label="ASR" value={shortenAsrLabel(props.settings.asr)} title={props.settings.asr} />
+          <CompactMetric
+            icon={<PlugZap size={15} />}
+            label="整理模型"
+            value={shortenModelLabel(props.settings.model)}
+            title={`${props.settings.provider} / ${props.settings.model}`}
+          />
         </div>
-        <div className="style-preset-options">
-          {mainPresets.map((preset) => (
-            <button
-              key={preset.id}
-              className={`style-preset-btn ${multiPrompt.activeStyle === preset.id ? 'active' : ''}`}
-              onClick={() => handleStyleChange(preset.id)}
-              type="button"
-            >
-              {preset.id === 'default' ? <MessageSquareText size={14} /> :
-               preset.id === 'engineer' ? <Cpu size={14} /> :
-               preset.id === 'charm' ? <Smile size={14} /> :
-               <Sparkles size={14} />}
-              {preset.name}
-            </button>
-          ))}
-
-          {morePresets.length > 0 && (
-            <div className="style-preset-more-container" style={{ position: 'relative', display: 'inline-block' }}>
+        <div aria-label="录音统计" className="overview-stats">
+          <OverviewStat label="时长" value={durationStr} />
+          <OverviewStat label="字数" value={charsStr} />
+          <OverviewStat label="语速" value={speechRateStr} />
+        </div>
+        <div className="overview-style">
+          <div className="overview-style-current" title={activePreset?.name}>
+            <Sparkles size={14} />
+            <span>风格</span>
+            <strong>{activePreset?.name ?? '默认整理'}</strong>
+          </div>
+          <div className="style-preset-options compact">
+            {mainPresets.map((preset) => (
               <button
-                className={`style-preset-btn ${isMoreOpen ? 'active' : ''}`}
-                onClick={() => setIsMoreOpen(!isMoreOpen)}
+                key={preset.id}
+                className={`style-preset-btn ${multiPrompt.activeStyle === preset.id ? 'active' : ''}`}
+                onClick={() => handleStyleChange(preset.id)}
                 type="button"
-                style={{ paddingRight: '8px' }}
-                aria-label="更多整理风格"
+                title={preset.name}
               >
-                <Sparkles size={14} />
-                更多风格
-                <ChevronDown size={12} style={{ transition: 'transform 0.2s', transform: isMoreOpen ? 'rotate(180deg)' : 'none' }} />
+                {preset.id === 'default' ? <MessageSquareText size={14} /> :
+                 preset.id === 'engineer' ? <Cpu size={14} /> :
+                 preset.id === 'charm' ? <Smile size={14} /> :
+                 <Sparkles size={14} />}
+                {preset.name}
               </button>
+            ))}
 
-              {isMoreOpen && (
-                <div className="style-preset-dropdown">
-                  {morePresets.map((preset) => (
-                    <button
-                      key={preset.id}
-                      className="style-preset-dropdown-item"
-                      onClick={() => handleStyleChange(preset.id)}
-                      type="button"
-                    >
-                      {preset.id === 'default' ? <MessageSquareText size={13} /> :
-                       preset.id === 'engineer' ? <Cpu size={13} /> :
-                       preset.id === 'charm' ? <Smile size={13} /> :
-                       <Sparkles size={13} />}
-                      <span style={{ flexGrow: 1, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{preset.name}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+            {morePresets.length > 0 && (
+              <div className="style-preset-more-container" style={{ position: 'relative', display: 'inline-block' }}>
+                <button
+                  className={`style-preset-btn ${isMoreOpen ? 'active' : ''}`}
+                  onClick={() => setIsMoreOpen(!isMoreOpen)}
+                  type="button"
+                  style={{ paddingRight: '8px' }}
+                  aria-label="更多整理风格"
+                >
+                  <Sparkles size={14} />
+                  更多
+                  <ChevronDown size={12} style={{ transition: 'transform 0.2s', transform: isMoreOpen ? 'rotate(180deg)' : 'none' }} />
+                </button>
+
+                {isMoreOpen && (
+                  <div className="style-preset-dropdown">
+                    {morePresets.map((preset) => (
+                      <button
+                        key={preset.id}
+                        className="style-preset-dropdown-item"
+                        onClick={() => handleStyleChange(preset.id)}
+                        type="button"
+                      >
+                        {preset.id === 'default' ? <MessageSquareText size={13} /> :
+                         preset.id === 'engineer' ? <Cpu size={13} /> :
+                         preset.id === 'charm' ? <Smile size={13} /> :
+                         <Sparkles size={13} />}
+                        <span style={{ flexGrow: 1, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{preset.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </section>
 
       <section className="panel dashboard-panel" aria-label="最近记录">
         <div className="panel-header">
@@ -796,28 +836,50 @@ function Dashboard(props: {
   );
 }
 
-function Metric({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+function CompactMetric({ icon, label, value, title }: { icon: ReactNode; label: string; value: string; title?: string }) {
   return (
-    <div className="metric">
-      <div className="metric-icon">{icon}</div>
-      <div>
-        <div className="metric-label">{label}</div>
-        <div className="metric-value">{value}</div>
+    <div className="compact-metric" title={title ?? value}>
+      <div className="compact-metric-icon">{icon}</div>
+      <div className="compact-metric-text">
+        <span>{label}</span>
+        <strong>{value}</strong>
       </div>
     </div>
   );
 }
 
-function StatCard({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+function OverviewStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="stat-card">
-      <div className="stat-card-icon">{icon}</div>
-      <div>
-        <div className="stat-card-label">{label}</div>
-        <div className="stat-card-value" title={value}>{value}</div>
-      </div>
+    <div className="overview-stat" title={`${label} ${value}`}>
+      <span>{label}</span>
+      <strong>{value}</strong>
     </div>
   );
+}
+
+function shortenAsrLabel(value: string): string {
+  const label = value.trim();
+  if (/sensevoice/i.test(label)) return 'SenseVoice';
+  if (/faster[-\s]?whisper/i.test(label)) return 'faster-whisper';
+  if (/whisper\.cpp/i.test(label)) return 'whisper.cpp';
+  if (/whisper/i.test(label)) return 'Whisper';
+  if (/cloud|云端|api/i.test(label)) return '云端 ASR';
+  return label.replace(/^本地\s*/i, '').split(/[\/｜|]/)[0]?.trim() || label;
+}
+
+function shortenModelLabel(value: string): string {
+  const model = value.trim();
+  const normalized = model.toLowerCase();
+  if (normalized.includes('deepseek') && /v3/i.test(model)) return 'DeepSeek V3';
+  if (normalized.includes('deepseek') && /r1/i.test(model)) return 'DeepSeek R1';
+  const gpt = /^gpt[-_]?([0-9]+(?:\.[0-9]+)?)/i.exec(model);
+  if (gpt) return `GPT-${gpt[1]}`;
+  const qwen = /^qwen[-_]?([0-9]+(?:\.[0-9]+)?)/i.exec(model);
+  if (qwen) return `Qwen ${qwen[1]}`;
+  return model
+    .replace(/[-_](?:\d{6,}|\d{4}-\d{2}-\d{2}).*$/i, '')
+    .replace(/[-_](?:preview|latest|instruct|chat|pro|mini)$/i, '')
+    .trim();
 }
 
 /* ─── Full card list ──────────────────────────────────────────────────── */
@@ -1204,6 +1266,7 @@ function WordbookEntryRow({
 function SettingsView(props: {
   appearance: Appearance;
   settings: SettingsState;
+  microphoneDevices: MicrophoneDevice[];
   records: RecordItem[];
   onClearDiagnosticLogs: () => void;
   onAppearanceChange: (appearance: Appearance) => void;
@@ -1228,6 +1291,16 @@ function SettingsView(props: {
   const [newVariants, setNewVariants] = useState('');
   const [isCapturing, setIsCapturing] = useState(false);
   const [captureDisplay, setCaptureDisplay] = useState('请按下快捷键组合...');
+  const microphoneOptions = [
+    { value: '', label: '系统默认麦克风' },
+    ...props.microphoneDevices.map((device) => ({ value: device.deviceId, label: device.label }))
+  ];
+  if (
+    settings.microphoneDeviceId &&
+    !microphoneOptions.some((option) => option.value === settings.microphoneDeviceId)
+  ) {
+    microphoneOptions.push({ value: settings.microphoneDeviceId, label: '已保存的麦克风' });
+  }
 
   useEffect(() => {
     if (!isCapturing) return;
@@ -1457,6 +1530,15 @@ function SettingsView(props: {
       <section className="panel settings-card">
         <h2>输出与数据</h2>
         <div className="form-grid">
+          <label>
+            麦克风
+            <CustomSelect
+              ariaLabel="麦克风"
+              onChange={(val) => onUpdate('microphoneDeviceId', val)}
+              options={microphoneOptions}
+              value={settings.microphoneDeviceId}
+            />
+          </label>
           <label>
             输出模式
             <CustomSelect

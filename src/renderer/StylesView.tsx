@@ -38,6 +38,7 @@ type SettingsState = {
   prompt: string;
   outputMode: string;
   dataDir: string;
+  microphoneDeviceId: string;
   shortPressAction: string;
   longPressAction: string;
   smartMouseMode: boolean;
