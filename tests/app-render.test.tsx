@@ -62,12 +62,10 @@ describe('TailKall main renderer', () => {
     expect(screen.getByRole('button', { name: '模型' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '设置' })).toBeInTheDocument();
     expect(screen.queryByLabelText('切换主题')).not.toBeInTheDocument();
-    expect(screen.getByText('触发键')).toBeInTheDocument();
     expect(screen.getByText('Ctrl + Alt + Space')).toBeInTheDocument();
-    expect(screen.getByText('语音模型')).toBeInTheDocument();
     expect(screen.getByText('whisper.cpp')).toBeInTheDocument();
-    expect(screen.getByText('整理模型')).toBeInTheDocument();
     expect(screen.getByText('GPT-4.1')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '修饰模板' })).toBeInTheDocument();
 
     expect(screen.getByText('时长')).toBeInTheDocument();
     expect(screen.getByText('8秒')).toBeInTheDocument();
@@ -75,6 +73,8 @@ describe('TailKall main renderer', () => {
     expect(screen.getByText('77 字')).toBeInTheDocument();
     expect(screen.getByText('语速')).toBeInTheDocument();
     expect(screen.getByText('563 字/分钟')).toBeInTheDocument();
+    expect(screen.getByText('当前风格')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /当前风格/ })).toHaveTextContent('默认整理');
 
     const recent = screen.getByRole('region', { name: '最近记录' });
     expect(within(recent).getByText('2026/05/19 09:18')).toBeInTheDocument();
@@ -113,7 +113,7 @@ describe('TailKall main renderer', () => {
     expect(within(overview).getByText('9秒')).toBeInTheDocument();
     expect(within(overview).getByText('15 字')).toBeInTheDocument();
     expect(within(overview).getByText('98 字/分钟')).toBeInTheDocument();
-    expect(within(overview).getAllByText('默认整理').length).toBeGreaterThan(0);
+    expect(within(overview).getByRole('button', { name: /当前风格/ })).toHaveTextContent('默认整理');
   });
 
   it('switches to settings and shows shortcut and behavior config', () => {
@@ -180,6 +180,29 @@ describe('TailKall main renderer', () => {
     await waitFor(() => {
       expect(saveSettings).toHaveBeenCalledWith(expect.objectContaining({ microphoneDeviceId: 'mic-2' }));
     });
+  });
+
+  it('deduplicates browser aliases for the same microphone', async () => {
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: {
+        enumerateDevices: vi.fn().mockResolvedValue([
+          { kind: 'audioinput', deviceId: 'default', groupId: 'array-1', label: 'Default - 麦克风阵列 (Senary Audio)' },
+          { kind: 'audioinput', deviceId: 'communications', groupId: 'array-1', label: 'Communications - 麦克风阵列 (Senary Audio)' },
+          { kind: 'audioinput', deviceId: 'mic-array', groupId: 'array-1', label: '麦克风阵列 (Senary Audio)' },
+          { kind: 'audioinput', deviceId: 'virtual-mic', groupId: 'virtual-1', label: '麦克风阵列 (网易虚拟音频设备)' }
+        ])
+      }
+    });
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: '设置' }));
+    fireEvent.click(await screen.findByRole('button', { name: '麦克风' }));
+
+    expect(screen.queryByRole('button', { name: /Default -/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Communications -/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '麦克风阵列 (Senary Audio)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '麦克风阵列 (网易虚拟音频设备)' })).toBeInTheDocument();
   });
 
   it('records with the selected microphone device id', async () => {
@@ -448,7 +471,7 @@ describe('TailKall main renderer', () => {
     expect(screen.getAllByText(/你是一个中文语音输入整理器/).length).toBeGreaterThan(0);
   });
 
-  it('limits preset display to 5 on dashboard and shows the rest in a dropdown menu', () => {
+  it('switches the dashboard style from the current-style dropdown', () => {
     // 构造一个包含 6 个预设的 settings.prompt 序列化值
     const customPromptData = {
       activeStyle: 'default',
@@ -491,37 +514,16 @@ describe('TailKall main renderer', () => {
     // 回到主页
     fireEvent.click(screen.getByRole('button', { name: '主页' }));
 
-    // 检查主排显示的风格只有 5 个（即 默认整理、理智工科、高情商夸夸、风格4、风格6。因为风格6是新加的且被自动设为激活，故必在主排）
-    expect(screen.getByRole('button', { name: '默认整理' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '理智工科' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '高情商夸夸' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '风格4' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '风格6' })).toBeInTheDocument();
+    const styleSelect = screen.getByRole('button', { name: /当前风格/ });
+    expect(styleSelect).toHaveTextContent('风格6');
+    expect(screen.queryByRole('button', { name: '默认整理' })).not.toBeInTheDocument();
 
-    // 风格5 没有被激活且超出 5 个，因此它不应该在主排显示
-    expect(screen.queryByRole('button', { name: '风格5' })).not.toBeInTheDocument();
-
-    // 应该显示“更多风格”按钮
-    const moreBtn = screen.getByRole('button', { name: '更多整理风格' });
-    expect(moreBtn).toBeInTheDocument();
-
-    // 点击“更多风格”按钮弹出下拉菜单
-    fireEvent.click(moreBtn);
-
-    // 下拉菜单中应该能找到被挤出的“风格5”
+    fireEvent.click(styleSelect);
     expect(screen.getByRole('button', { name: '风格5' })).toBeInTheDocument();
 
-    // 点击“风格5”使其生效
     fireEvent.click(screen.getByRole('button', { name: '风格5' }));
 
-    // 此时“风格5”成为生效风格，根据重新排列逻辑，主排应该包含“风格5”（因为它被激活了），而“风格6”会被挤到下拉菜单中！
-    expect(screen.getByRole('button', { name: '风格5' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '风格6' })).not.toBeInTheDocument();
-
-    // 点击“更多风格”按钮
-    fireEvent.click(screen.getByRole('button', { name: '更多整理风格' }));
-    // 下拉菜单中现在应该可以找到“风格6”
-    expect(screen.getByRole('button', { name: '风格6' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /当前风格/ })).toHaveTextContent('风格5');
   });
 
   it('renders diagnostic logs at the bottom of settings for failed records', async () => {

@@ -148,7 +148,7 @@ type Appearance = 'light' | 'dark' | 'pink' | 'green' | 'glass-light';
 const APPEARANCES: { id: Appearance; label: string }[] = [
   { id: 'light', label: '浅色' },
   { id: 'dark', label: '深色' },
-  { id: 'pink', label: '柔粉' },
+  { id: 'pink', label: '油粉' },
   { id: 'green', label: '青绿' },
   { id: 'glass-light', label: '水晶琉璃' }
 ];
@@ -200,6 +200,7 @@ type RecordItem = {
 type MicrophoneDevice = {
   deviceId: string;
   label: string;
+  groupId?: string;
 };
 
 type SettingsState = {
@@ -348,6 +349,45 @@ const demoRecords: RecordItem[] = [
   }
 ];
 
+const MICROPHONE_ALIAS_IDS = new Set(['default', 'communications']);
+
+function cleanMicrophoneLabel(label: string): string {
+  return label
+    .replace(/^\s*(?:Default|Communications)\s*-\s*/i, '')
+    .trim();
+}
+
+function microphoneDedupeKey(device: MicrophoneDevice): string {
+  if (device.groupId) {
+    return `group:${device.groupId}`;
+  }
+  return `label:${cleanMicrophoneLabel(device.label).toLocaleLowerCase()}`;
+}
+
+function dedupeMicrophoneDevices(devices: MicrophoneDevice[]): MicrophoneDevice[] {
+  const byKey = new Map<string, MicrophoneDevice>();
+
+  for (const device of devices) {
+    const label = cleanMicrophoneLabel(device.label) || device.label;
+    const normalized = { ...device, label };
+    const key = microphoneDedupeKey(normalized);
+    const existing = byKey.get(key);
+
+    if (!existing) {
+      byKey.set(key, normalized);
+      continue;
+    }
+
+    const existingIsAlias = MICROPHONE_ALIAS_IDS.has(existing.deviceId);
+    const nextIsAlias = MICROPHONE_ALIAS_IDS.has(normalized.deviceId);
+    if (existingIsAlias && !nextIsAlias) {
+      byKey.set(key, normalized);
+    }
+  }
+
+  return Array.from(byKey.values()).filter((device) => !MICROPHONE_ALIAS_IDS.has(device.deviceId));
+}
+
 function getFacade(): TailKallFacade {
   return window.tailkall ?? {};
 }
@@ -423,9 +463,10 @@ export default function App() {
           .filter((device) => device.kind === 'audioinput')
           .map((device, index) => ({
             deviceId: device.deviceId,
-            label: device.label || `麦克风 ${index + 1}`
+            label: device.label || `麦克风 ${index + 1}`,
+            groupId: device.groupId
           }));
-        setMicrophoneDevices(microphones);
+        setMicrophoneDevices(dedupeMicrophoneDevices(microphones));
       } catch {
         if (!disposed) {
           setMicrophoneDevices([]);
@@ -530,6 +571,12 @@ export default function App() {
 
   return (
     <div className="window-shell">
+      <div className="ambient-bubbles">
+        <div className="bubble bubble-1" />
+        <div className="bubble bubble-2" />
+        <div className="bubble bubble-3" />
+        <div className="bubble bubble-4" />
+      </div>
       <main className="app-shell">
         <aside className="sidebar" aria-label="主导航">
           <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: '0px', marginBottom: '24px' }}>
@@ -553,6 +600,7 @@ export default function App() {
                 settings={settings}
                 editingRecordId={editingRecordId}
                 records={records}
+                onOpenStyles={() => setView('styles')}
                 onClearAll={clearAllRecords}
                 onCopyRefined={(record) => copyText(record.refined)}
                 onCopyOriginal={(record) => copyText(record.original)}
@@ -648,6 +696,7 @@ function Dashboard(props: {
   onUpdateOriginal?: (record: RecordItem, value: string) => void;
   onUpdatePrompt?: (newPrompt: string) => void;
   onUpdateWordbook?: (wordbook: WordbookEntry[]) => void;
+  onOpenStyles?: () => void;
 }) {
   const multiPrompt = parseMultiPrompt(props.settings.prompt);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
@@ -656,7 +705,7 @@ function Dashboard(props: {
     if (!isMoreOpen) return;
     const handleOutsideClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (!target.closest('.style-preset-more-container')) {
+      if (!target.closest('.dashboard-style-switch')) {
         setIsMoreOpen(false);
       }
     };
@@ -675,27 +724,8 @@ function Dashboard(props: {
     setIsMoreOpen(false);
   };
 
-  // Limit presets shown on home screen (max 5 items)
   const allPresets = multiPrompt.presets;
   const activeId = multiPrompt.activeStyle;
-
-  let mainPresets: typeof allPresets = [];
-  let morePresets: typeof allPresets = [];
-
-  if (allPresets.length <= 5) {
-    mainPresets = allPresets;
-  } else {
-    const activeIndex = allPresets.findIndex(p => p.id === activeId);
-    if (activeIndex !== -1 && activeIndex < 5) {
-      mainPresets = allPresets.slice(0, 5);
-      morePresets = allPresets.slice(5);
-    } else {
-      const firstFour = allPresets.slice(0, 4);
-      const activePreset = allPresets.find(p => p.id === activeId) || allPresets[0];
-      mainPresets = [...firstFour, activePreset];
-      morePresets = allPresets.filter(p => !mainPresets.some(mp => mp.id === p.id));
-    }
-  }
 
   // Calculate recording statistics
   const totalDurationMs = props.records.reduce((acc, r) => acc + (r.durationMs || 0), 0);
@@ -722,73 +752,64 @@ function Dashboard(props: {
     <div className="view-stack dashboard-view">
       <h1>主页</h1>
       <section aria-label="主页概览" className="dashboard-overview">
-        <CompactMetric icon={<Keyboard size={15} />} label="触发键" value={props.settings.triggerKey} />
-        <CompactMetric icon={<Mic size={15} />} label="语音模型" value={shortenAsrLabel(props.settings.asr)} title={props.settings.asr} />
-        <CompactMetric
-          icon={<PlugZap size={15} />}
-          label="整理模型"
-          value={shortenModelLabel(props.settings.model)}
-          title={`${props.settings.provider} / ${props.settings.model}`}
-        />
-        <div aria-label="录音统计" className="overview-stats">
-          <OverviewStat icon={<Clock size={13} />} label="时长" value={durationStr} type="duration" />
-          <OverviewStat icon={<FileText size={13} />} label="字数" value={charsStr} type="chars" />
-          <OverviewStat icon={<Gauge size={13} />} label="语速" value={speechRateStr} type="speed" />
-        </div>
-        <div className="overview-style">
-          <div className="overview-style-label" title="风格">
-            <span className="overview-style-icon"><Sparkles size={13} /></span>
-            <span className="overview-style-text-single">风格</span>
+        <div className="dashboard-summary-line">
+          <div className="dashboard-summary-meta">
+            <span title={props.settings.triggerKey}>
+              <Keyboard size={15} />
+              {props.settings.triggerKey}
+            </span>
+            <span title={props.settings.asr}>
+              <Mic size={15} />
+              {shortenAsrLabel(props.settings.asr)}
+            </span>
+            <span title={`${props.settings.provider} / ${props.settings.model}`}>
+              <PlugZap size={15} />
+              {shortenModelLabel(props.settings.model)}
+            </span>
           </div>
-          <div className="style-preset-options compact">
-            {mainPresets.map((preset) => (
-              <button
-                key={preset.id}
-                className={`style-preset-btn ${multiPrompt.activeStyle === preset.id ? 'active' : ''}`}
-                onClick={() => handleStyleChange(preset.id)}
-                type="button"
-                title={preset.name}
-              >
-                {preset.id === 'default' ? <MessageSquareText size={14} /> :
-                 preset.id === 'engineer' ? <Cpu size={14} /> :
-                 preset.id === 'charm' ? <Smile size={14} /> :
-                 <Sparkles size={14} />}
-                {preset.name}
-              </button>
-            ))}
+          <button className="template-manage-btn" onClick={props.onOpenStyles} type="button">
+            <PenLine size={15} />
+            修饰模板
+          </button>
+        </div>
 
-            {morePresets.length > 0 && (
-              <div className="style-preset-more-container" style={{ position: 'relative', display: 'inline-block' }}>
-                <button
-                  className={`style-preset-btn ${isMoreOpen ? 'active' : ''}`}
-                  onClick={() => setIsMoreOpen(!isMoreOpen)}
-                  type="button"
-                  style={{ paddingRight: '8px' }}
-                  aria-label="更多整理风格"
-                >
-                  <Sparkles size={14} />
-                  更多
-                  <ChevronDown size={12} style={{ transition: 'transform 0.2s', transform: isMoreOpen ? 'rotate(180deg)' : 'none' }} />
-                </button>
-
-                {isMoreOpen && (
-                  <div className="style-preset-dropdown">
-                    {morePresets.map((preset) => (
-                      <button
-                        key={preset.id}
-                        className="style-preset-dropdown-item"
-                        onClick={() => handleStyleChange(preset.id)}
-                        type="button"
-                      >
-                        {preset.id === 'default' ? <MessageSquareText size={13} /> :
-                         preset.id === 'engineer' ? <Cpu size={13} /> :
-                         preset.id === 'charm' ? <Smile size={13} /> :
-                         <Sparkles size={13} />}
-                        <span style={{ flexGrow: 1, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{preset.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
+        <div className="dashboard-stat-grid" aria-label="录音统计">
+          <OverviewStat icon={<Clock size={16} />} label="时长" value={durationStr} type="duration" />
+          <OverviewStat icon={<FileText size={16} />} label="字数" value={charsStr} type="chars" />
+          <OverviewStat icon={<Gauge size={16} />} label="语速" value={speechRateStr} type="speed" />
+          <div className="dashboard-style-switch">
+            <button
+              aria-expanded={isMoreOpen}
+              aria-label={`当前风格 ${activePreset.name}`}
+              className="dashboard-style-trigger"
+              onClick={() => setIsMoreOpen((open) => !open)}
+              title="点击切换修饰风格"
+              type="button"
+            >
+              <span className="overview-stat-icon style-icon"><Sparkles size={16} /></span>
+              <span className="dashboard-style-text">
+                <span>当前风格</span>
+                <strong>{activePreset.name}</strong>
+              </span>
+              <ChevronDown size={15} className={isMoreOpen ? 'style-chevron open' : 'style-chevron'} />
+            </button>
+            {isMoreOpen && (
+              <div className="style-preset-dropdown dashboard-style-dropdown">
+                {allPresets.map((preset) => (
+                  <button
+                    key={preset.id}
+                    className={`style-preset-dropdown-item ${preset.id === activeId ? 'selected' : ''}`}
+                    onClick={() => handleStyleChange(preset.id)}
+                    type="button"
+                  >
+                    {preset.id === 'default' ? <MessageSquareText size={13} /> :
+                     preset.id === 'engineer' ? <Cpu size={13} /> :
+                     preset.id === 'charm' ? <Smile size={13} /> :
+                     <Sparkles size={13} />}
+                    <span>{preset.name}</span>
+                    {preset.id === activeId && <Check size={13} />}
+                  </button>
+                ))}
               </div>
             )}
           </div>
@@ -809,18 +830,6 @@ function Dashboard(props: {
         </div>
         <FullRecordList {...props} />
       </section>
-    </div>
-  );
-}
-
-function CompactMetric({ icon, label, value, title }: { icon: ReactNode; label: string; value: string; title?: string }) {
-  return (
-    <div className="compact-metric" title={title ?? value}>
-      <div className="compact-metric-icon">{icon}</div>
-      <div className="compact-metric-text">
-        <span>{label}</span>
-        <strong>{value}</strong>
-      </div>
     </div>
   );
 }

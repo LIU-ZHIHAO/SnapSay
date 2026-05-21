@@ -85,22 +85,24 @@
 }
 
 [data-appearance="pink"] {
-  --bg-base: #faf6f8;
-  --surface-app: #ffffff;
-  --surface-sidebar: #fbf7f9;
-  --surface-panel: #ffffff;
-  --surface-muted: #f6eef3;
-  --surface-hover: #f1e6ee;
-  --surface-pressed: #eadce6;
-  --border-subtle: #eadde6;
-  --border-strong: #ddcbd7;
-  --accent: #c0447d;
-  --accent-strong: #9d2f62;
-  --accent-soft: #f8e8f1;
-  --accent-glow: rgb(192 68 125 / 18%);
-  --text-primary: #211820;
-  --text-secondary: #6a5966;
-  --text-muted: #9a8994;
+  --bg-base: transparent;
+  --surface-app: rgba(255, 255, 255, 0.45);
+  --surface-sidebar: rgba(255, 255, 255, 0.30);
+  --surface-panel: rgba(255, 255, 255, 0.55);
+  --surface-muted: rgba(255, 255, 255, 0.22);
+  --surface-hover: rgba(255, 255, 255, 0.65);
+  --surface-pressed: rgba(255, 255, 255, 0.75);
+  --border-subtle: rgba(255, 255, 255, 0.40);
+  --border-strong: rgba(147, 178, 235, 0.25);
+  --accent: #4f7df2;
+  --accent-strong: #335ecc;
+  --accent-soft: rgba(79, 125, 242, 0.06);
+  --accent-glow: rgba(79, 125, 242, 0.12);
+  --text-primary: #20293a;
+  --text-secondary: #4e5d78;
+  --text-muted: #8fa0bc;
+  --shadow-panel: 0 12px 32px rgba(79, 125, 242, 0.03), 0 4px 12px rgba(0, 0, 0, 0.01);
+  --shadow-soft: 0 6px 20px rgba(0, 0, 0, 0.015);
 }
 
 [data-appearance="green"] {
@@ -424,90 +426,102 @@ h2 svg {
 }
 
 .dashboard-overview {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   align-items: stretch;
-  padding: 12px 14px;
+  padding: 14px 16px;
   background: var(--surface-panel);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-card);
+  border-radius: 16px;
   box-shadow: var(--shadow-soft);
 }
 
-.compact-metric {
-  grid-column: span 2;
+.dashboard-summary-line {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-width: 0;
-  padding: 0 9px;
-  height: 42px; /* 强制像素级等高 */
-  background: var(--surface-muted);
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-}
-
-.compact-metric-icon {
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  width: 26px;
-  height: 26px;
-  color: var(--accent);
-  background: var(--accent-soft);
-  border-radius: 7px;
-}
-
-.compact-metric-text,
-.overview-stat,
-.overview-style-current {
+  justify-content: space-between;
+  gap: 18px;
   min-width: 0;
 }
 
-.compact-metric-text span,
-.overview-stat span,
-.overview-style-current span {
-  display: block;
-  color: var(--text-muted);
-  font-size: 10.5px;
-  font-weight: 700;
-}
-
-.compact-metric-text strong,
-.overview-stat strong,
-.overview-style-current strong {
-  display: block;
-  overflow: hidden;
-  margin-top: 1px;
+.dashboard-summary-meta {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
   color: var(--text-primary);
-  font-size: 12.5px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.dashboard-summary-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  max-width: 220px;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.overview-stats {
-  grid-column: span 3;
-  display: flex;
-  align-items: stretch;
+.dashboard-summary-meta span + span::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  margin: 0 14px 0 6px;
+  background: var(--border-strong);
+  border-radius: 50%;
+}
+
+.dashboard-summary-meta svg {
+  flex: 0 0 auto;
+  color: var(--accent);
+}
+
+.template-manage-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  gap: 7px;
+  min-height: 32px;
+  padding: 0 12px;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  border: 1px solid rgb(18 132 216 / 18%);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.template-manage-btn:hover {
+  background: var(--surface-hover);
+  border-color: rgb(18 132 216 / 30%);
+}
+
+.dashboard-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
   min-width: 0;
-  height: 42px; /* 强制像素级等高 */
-  overflow: hidden;
   background: var(--surface-muted);
   border: 1px solid var(--border-subtle);
-  border-radius: 8px;
+  border-radius: 10px;
 }
 
 .overview-stat {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   grid-template-rows: auto auto;
-  column-gap: 6px;
-  flex: 1 1 0;
+  column-gap: 9px;
   align-items: center;
-  padding: 0 9px; /* 上下 padding 设为 0，依靠 height 居中 */
-  height: 100%;
+  min-width: 0;
+  min-height: 54px;
+  padding: 8px 14px;
   border-right: 1px solid var(--border-subtle);
   transition: background-color 0.2s ease, transform 0.2s ease;
 }
@@ -520,6 +534,26 @@ h2 svg {
   border-right: 0;
 }
 
+.overview-stat span,
+.dashboard-style-text span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.overview-stat strong,
+.dashboard-style-text strong {
+  display: block;
+  overflow: hidden;
+  margin-top: 2px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .overview-stat-icon {
   display: grid !important;
   grid-row: 1 / 3;
@@ -530,6 +564,61 @@ h2 svg {
   border: 1px solid transparent;
   margin-right: 2px;
   transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.dashboard-style-switch {
+  position: relative;
+  min-width: 0;
+}
+
+.dashboard-style-trigger {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 9px;
+  width: 100%;
+  min-height: 54px;
+  padding: 8px 14px;
+  color: var(--text-primary);
+  background: transparent;
+  border: 0;
+  border-radius: 0 10px 10px 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.dashboard-style-trigger:hover {
+  background: var(--surface-hover);
+}
+
+.dashboard-style-text {
+  min-width: 0;
+}
+
+.dashboard-style-trigger .style-icon {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  border-color: rgb(18 132 216 / 18%);
+}
+
+.style-chevron {
+  color: var(--text-muted);
+  transition: transform 140ms ease;
+}
+
+.style-chevron.open {
+  transform: rotate(180deg);
+}
+
+.dashboard-style-dropdown {
+  right: 8px;
+  top: calc(100% + 8px);
+  min-width: 190px;
+}
+
+.style-preset-dropdown-item.selected {
+  color: var(--accent-strong);
+  background: var(--accent-soft);
 }
 
 .overview-stat:hover .overview-stat-icon {
@@ -3017,7 +3106,7 @@ tr:last-child td {
 
 /* 1. Fluid Gradient Blob Background for Window Shell */
 [data-appearance="glass-light"] .window-shell {
-  background: 
+  background:
     radial-gradient(circle at 10% 20%, rgba(255, 230, 235, 0.45) 0%, transparent 40%),
     radial-gradient(circle at 85% 15%, rgba(255, 243, 224, 0.5) 0%, transparent 35%),
     radial-gradient(circle at 50% 85%, rgba(240, 244, 255, 0.5) 0%, transparent 45%),
@@ -3035,7 +3124,7 @@ tr:last-child td {
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: 
+  background-image:
     radial-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 0),
     radial-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 0);
   background-size: 24px 24px;
@@ -3075,8 +3164,8 @@ tr:last-child td {
   -webkit-backdrop-filter: blur(20px) saturate(110%);
   background: rgba(255, 255, 255, 0.58) !important;
   border: 1px solid rgba(255, 255, 255, 0.55) !important;
-  box-shadow: 
-    0 12px 32px rgba(255, 120, 150, 0.03), 
+  box-shadow:
+    0 12px 32px rgba(255, 120, 150, 0.03),
     0 4px 12px rgba(0, 0, 0, 0.01),
     inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
 }
@@ -3103,7 +3192,7 @@ tr:last-child td {
 [data-appearance="glass-light"] .nav-button.active {
   background: rgba(255, 36, 66, 0.08);
   color: var(--accent-strong);
-  box-shadow: 
+  box-shadow:
     0 4px 12px rgba(255, 36, 66, 0.04),
     inset 0 1px 0 rgba(255, 255, 255, 0.25);
   font-weight: 700;
@@ -3140,7 +3229,7 @@ tr:last-child td {
   background: rgba(255, 255, 255, 0.65) !important;
   border-color: rgba(255, 120, 150, 0.4) !important;
   transform: translateY(-1px);
-  box-shadow: 
+  box-shadow:
     0 10px 24px rgba(255, 120, 150, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
 }
@@ -3190,4 +3279,239 @@ tr:last-child td {
   color: var(--accent-strong) !important;
   box-shadow: 0 2px 8px rgba(255, 120, 150, 0.15) !important;
   border: 1px solid rgba(255, 120, 150, 0.15) !important;
+}
+
+/* ==========================================
+   油粉 (Youfen / Bubbles Glass) Glassmorphism Style
+   ========================================== */
+
+/* Ambient 3D Bubbles Styles */
+.ambient-bubbles {
+  display: none;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+[data-appearance="pink"] .ambient-bubbles {
+  display: block;
+}
+
+.bubble {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0.15) 30%, rgba(255, 255, 255, 0) 70%);
+  box-shadow:
+    inset -8px -8px 20px rgba(0, 0, 0, 0.03),
+    inset 8px 8px 20px rgba(255, 255, 255, 0.7),
+    0 10px 24px rgba(0, 0, 0, 0.02);
+  filter: blur(6px);
+  opacity: 0.85;
+}
+
+.bubble-1 {
+  width: 280px;
+  height: 280px;
+  bottom: -70px;
+  right: -60px;
+}
+
+.bubble-2 {
+  width: 200px;
+  height: 200px;
+  bottom: -30px;
+  left: -40px;
+}
+
+.bubble-3 {
+  width: 220px;
+  height: 220px;
+  top: -50px;
+  right: 12%;
+}
+
+.bubble-4 {
+  width: 150px;
+  height: 150px;
+  top: 25%;
+  left: -30px;
+}
+
+/* 1. Ambient Bubble & Soft Lavender-Blue Gradient Shell Background */
+[data-appearance="pink"] .window-shell {
+  background:
+    radial-gradient(circle at 10% 20%, rgba(255, 240, 245, 0.7) 0%, transparent 40%),
+    radial-gradient(circle at 85% 85%, rgba(200, 225, 255, 0.75) 0%, transparent 50%),
+    radial-gradient(circle at 75% 20%, rgba(225, 215, 255, 0.65) 0%, transparent 45%),
+    linear-gradient(135deg, #f0f4ff 0%, #e6eefc 100%);
+  background-size: 100% 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle physical grain overlay */
+[data-appearance="pink"] .window-shell::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 0),
+    radial-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 0);
+  background-size: 24px 24px;
+  background-position: 0 0, 12px 12px;
+  pointer-events: none;
+  opacity: 0.75;
+  z-index: 0;
+}
+
+/* Ensure app content is placed above ambient background and bubbles */
+[data-appearance="pink"] .window-shell > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* 2. Glassmorphism Frosted Layout (Sidebar & Main content) */
+[data-appearance="pink"] .sidebar {
+  backdrop-filter: blur(24px) saturate(110%);
+  -webkit-backdrop-filter: blur(24px) saturate(110%);
+  background: rgba(255, 255, 255, 0.3) ;
+  border-right: 1px solid rgba(255, 255, 255, 0.4) ;
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+[data-appearance="pink"] .content {
+  background: transparent;
+}
+
+/* 3. Glass Frosted Panels & Cards */
+[data-appearance="pink"] .panel,
+[data-appearance="pink"] .dashboard-panel,
+[data-appearance="pink"] .settings-card,
+[data-appearance="pink"] .dashboard-overview,
+[data-appearance="pink"] .wordbook-card,
+[data-appearance="pink"] .preset-editor-panel {
+  backdrop-filter: blur(20px) saturate(110%);
+  -webkit-backdrop-filter: blur(20px) saturate(110%);
+  background: rgba(255, 255, 255, 0.55) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  box-shadow:
+    0 12px 32px rgba(79, 125, 242, 0.02),
+    0 4px 12px rgba(0, 0, 0, 0.01),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+}
+
+/* 4. Translucent metric blocks */
+[data-appearance="pink"] .compact-metric,
+[data-appearance="pink"] .overview-stats,
+[data-appearance="pink"] .overview-style,
+[data-appearance="pink"] .metric,
+[data-appearance="pink"] .stat-card {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.35) !important;
+  border: 1px solid rgba(255, 255, 255, 0.45) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+}
+
+/* 5. Custom highlight and borders for interactive controls */
+[data-appearance="pink"] .nav-button:hover {
+  background: rgba(255, 255, 255, 0.45);
+  color: var(--accent);
+}
+
+[data-appearance="pink"] .nav-button.active {
+  background: rgba(79, 125, 242, 0.08);
+  color: var(--accent-strong);
+  box-shadow:
+    0 4px 12px rgba(79, 125, 242, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  font-weight: 700;
+}
+
+/* Form Inputs and Interactive Controls in glass mode */
+[data-appearance="pink"] input,
+[data-appearance="pink"] select,
+[data-appearance="pink"] textarea {
+  background: rgba(255, 255, 255, 0.45) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  color: var(--text-primary) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+[data-appearance="pink"] input:focus,
+[data-appearance="pink"] select:focus,
+[data-appearance="pink"] textarea:focus {
+  background: rgba(255, 255, 255, 0.75) !important;
+  border-color: var(--border-strong) !important;
+  box-shadow: 0 0 0 3px rgba(79, 125, 242, 0.12) !important;
+}
+
+/* Hover highlights for cards and list items */
+[data-appearance="pink"] .record-card {
+  background: rgba(255, 255, 255, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  transition: all 180ms ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+}
+
+[data-appearance="pink"] .record-card:hover {
+  background: rgba(255, 255, 255, 0.65) !important;
+  border-color: rgba(147, 178, 235, 0.4) !important;
+  transform: translateY(-1px);
+  box-shadow:
+    0 10px 24px rgba(79, 125, 242, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+}
+
+[data-appearance="pink"] .record-action-btn,
+[data-appearance="pink"] .clear-all-btn,
+[data-appearance="pink"] .field-action button,
+[data-appearance="pink"] .wordbook-add-row button,
+[data-appearance="pink"] .wordbook-delete {
+  background: rgba(255, 255, 255, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  color: var(--text-secondary);
+}
+
+[data-appearance="pink"] .record-action-btn:hover,
+[data-appearance="pink"] .clear-all-btn:hover,
+[data-appearance="pink"] .field-action button:hover,
+[data-appearance="pink"] .wordbook-add-row button:hover,
+[data-appearance="pink"] .wordbook-delete:hover {
+  background: rgba(255, 255, 255, 0.75) !important;
+  border-color: rgba(147, 178, 235, 0.3) !important;
+  color: var(--accent);
+}
+
+/* Glowing aesthetic for active presets or active indicators */
+[data-appearance="pink"] .style-preset-btn.active,
+[data-appearance="pink"] .active-badge-status {
+  background: rgba(79, 125, 242, 0.08) !important;
+  color: var(--accent-strong) !important;
+  border: 1px solid rgba(79, 125, 242, 0.15) !important;
+}
+
+[data-appearance="pink"] .preset-card {
+  background: rgba(255, 255, 255, 0.35) !important;
+  border: 1px solid rgba(255, 255, 255, 0.45) !important;
+}
+
+[data-appearance="pink"] .preset-card.active {
+  background: rgba(255, 255, 255, 0.65) !important;
+  border-color: rgba(147, 178, 235, 0.35) !important;
+  box-shadow: 0 8px 24px rgba(79, 125, 242, 0.03) !important;
+}
+
+/* 6. Appearance selector active override for Youfen theme */
+[data-appearance="pink"] .appearance-option.active {
+  background: #ffffff !important;
+  color: var(--accent-strong) !important;
+  box-shadow: 0 2px 8px rgba(79, 125, 242, 0.15) !important;
+  border: 1px solid rgba(147, 178, 235, 0.15) !important;
 }
