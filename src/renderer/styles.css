@@ -723,6 +723,37 @@ h2 svg {
   resize: vertical;
 }
 
+.correction-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.correction-actions button,
+.quick-add-btn-confirm,
+.quick-add-btn-cancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 12px;
+  color: var(--text-secondary);
+  background: var(--surface-app);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.correction-actions button:hover,
+.quick-add-btn-confirm:hover {
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  border-color: rgb(18 132 216 / 28%);
+}
+
 .settings-view {
   flex: 0 0 auto;
   gap: 18px;

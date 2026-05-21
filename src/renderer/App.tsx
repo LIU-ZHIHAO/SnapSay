@@ -818,6 +818,7 @@ function FullRecordList(props: {
 }) {
   const [expandedCorrectionId, setExpandedCorrectionId] = useState<string | null>(null);
   const [correctionDraft, setCorrectionDraft] = useState('');
+  const [correctionStatus, setCorrectionStatus] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [quickAddRecordId, setQuickAddRecordId] = useState<string | null>(null);
   const [quickAddPairs, setQuickAddPairs] = useState<{ from: string; to: string; selected: boolean }[]>([]);
@@ -841,24 +842,29 @@ function FullRecordList(props: {
   const openCorrection = (record: RecordItem) => {
     setExpandedCorrectionId(record.id);
     setCorrectionDraft(record.userCorrection ?? '');
+    setCorrectionStatus('');
   };
 
   const commitCorrection = async (record: RecordItem) => {
     if (correctionDraft.trim()) {
+      setCorrectionStatus('正在检测词库候选…');
       await props.onSaveCorrection?.(record.id, correctionDraft.trim());
-      
+
       // Extract word pairs from the correction record
       try {
         const res = await window.tailkall?.extractWordPairs?.(record.id);
         if (res && res.ok && res.pairs && res.pairs.length > 0) {
           setQuickAddPairs(res.pairs.map((p) => ({ ...p, selected: true })));
           setQuickAddRecordId(record.id);
+          setCorrectionStatus('');
         } else {
           setQuickAddRecordId(null);
           setQuickAddPairs([]);
+          setCorrectionStatus('未检测到可加入词库的纠正词');
         }
       } catch (err) {
         console.error('Failed to extract word pairs', err);
+        setCorrectionStatus('词库候选检测失败，请稍后重试');
       }
     }
   };
@@ -949,11 +955,16 @@ function FullRecordList(props: {
                     aria-label="修正文本"
                     autoFocus
                     className="correction-textarea"
-                    onBlur={() => commitCorrection(record)}
                     onChange={(e) => setCorrectionDraft(e.target.value)}
                     placeholder="粘贴修正后的文本…"
                     value={correctionDraft}
                   />
+                  <div className="correction-actions">
+                    <button onClick={() => void commitCorrection(record)} type="button">
+                      提交并检测词库
+                    </button>
+                    {correctionStatus && <span className="test-status">{correctionStatus}</span>}
+                  </div>
                 </div>
               )}
 

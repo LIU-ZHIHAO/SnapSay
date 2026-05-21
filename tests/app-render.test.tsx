@@ -6,6 +6,7 @@ import { DEFAULT_CLEANUP_PROMPT } from '../src/shared/cleanupPolicy';
 describe('TailKall main renderer', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    delete window.tailkall;
   });
 
   it('renders the dashboard with trigger, ASR, rewrite API, and recent records', async () => {
@@ -22,7 +23,7 @@ describe('TailKall main renderer', () => {
     expect(screen.getByRole('button', { name: '设置' })).toBeInTheDocument();
     expect(screen.queryByLabelText('切换主题')).not.toBeInTheDocument();
     expect(screen.getByText('当前触发键')).toBeInTheDocument();
-    expect(screen.getByText('Ctrl + Alt + Space')).toBeInTheDocument();
+    expect(screen.getByText('Ctrl + Alt + Space / 鼠标中键')).toBeInTheDocument();
     expect(screen.getByText('ASR')).toBeInTheDocument();
     expect(screen.getByText('whisper.cpp')).toBeInTheDocument();
     expect(screen.getByText('文案整理 API')).toBeInTheDocument();
@@ -40,7 +41,7 @@ describe('TailKall main renderer', () => {
 
     expect(screen.getByRole('heading', { name: '设置' })).toBeInTheDocument();
     expect(screen.getByLabelText('键盘快捷键')).toHaveValue('Ctrl + Alt + Space');
-    expect(screen.getByLabelText('鼠标快捷键')).toHaveValue('Mouse Middle');
+    expect(screen.getByRole('button', { name: '鼠标快捷键' })).toHaveTextContent('鼠标中键');
     expect(screen.getByLabelText('短按动作')).toHaveValue('语音输入');
     expect(screen.getByLabelText('长按动作')).toHaveValue('语音助手');
     expect(screen.getByLabelText('输出模式')).toHaveValue('粘贴到当前光标');
@@ -110,6 +111,39 @@ describe('TailKall main renderer', () => {
     expect(screen.getAllByRole('button', { name: '复制整理文本' })[0]).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: '复制原始文本' })[0]).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: '删除' })[0]).toBeInTheDocument();
+  });
+
+  it('submits correction text, shows wordbook candidates, and saves selected pairs', async () => {
+    const saveCorrection = vi.fn().mockResolvedValue(undefined);
+    const extractWordPairs = vi.fn().mockResolvedValue({
+      ok: true,
+      pairs: [{ from: '报款逻辑', to: '爆款逻辑' }]
+    });
+    const saveWordbook = vi.fn().mockResolvedValue({ ok: true });
+    window.tailkall = { saveCorrection, extractWordPairs, saveWordbook };
+
+    render(<App />);
+
+    fireEvent.click(screen.getAllByRole('button', { name: '纠错' })[0]);
+    fireEvent.change(screen.getByLabelText('修正文本'), {
+      target: { value: '会议结论：优化爆款逻辑与首屏性能' }
+    });
+    fireEvent.click(screen.getByRole('button', { name: '提交并检测词库' }));
+
+    expect(await screen.findByText('检测到拼写纠正，是否一键加入自定义词库？')).toBeInTheDocument();
+    expect(screen.getByText('报款逻辑')).toBeInTheDocument();
+    expect(screen.getByText('爆款逻辑')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '确认加入' }));
+
+    expect(saveCorrection).toHaveBeenCalledWith('rec-1', '会议结论：优化爆款逻辑与首屏性能');
+    expect(extractWordPairs).toHaveBeenCalledWith('rec-1');
+    expect(saveWordbook).toHaveBeenCalledWith([
+      expect.objectContaining({
+        target: '爆款逻辑',
+        variants: ['报款逻辑']
+      })
+    ]);
   });
 
   it('switches to styles and allows preset activation and customization', () => {
