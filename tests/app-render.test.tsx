@@ -23,7 +23,7 @@ describe('TailKall main renderer', () => {
     expect(screen.getByRole('button', { name: '设置' })).toBeInTheDocument();
     expect(screen.queryByLabelText('切换主题')).not.toBeInTheDocument();
     expect(screen.getByText('当前触发键')).toBeInTheDocument();
-    expect(screen.getByText('Ctrl + Alt + Space / 鼠标中键')).toBeInTheDocument();
+    expect(screen.getByText('Ctrl + Alt + Space')).toBeInTheDocument();
     expect(screen.getByText('ASR')).toBeInTheDocument();
     expect(screen.getByText('whisper.cpp')).toBeInTheDocument();
     expect(screen.getByText('文案整理 API')).toBeInTheDocument();
@@ -44,7 +44,7 @@ describe('TailKall main renderer', () => {
     expect(screen.getByRole('button', { name: '鼠标快捷键' })).toHaveTextContent('鼠标中键');
     expect(screen.getByLabelText('短按动作')).toHaveValue('语音输入');
     expect(screen.getByLabelText('长按动作')).toHaveValue('语音助手');
-    expect(screen.getByLabelText('输出模式')).toHaveValue('粘贴到当前光标');
+    expect(screen.getByRole('button', { name: '输出模式' })).toHaveTextContent('粘贴到当前光标');
     expect(screen.getByLabelText('数据目录')).toHaveValue('D:\\Antigravity\\tailkall\\data');
     expect(screen.getByRole('radiogroup', { name: '界面风格' })).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: '浅色' })).toHaveAttribute('aria-checked', 'true');
@@ -57,12 +57,14 @@ describe('TailKall main renderer', () => {
     fireEvent.click(screen.getByRole('button', { name: '模型' }));
 
     expect(screen.getByRole('heading', { name: '模型' })).toBeInTheDocument();
-    expect(screen.getByLabelText('当前 ASR 档案')).toHaveValue('local-whisper-cpp');
+    const asrProfileSelect = screen.getByRole('button', { name: '当前 ASR 档案' });
+    expect(asrProfileSelect).toHaveTextContent('本地 whisper.cpp');
+    fireEvent.click(asrProfileSelect);
     expect(screen.getAllByText('本地 SenseVoice / FunASR').length).toBeGreaterThan(0);
     expect(screen.getAllByText('云端上传转写 API').length).toBeGreaterThan(0);
     expect(screen.getAllByText('云端流式转写 API').length).toBeGreaterThan(0);
     expect(screen.getByLabelText('ASR 引擎')).toHaveValue('whisper.cpp');
-    expect(screen.getByLabelText('加速策略')).toHaveValue('GPU 优先');
+    expect(screen.getByRole('button', { name: '加速策略' })).toHaveTextContent('GPU 优先');
     expect(screen.queryByLabelText('云端上传转写 API Base URL')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('云端上传转写 API Model')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('云端上传转写 API API Key')).not.toBeInTheDocument();

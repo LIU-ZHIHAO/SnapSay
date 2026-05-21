@@ -177,6 +177,7 @@ export default function ModelsView(props: {
             当前 ASR 档案
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <CustomSelect
+                ariaLabel="当前 ASR 档案"
                 style={{ flex: 1 }}
                 onChange={(val) => selectAsrProfile(val)}
                 options={settings.asrProfiles.map((profile) => ({
@@ -223,6 +224,7 @@ export default function ModelsView(props: {
             <label>
               加速策略
               <CustomSelect
+                ariaLabel="加速策略"
                 onChange={(val) => onUpdate('asrAcceleration', val)}
                 options={[
                   { value: 'GPU 优先', label: 'GPU 优先' },

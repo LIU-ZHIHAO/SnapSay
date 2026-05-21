@@ -679,24 +679,11 @@ function Dashboard(props: {
     }
   }
 
-  const getMouseLabel = (trigger: string) => {
-    switch (trigger) {
-      case 'Mouse Middle': return '鼠标中键';
-      case 'Mouse Side 1': return '鼠标侧键 1';
-      case 'Mouse Side 2': return '鼠标侧键 2';
-      default: return trigger;
-    }
-  };
-
-  const triggerDisplay = props.settings.mouseTrigger
-    ? `${props.settings.triggerKey} / ${getMouseLabel(props.settings.mouseTrigger)}`
-    : props.settings.triggerKey;
-
   return (
     <div className="view-stack dashboard-view">
       <h1>主页</h1>
       <div className="metric-grid">
-        <Metric icon={<Keyboard />} label="当前触发键" value={triggerDisplay} />
+        <Metric icon={<Keyboard />} label="当前触发键" value={props.settings.triggerKey} />
         <Metric icon={<Mic />} label="ASR" value={props.settings.asr} />
         <Metric icon={<PlugZap />} label="文案整理 API" value={`${props.settings.provider} / ${props.settings.model}`} />
       </div>
