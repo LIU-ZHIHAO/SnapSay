@@ -64,7 +64,7 @@ describe('TailKall main renderer', () => {
     expect(screen.queryByLabelText('切换主题')).not.toBeInTheDocument();
     expect(screen.getByText('触发键')).toBeInTheDocument();
     expect(screen.getByText('Ctrl + Alt + Space')).toBeInTheDocument();
-    expect(screen.getByText('ASR')).toBeInTheDocument();
+    expect(screen.getByText('语音模型')).toBeInTheDocument();
     expect(screen.getByText('whisper.cpp')).toBeInTheDocument();
     expect(screen.getByText('整理模型')).toBeInTheDocument();
     expect(screen.getByText('GPT-4.1')).toBeInTheDocument();

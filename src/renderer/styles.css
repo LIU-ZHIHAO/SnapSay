@@ -415,9 +415,10 @@ h2 svg {
 }
 
 .overview-primary {
+  grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 1.05fr 0.8fr 0.9fr;
-  gap: 8px;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -472,6 +473,7 @@ h2 svg {
 }
 
 .overview-stats {
+  grid-column: 2;
   display: flex;
   align-items: stretch;
   min-width: 0;
@@ -490,6 +492,11 @@ h2 svg {
   align-items: center;
   padding: 7px 9px;
   border-right: 1px solid var(--border-subtle);
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.overview-stat:hover {
+  background-color: var(--surface-hover);
 }
 
 .overview-stat:last-child {
@@ -500,15 +507,85 @@ h2 svg {
   display: grid !important;
   grid-row: 1 / 3;
   place-items: center;
-  width: 18px;
-  height: 18px;
-  color: var(--accent);
-  background: transparent;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  margin-right: 2px;
+  transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.overview-stat:hover .overview-stat-icon {
+  transform: scale(1.08);
+}
+
+/* Custom colorful themes for sub-metrics (时长, 字数, 语速) */
+.overview-stat.stat-duration .overview-stat-icon {
+  background: #fffbeb;
+  color: #d97706;
+  border-color: #fde68a;
+}
+[data-appearance="dark"] .overview-stat.stat-duration .overview-stat-icon {
+  background: rgba(251, 191, 36, 0.12);
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.2);
+}
+[data-appearance="pink"] .overview-stat.stat-duration .overview-stat-icon {
+  background: #fff5f5;
+  color: #e11d48;
+  border-color: #fecdd3;
+}
+[data-appearance="green"] .overview-stat.stat-duration .overview-stat-icon {
+  background: #fef3c7;
+  color: #d97706;
+  border-color: #fde68a;
+}
+
+.overview-stat.stat-chars .overview-stat-icon {
+  background: #ecfdf5;
+  color: #059669;
+  border-color: #a7f3d0;
+}
+[data-appearance="dark"] .overview-stat.stat-chars .overview-stat-icon {
+  background: rgba(52, 211, 153, 0.12);
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.2);
+}
+[data-appearance="pink"] .overview-stat.stat-chars .overview-stat-icon {
+  background: #f0fdf4;
+  color: #16a34a;
+  border-color: #bbf7d0;
+}
+[data-appearance="green"] .overview-stat.stat-chars .overview-stat-icon {
+  background: #e6fcf0;
+  color: #059669;
+  border-color: #a7f3d0;
+}
+
+.overview-stat.stat-speed .overview-stat-icon {
+  background: #f5f3ff;
+  color: #7c3aed;
+  border-color: #ddd6fe;
+}
+[data-appearance="dark"] .overview-stat.stat-speed .overview-stat-icon {
+  background: rgba(167, 139, 250, 0.12);
+  color: #a78bfa;
+  border-color: rgba(167, 139, 250, 0.2);
+}
+[data-appearance="pink"] .overview-stat.stat-speed .overview-stat-icon {
+  background: #fdf2f8;
+  color: #db2777;
+  border-color: #fbcfe8;
+}
+[data-appearance="green"] .overview-stat.stat-speed .overview-stat-icon {
+  background: #f5f3ff;
+  color: #7c3aed;
+  border-color: #ddd6fe;
 }
 
 .overview-style {
+  grid-column: 1;
   display: flex;
-  grid-column: 1 / -1;
   align-items: center;
   gap: 10px;
   min-width: 0;
