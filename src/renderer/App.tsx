@@ -532,7 +532,7 @@ export default function App() {
       <main className="app-shell">
         <aside className="sidebar" aria-label="主导航">
           <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: '0px', marginBottom: '24px' }}>
-            <img src={logoUrl} alt="Logo" width="24" height="24" style={{ flexShrink: 0, transform: 'translateY(-3px)' }} />
+            <img src={logoUrl} alt="Logo" width="28" height="28" style={{ flexShrink: 0, transform: 'translateY(1px)' }} />
             <span style={{ fontSize: '20px', fontWeight: '850', color: 'var(--text-primary)', letterSpacing: '-0.8px', marginLeft: '0px' }}>
               napSay
             </span>
