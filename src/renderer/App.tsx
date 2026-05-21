@@ -528,8 +528,8 @@ export default function App() {
     <div className="window-shell">
       <main className="app-shell">
         <aside className="sidebar" aria-label="主导航">
-          <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: '3px', marginBottom: '24px' }}>
-            <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, transform: 'translateY(-1px)' }}>
+          <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: '1px', marginBottom: '24px' }}>
+            <svg width="18" height="26" viewBox="18 6 60 88" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, transform: 'translateY(-1.5px)' }}>
               <defs>
                 <linearGradient id="purple-pink-grad" x1="0%" y1="100%" x2="100%" y2="0%">
                   <stop offset="0%" stopColor="#7c3aed" />
@@ -540,24 +540,24 @@ export default function App() {
                   <stop offset="100%" stopColor="#06b6d4" />
                 </linearGradient>
               </defs>
-              {/* 后层青蓝环 */}
+              {/* Path 1: Purple/Pink ribbon (bottom-left loop & inner top loop) */}
               <path
-                d="M 42 45 C 46 29, 53 13, 64 16 C 75 18, 77 43, 64 55 C 53 64, 46 80, 50 89"
-                stroke="url(#pink-blue-grad)"
-                strokeWidth="9"
+                d="M 36 28 C 36 14, 66 10, 70 24 C 74 38, 56 48, 42 54 C 28 60, 20 70, 26 82 C 32 94, 66 90, 66 76"
+                stroke="url(#purple-pink-grad)"
+                strokeWidth="10"
                 strokeLinecap="round"
                 fill="none"
               />
-              {/* 前层紫粉环 - 覆盖在上面形成 3D 莫比乌斯交叉 */}
+              {/* Path 2: Pink/Blue ribbon (top-right loop & outer bottom loop) */}
               <path
-                d="M 58 55 C 54 71, 47 87, 36 84 C 25 82, 23 57, 36 45 C 47 36, 54 20, 50 11"
-                stroke="url(#purple-pink-grad)"
-                strokeWidth="9"
+                d="M 42 26 C 42 12, 72 8, 76 22 C 80 36, 62 46, 48 52 C 34 58, 26 68, 32 80 C 38 92, 72 88, 72 74"
+                stroke="url(#pink-blue-grad)"
+                strokeWidth="10"
                 strokeLinecap="round"
                 fill="none"
               />
             </svg>
-            <span style={{ fontSize: '20px', fontWeight: '850', color: 'var(--text-primary)', letterSpacing: '-0.8px', marginLeft: '0px' }}>
+            <span style={{ fontSize: '20px', fontWeight: '850', color: 'var(--text-primary)', letterSpacing: '-0.8px', marginLeft: '-3px' }}>
               napSay
             </span>
           </div>
