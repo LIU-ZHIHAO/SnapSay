@@ -501,17 +501,17 @@ export default function App() {
               </defs>
               {/* 后层青蓝环 */}
               <path
-                d="M 38 46 C 44 32, 54 18, 70 20 C 86 22, 88 44, 70 54 C 54 62, 44 76, 50 84"
+                d="M 42 45 C 46 29, 53 13, 64 16 C 75 18, 77 43, 64 55 C 53 64, 46 80, 50 89"
                 stroke="url(#pink-blue-grad)"
-                strokeWidth="12"
+                strokeWidth="9"
                 strokeLinecap="round"
                 fill="none"
               />
               {/* 前层紫粉环 - 覆盖在上面形成 3D 莫比乌斯交叉 */}
               <path
-                d="M 62 54 C 56 68, 46 82, 30 80 C 14 78, 12 56, 30 46 C 46 38, 56 24, 50 16"
+                d="M 58 55 C 54 71, 47 87, 36 84 C 25 82, 23 57, 36 45 C 47 36, 54 20, 50 11"
                 stroke="url(#purple-pink-grad)"
-                strokeWidth="12"
+                strokeWidth="9"
                 strokeLinecap="round"
                 fill="none"
               />
