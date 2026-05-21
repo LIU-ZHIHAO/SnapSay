@@ -187,6 +187,7 @@ type RecordItem = {
   status: '已输入' | '整理中' | '失败';
   asr?: string;
   cleanup?: string;
+  cleanupStatus?: 'success' | 'failed';
   durationMs?: number;
   asrDurationMs?: number;
   cleanupDurationMs?: number;
@@ -1007,20 +1008,25 @@ function FullRecordList(props: {
 
   return (
     <div className="record-list">
-      {props.records.map((record) => (
-        <div className={`record-card ${record.status === '失败' ? 'failed-card' : ''}`} key={record.id}>
-          <div className="record-row">
-            <div className="record-content">
-              <div className="record-meta">
-                <span>{record.time}</span>
-                <span className={`record-status ${statusClass(record.status)}`}>{record.status}</span>
-                {record.asrDurationMs != null && (
-                  <span className="record-duration">提取 {(record.asrDurationMs / 1000).toFixed(1)}s</span>
-                )}
-                {record.cleanupDurationMs != null && (
-                  <span className="record-duration">整理 {(record.cleanupDurationMs / 1000).toFixed(1)}s</span>
-                )}
-              </div>
+      {props.records.map((record) => {
+        const cleanupDisplay = getCleanupDisplay(record);
+
+        return (
+          <div className={`record-card ${record.status === '失败' ? 'failed-card' : ''}`} key={record.id}>
+            <div className="record-row">
+              <div className="record-content">
+                <div className="record-meta">
+                  <span>{record.time}</span>
+                  <span className={`record-status ${statusClass(record.status)}`}>{record.status}</span>
+                  {record.asrDurationMs != null && (
+                    <span className="record-duration">提取 {(record.asrDurationMs / 1000).toFixed(1)}s</span>
+                  )}
+                  {cleanupDisplay && (
+                    <span className={`record-duration ${cleanupDisplay.className}`} title={cleanupDisplay.title}>
+                      {cleanupDisplay.label}
+                    </span>
+                  )}
+                </div>
 
               {props.editingRecordId === record.id ? (
                 <input
@@ -1146,12 +1152,35 @@ function FullRecordList(props: {
               >
                 <Trash2 size={13} />
               </button>
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
+}
+
+function getCleanupDisplay(record: RecordItem): { label: string; title?: string; className: string } | undefined {
+  if (record.cleanupDurationMs == null) return undefined;
+
+  const cleanupFailed =
+    record.cleanupStatus === 'failed' ||
+    (record.error != null && !record.cleanup && record.refined === record.original);
+
+  if (cleanupFailed) {
+    return {
+      label: '整理失败',
+      title: record.error ? `整理失败：${record.error}` : '整理失败，已保留并输出原始转写文本',
+      className: 'error'
+    };
+  }
+
+  return {
+    label: `整理 ${(record.cleanupDurationMs / 1000).toFixed(1)}s`,
+    title: '整理成功',
+    className: ''
+  };
 }
 
 function WordbookEntryRow({

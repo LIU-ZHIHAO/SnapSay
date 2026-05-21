@@ -305,6 +305,33 @@ describe('TailKall main renderer', () => {
     expect(screen.getAllByRole('button', { name: '删除' })[0]).toBeInTheDocument();
   });
 
+  it('marks cleanup failures in recent records instead of showing cleanup duration as successful', async () => {
+    window.tailkall = {
+      getDashboard: async () => ({
+        settings: demoDashboardSettings(),
+        records: [
+          {
+            id: 'rec-cleanup-failed',
+            time: '2026/05/21 09:18',
+            original: '原始转写内容已经粘贴',
+            refined: '原始转写内容已经粘贴',
+            status: '已输入',
+            asrDurationMs: 830,
+            cleanupDurationMs: 460,
+            pasteSucceeded: true,
+            error: 'cleanup failed'
+          }
+        ]
+      })
+    };
+
+    render(<App />);
+
+    const recent = await screen.findByRole('region', { name: '最近记录' });
+    expect(within(recent).getByText('整理失败')).toBeInTheDocument();
+    expect(within(recent).queryByText('整理 0.5s')).not.toBeInTheDocument();
+  });
+
   it('submits correction text, shows wordbook candidates, and saves selected pairs', async () => {
     const saveCorrection = vi.fn().mockResolvedValue(undefined);
     const extractWordPairs = vi.fn().mockResolvedValue({

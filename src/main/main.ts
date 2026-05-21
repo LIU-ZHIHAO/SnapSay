@@ -294,6 +294,7 @@ function toRendererRecord(record: TranscriptionRecord) {
     status: record.status === 'completed' ? '已输入' : '失败',
     asr: [record.asrProvider, record.asrModel].filter(Boolean).join(' / '),
     cleanup: [record.cleanupProvider, record.cleanupModel].filter(Boolean).join(' / '),
+    cleanupStatus: record.cleanedText ? 'success' : record.cleanupDurationMs != null && record.error ? 'failed' : undefined,
     durationMs: record.durationMs,
     asrDurationMs: record.asrDurationMs,
     cleanupDurationMs: record.cleanupDurationMs,

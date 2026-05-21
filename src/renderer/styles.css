@@ -861,6 +861,11 @@ h2 svg {
   font-size: 12px;
 }
 
+.record-duration.error {
+  color: var(--danger);
+  font-weight: 700;
+}
+
 .record-refined {
   display: -webkit-box;
   overflow: hidden;
