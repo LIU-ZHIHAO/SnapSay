@@ -44,7 +44,7 @@ export interface MultiPromptData {
 
 export function parseMultiPrompt(promptStr: string): MultiPromptData {
   const defaultPresets: StylePreset[] = [
-    { id: 'default', name: '默认整理', prompt: DEFAULT_CLEANUP_PROMPT, isBuiltIn: true },
+    { id: 'default', name: '日常聊天', prompt: DEFAULT_CLEANUP_PROMPT, isBuiltIn: true },
     { id: 'engineer', name: '理智工科', prompt: ENGINEER_CLEANUP_PROMPT, isBuiltIn: true },
     { id: 'charm', name: '高情商夸夸', prompt: CHARM_CLEANUP_PROMPT, isBuiltIn: true }
   ];
@@ -99,7 +99,7 @@ export function parseMultiPrompt(promptStr: string): MultiPromptData {
         if (parsed.prompts && typeof parsed.prompts === 'object') {
           const oldPrompts = parsed.prompts;
           const presets: StylePreset[] = [
-            { id: 'default', name: '默认整理', prompt: typeof oldPrompts.default === 'string' ? oldPrompts.default : DEFAULT_CLEANUP_PROMPT, isBuiltIn: true },
+            { id: 'default', name: '日常聊天', prompt: typeof oldPrompts.default === 'string' ? oldPrompts.default : DEFAULT_CLEANUP_PROMPT, isBuiltIn: true },
             { id: 'engineer', name: '理智工科', prompt: typeof oldPrompts.engineer === 'string' ? oldPrompts.engineer : ENGINEER_CLEANUP_PROMPT, isBuiltIn: true },
             { id: 'charm', name: '高情商夸夸', prompt: typeof oldPrompts.charm === 'string' ? oldPrompts.charm : CHARM_CLEANUP_PROMPT, isBuiltIn: true }
           ];
@@ -130,7 +130,7 @@ export function parseMultiPrompt(promptStr: string): MultiPromptData {
 
   // 纯文本格式兼容：将其封装为 default 预设
   const presets: StylePreset[] = [
-    { id: 'default', name: '默认整理', prompt: promptStr, isBuiltIn: true },
+    { id: 'default', name: '日常聊天', prompt: promptStr, isBuiltIn: true },
     { id: 'engineer', name: '理智工科', prompt: ENGINEER_CLEANUP_PROMPT, isBuiltIn: true },
     { id: 'charm', name: '高情商夸夸', prompt: CHARM_CLEANUP_PROMPT, isBuiltIn: true }
   ];

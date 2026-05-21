@@ -65,16 +65,14 @@ describe('TailKall main renderer', () => {
     expect(screen.getByText('Ctrl + Alt + Space')).toBeInTheDocument();
     expect(screen.getByText('whisper.cpp')).toBeInTheDocument();
     expect(screen.getByText('GPT-4.1')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '修饰模板' })).toBeInTheDocument();
-
     expect(screen.getByText('时长')).toBeInTheDocument();
     expect(screen.getByText('8秒')).toBeInTheDocument();
     expect(screen.getByText('字数')).toBeInTheDocument();
     expect(screen.getByText('77 字')).toBeInTheDocument();
     expect(screen.getByText('语速')).toBeInTheDocument();
     expect(screen.getByText('563 字/分钟')).toBeInTheDocument();
-    expect(screen.getByText('当前风格')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /当前风格/ })).toHaveTextContent('默认整理');
+    expect(screen.getByText('改写风格')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /改写风格/ })).toHaveTextContent('日常聊天');
 
     const recent = screen.getByRole('region', { name: '最近记录' });
     expect(within(recent).getByText('2026/05/19 09:18')).toBeInTheDocument();
@@ -113,7 +111,7 @@ describe('TailKall main renderer', () => {
     expect(within(overview).getByText('9秒')).toBeInTheDocument();
     expect(within(overview).getByText('15 字')).toBeInTheDocument();
     expect(within(overview).getByText('98 字/分钟')).toBeInTheDocument();
-    expect(within(overview).getByRole('button', { name: /当前风格/ })).toHaveTextContent('默认整理');
+    expect(within(overview).getByRole('button', { name: /改写风格/ })).toHaveTextContent('日常聊天');
   });
 
   it('switches to settings and shows shortcut and behavior config', () => {
@@ -397,7 +395,7 @@ describe('TailKall main renderer', () => {
 
     expect(screen.getByRole('heading', { name: 'AI 整理风格' })).toBeInTheDocument();
 
-    expect(screen.getByRole('heading', { name: '默认整理' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '日常聊天' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '理智工科' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '高情商夸夸' })).toBeInTheDocument();
 
@@ -461,7 +459,7 @@ describe('TailKall main renderer', () => {
 
     fireEvent.click(screen.getAllByTitle('重置为系统出厂配置')[0]);
 
-    expect(confirmSpy).toHaveBeenCalledWith('确定要将“默认整理”恢复为官方出厂预设吗？当前修改将被覆盖。');
+    expect(confirmSpy).toHaveBeenCalledWith('确定要将“日常聊天”恢复为官方出厂预设吗？当前修改将被覆盖。');
     expect(screen.getByText('用户改过的默认提示词')).toBeInTheDocument();
 
     confirmSpy.mockReturnValue(true);
@@ -476,7 +474,7 @@ describe('TailKall main renderer', () => {
     const customPromptData = {
       activeStyle: 'default',
       presets: [
-        { id: 'default', name: '默认整理', prompt: 'Prompt 1', isBuiltIn: true },
+        { id: 'default', name: '日常聊天', prompt: 'Prompt 1', isBuiltIn: true },
         { id: 'engineer', name: '理智工科', prompt: 'Prompt 2', isBuiltIn: true },
         { id: 'charm', name: '高情商夸夸', prompt: 'Prompt 3', isBuiltIn: true },
         { id: 'style4', name: '风格4', prompt: 'Prompt 4', isBuiltIn: false },
@@ -514,16 +512,16 @@ describe('TailKall main renderer', () => {
     // 回到主页
     fireEvent.click(screen.getByRole('button', { name: '主页' }));
 
-    const styleSelect = screen.getByRole('button', { name: /当前风格/ });
+    const styleSelect = screen.getByRole('button', { name: /改写风格/ });
     expect(styleSelect).toHaveTextContent('风格6');
-    expect(screen.queryByRole('button', { name: '默认整理' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '日常聊天' })).not.toBeInTheDocument();
 
     fireEvent.click(styleSelect);
     expect(screen.getByRole('button', { name: '风格5' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '风格5' }));
 
-    expect(screen.getByRole('button', { name: /当前风格/ })).toHaveTextContent('风格5');
+    expect(screen.getByRole('button', { name: /改写风格/ })).toHaveTextContent('风格5');
   });
 
   it('renders diagnostic logs at the bottom of settings for failed records', async () => {
