@@ -542,17 +542,17 @@ export default function App() {
                   <stop offset="100%" stopColor="#7c3aed" />
                 </linearGradient>
               </defs>
-              {/* Path 1: Top-left curve -> top-right loop -> center */}
+              {/* Path 1: Top-right curve -> top-left loop -> center */}
               <path
-                d="M 25 35 C 25 22, 38 15, 55 15 C 72 15, 85 20, 85 30 C 85 40, 72 45, 62 45 C 52 45, 50 48, 50 50"
+                d="M 75 35 C 75 22, 62 15, 45 15 C 28 15, 15 20, 15 30 C 15 40, 28 45, 38 45 C 48 45, 50 48, 50 50"
                 stroke="url(#blue-pink-grad)"
                 strokeWidth="15"
                 strokeLinecap="round"
                 fill="none"
               />
-              {/* Path 2: Center -> bottom-left loop -> bottom-right curve */}
+              {/* Path 2: Center -> bottom-right loop -> bottom-left curve */}
               <path
-                d="M 50 50 C 50 52, 48 55, 38 55 C 28 55, 15 60, 15 70 C 15 80, 28 85, 45 85 C 62 85, 75 78, 75 65"
+                d="M 50 50 C 50 52, 52 55, 62 55 C 72 55, 85 60, 85 70 C 85 80, 72 85, 55 85 C 38 85, 25 78, 25 65"
                 stroke="url(#pink-purple-grad)"
                 strokeWidth="15"
                 strokeLinecap="round"
@@ -760,12 +760,9 @@ function Dashboard(props: {
           <OverviewStat icon={<Gauge size={13} />} label="语速" value={speechRateStr} type="speed" />
         </div>
         <div className="overview-style">
-          <div className="overview-style-label" title={activePreset?.name}>
+          <div className="overview-style-label" title="风格">
             <span className="overview-style-icon"><Sparkles size={13} /></span>
-            <div className="overview-style-text">
-              <span>风格</span>
-              <strong>{activePreset?.name ?? '默认整理'}</strong>
-            </div>
+            <span className="overview-style-text-single">风格</span>
           </div>
           <div className="style-preset-options compact">
             {mainPresets.map((preset) => (

@@ -592,18 +592,22 @@ h2 svg {
 }
 
 .overview-style-label {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  grid-template-rows: auto auto;
-  column-gap: 6px;
-  flex: 0 0 auto;
+  display: flex;
   align-items: center;
-  padding: 0 12px; /* 上下 padding 0 */
+  gap: 6px;
+  flex: 0 0 auto;
+  padding: 0 10px;
   height: 100%;
   border-right: 1px solid var(--border-subtle);
   background: var(--accent-soft);
-  min-width: 110px;
-  max-width: 160px;
+  min-width: 68px; /* 移除了模版名称，宽度大大缩水，腾出横向空间给风格按钮 */
+}
+
+.overview-style-text-single {
+  color: var(--accent-strong);
+  font-size: 11.5px;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 .overview-style-icon {
@@ -1940,8 +1944,8 @@ tr:last-child td {
 
 .style-preset-btn.active {
   color: #fff;
-  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
-  box-shadow: 0 3px 8px rgba(139, 92, 246, 0.2);
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 3px 8px rgba(16, 185, 129, 0.2);
   font-weight: 700;
 }
 
