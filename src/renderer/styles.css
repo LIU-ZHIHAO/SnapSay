@@ -126,23 +126,23 @@
 
 [data-appearance="glass-light"] {
   --bg-base: transparent;
-  --surface-app: rgba(255, 255, 255, 0.48);
-  --surface-sidebar: rgba(255, 255, 255, 0.32);
-  --surface-panel: rgba(255, 255, 255, 0.58);
-  --surface-muted: rgba(255, 255, 255, 0.25);
-  --surface-hover: rgba(255, 255, 255, 0.65);
-  --surface-pressed: rgba(255, 255, 255, 0.75);
-  --border-subtle: rgba(255, 255, 255, 0.45);
-  --border-strong: rgba(255, 120, 150, 0.3);
-  --accent: #ff2442;
-  --accent-strong: #e11935;
-  --accent-soft: rgba(255, 36, 66, 0.06);
-  --accent-glow: rgba(255, 36, 66, 0.12);
-  --text-primary: #332224;
-  --text-secondary: #665053;
-  --text-muted: #998386;
-  --shadow-panel: 0 10px 30px rgba(0, 0, 0, 0.02), 0 1px 3px rgba(0, 0, 0, 0.01);
-  --shadow-soft: 0 6px 20px rgba(0, 0, 0, 0.015);
+  --surface-app: rgba(255, 255, 255, 0.52);
+  --surface-sidebar: rgba(255, 255, 255, 0.35);
+  --surface-panel: rgba(255, 255, 255, 0.65);
+  --surface-muted: rgba(255, 255, 255, 0.28);
+  --surface-hover: rgba(255, 255, 255, 0.72);
+  --surface-pressed: rgba(255, 255, 255, 0.80);
+  --border-subtle: rgba(255, 255, 255, 0.50);
+  --border-strong: rgba(148, 163, 184, 0.28);
+  --accent: #3b82f6;
+  --accent-strong: #1d4ed8;
+  --accent-soft: rgba(59, 130, 246, 0.06);
+  --accent-glow: rgba(59, 130, 246, 0.12);
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --shadow-panel: 0 10px 30px rgba(59, 130, 246, 0.02), 0 1px 3px rgba(0, 0, 0, 0.01);
+  --shadow-soft: 0 6px 20px rgba(0, 0, 0, 0.01);
 }
 
 * {
@@ -3107,10 +3107,10 @@ tr:last-child td {
 /* 1. Fluid Gradient Blob Background for Window Shell */
 [data-appearance="glass-light"] .window-shell {
   background:
-    radial-gradient(circle at 10% 20%, rgba(255, 230, 235, 0.45) 0%, transparent 40%),
-    radial-gradient(circle at 85% 15%, rgba(255, 243, 224, 0.5) 0%, transparent 35%),
-    radial-gradient(circle at 50% 85%, rgba(240, 244, 255, 0.5) 0%, transparent 45%),
-    #fafafb;
+    radial-gradient(circle at 15% 15%, rgba(224, 242, 254, 0.7) 0%, transparent 50%),
+    radial-gradient(circle at 85% 20%, rgba(243, 232, 255, 0.7) 0%, transparent 45%),
+    radial-gradient(circle at 50% 85%, rgba(224, 231, 255, 0.7) 0%, transparent 55%),
+    #f8fafc;
   background-size: 100% 100%;
   position: relative;
   overflow: hidden;
@@ -3165,7 +3165,7 @@ tr:last-child td {
   background: rgba(255, 255, 255, 0.58) !important;
   border: 1px solid rgba(255, 255, 255, 0.55) !important;
   box-shadow:
-    0 12px 32px rgba(255, 120, 150, 0.03),
+    0 12px 32px rgba(59, 130, 246, 0.03),
     0 4px 12px rgba(0, 0, 0, 0.01),
     inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
 }
@@ -3190,10 +3190,10 @@ tr:last-child td {
 }
 
 [data-appearance="glass-light"] .nav-button.active {
-  background: rgba(255, 36, 66, 0.08);
+  background: rgba(59, 130, 246, 0.08);
   color: var(--accent-strong);
   box-shadow:
-    0 4px 12px rgba(255, 36, 66, 0.04),
+    0 4px 12px rgba(59, 130, 246, 0.04),
     inset 0 1px 0 rgba(255, 255, 255, 0.25);
   font-weight: 700;
 }
@@ -3214,7 +3214,7 @@ tr:last-child td {
 [data-appearance="glass-light"] textarea:focus {
   background: rgba(255, 255, 255, 0.75) !important;
   border-color: var(--border-strong) !important;
-  box-shadow: 0 0 0 3px rgba(255, 120, 150, 0.12) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
 }
 
 /* Hover highlights for cards and list items */
@@ -3227,10 +3227,10 @@ tr:last-child td {
 
 [data-appearance="glass-light"] .record-card:hover {
   background: rgba(255, 255, 255, 0.65) !important;
-  border-color: rgba(255, 120, 150, 0.4) !important;
+  border-color: rgba(59, 130, 246, 0.25) !important;
   transform: translateY(-1px);
   box-shadow:
-    0 10px 24px rgba(255, 120, 150, 0.05),
+    0 10px 24px rgba(59, 130, 246, 0.04),
     inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
 }
 
@@ -3250,16 +3250,16 @@ tr:last-child td {
 [data-appearance="glass-light"] .wordbook-add-row button:hover,
 [data-appearance="glass-light"] .wordbook-delete:hover {
   background: rgba(255, 255, 255, 0.75) !important;
-  border-color: rgba(255, 120, 150, 0.3) !important;
+  border-color: rgba(59, 130, 246, 0.25) !important;
   color: var(--accent);
 }
 
 /* Glowing aesthetic for active presets or buttons */
 [data-appearance="glass-light"] .style-preset-btn.active,
 [data-appearance="glass-light"] .active-badge-status {
-  background: rgba(255, 36, 66, 0.08) !important;
+  background: rgba(59, 130, 246, 0.08) !important;
   color: var(--accent-strong) !important;
-  border: 1px solid rgba(255, 36, 66, 0.15) !important;
+  border: 1px solid rgba(59, 130, 246, 0.15) !important;
 }
 
 [data-appearance="glass-light"] .preset-card {
@@ -3269,16 +3269,16 @@ tr:last-child td {
 
 [data-appearance="glass-light"] .preset-card.active {
   background: rgba(255, 255, 255, 0.65) !important;
-  border-color: rgba(255, 120, 150, 0.35) !important;
-  box-shadow: 0 8px 24px rgba(255, 120, 150, 0.03) !important;
+  border-color: rgba(59, 130, 246, 0.2) !important;
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.02) !important;
 }
 
 /* 6. Appearance selector button overrides for perfect layout consistency */
 [data-appearance="glass-light"] .appearance-option.active {
   background: #ffffff !important;
   color: var(--accent-strong) !important;
-  box-shadow: 0 2px 8px rgba(255, 120, 150, 0.15) !important;
-  border: 1px solid rgba(255, 120, 150, 0.15) !important;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15) !important;
+  border: 1px solid rgba(59, 130, 246, 0.15) !important;
 }
 
 /* ==========================================

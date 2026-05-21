@@ -148,9 +148,9 @@ type Appearance = 'light' | 'dark' | 'pink' | 'green' | 'glass-light';
 const APPEARANCES: { id: Appearance; label: string }[] = [
   { id: 'light', label: '浅色' },
   { id: 'dark', label: '深色' },
-  { id: 'pink', label: '油粉' },
+  { id: 'pink', label: '渐变' },
   { id: 'green', label: '青绿' },
-  { id: 'glass-light', label: '水晶琉璃' }
+  { id: 'glass-light', label: '琉璃' }
 ];
 
 type WordbookEntry = {
