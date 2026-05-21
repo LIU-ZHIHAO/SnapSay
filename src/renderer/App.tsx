@@ -361,15 +361,6 @@ export default function App() {
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [testStatus, setTestStatus] = useState('未测试');
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
-  const [showDiagnosis, setShowDiagnosis] = useState(() => {
-    return localStorage.getItem('tailkall-show-diagnosis') === 'true';
-  });
-
-  const toggleDiagnosis = () => {
-    const next = !showDiagnosis;
-    setShowDiagnosis(next);
-    localStorage.setItem('tailkall-show-diagnosis', String(next));
-  };
 
   useEffect(() => {
     getFacade()
@@ -536,8 +527,6 @@ export default function App() {
                 settings={settings}
                 editingRecordId={editingRecordId}
                 records={records}
-                showDiagnosis={showDiagnosis}
-                onToggleDiagnosis={toggleDiagnosis}
                 onClearAll={clearAllRecords}
                 onCopyRefined={(record) => copyText(record.refined)}
                 onCopyOriginal={(record) => copyText(record.original)}
@@ -569,6 +558,7 @@ export default function App() {
               <SettingsView
                 appearance={appearance}
                 settings={settings}
+                records={records}
                 onAppearanceChange={setAppearance}
                 onUpdate={updateSetting}
               />
@@ -621,8 +611,6 @@ function Dashboard(props: {
   settings: SettingsState;
   records: RecordItem[];
   editingRecordId?: string | null;
-  showDiagnosis: boolean;
-  onToggleDiagnosis: () => void;
   onClearAll?: () => void;
   onCopyRefined?: (record: RecordItem) => void;
   onCopyOriginal?: (record: RecordItem) => void;
@@ -783,14 +771,6 @@ function Dashboard(props: {
         <div className="panel-header">
           <h2>最近记录</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <button
-              className={`toggle-diagnosis-btn ${props.showDiagnosis ? 'active' : ''}`}
-              onClick={props.onToggleDiagnosis}
-              type="button"
-            >
-              <Bug size={14} />
-              {props.showDiagnosis ? '隐藏诊断日志' : '显示诊断日志'}
-            </button>
             {props.records.length > 0 && (
               <button className="clear-all-btn" onClick={props.onClearAll} type="button">
                 <Eraser size={14} />
@@ -834,7 +814,6 @@ function FullRecordList(props: {
   settings: SettingsState;
   records: RecordItem[];
   editingRecordId?: string | null;
-  showDiagnosis?: boolean;
   onCopyRefined?: (record: RecordItem) => void;
   onCopyOriginal?: (record: RecordItem) => void;
   onDelete?: (record: RecordItem) => void;
@@ -1041,15 +1020,6 @@ function FullRecordList(props: {
                 </div>
               )}
 
-              {props.showDiagnosis && record.error && (
-                <div className="record-error-log" title={record.error}>
-                  <div className="record-error-title">
-                    <span className="error-icon">⚠️</span>
-                    <span>诊断错误日志</span>
-                  </div>
-                  <div className="record-error-body">{record.error}</div>
-                </div>
-              )}
             </div>
 
             <div className="record-actions">
@@ -1223,10 +1193,25 @@ function WordbookEntryRow({
 function SettingsView(props: {
   appearance: Appearance;
   settings: SettingsState;
+  records: RecordItem[];
   onAppearanceChange: (appearance: Appearance) => void;
   onUpdate: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void;
 }) {
   const { settings, onUpdate } = props;
+  const diagnosticRecords = props.records.filter((record) => record.error);
+  const diagnosticKind = (record: RecordItem) => {
+    const text = `${record.cleanup ?? ''} ${record.error ?? ''}`;
+    if (/cleanup|llm|chat\/completions|api key|insufficient|balance|quota|大模型|接口/i.test(text)) {
+      return '大模型 / 接口错误';
+    }
+    if (/asr|whisper|transcri|speech|语音|识别/i.test(text)) {
+      return '语音识别错误';
+    }
+    if (/paste|clipboard|剪贴板|粘贴/i.test(text)) {
+      return '粘贴输出错误';
+    }
+    return '运行错误';
+  };
   const [newTarget, setNewTarget] = useState('');
   const [newVariants, setNewVariants] = useState('');
   const [isCapturing, setIsCapturing] = useState(false);
@@ -1519,6 +1504,29 @@ function SettingsView(props: {
           />
           <button onClick={addWordbookEntry} type="button">添加</button>
         </div>
+      </section>
+
+      <section aria-label="诊断日志" className="panel settings-card diagnostic-log-section">
+        <h2>
+          <Bug size={18} />
+          诊断日志
+        </h2>
+        {diagnosticRecords.length > 0 ? (
+          <div className="diagnostic-log-list">
+            {diagnosticRecords.map((record) => (
+              <article className="diagnostic-log-entry" key={record.id} title={record.error}>
+                <div className="diagnostic-log-meta">
+                  <span>{record.time}</span>
+                  <span>{diagnosticKind(record)}</span>
+                  {record.cleanup && <span>{record.cleanup}</span>}
+                </div>
+                <div className="diagnostic-log-body">{record.error}</div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="diagnostic-log-empty">暂无诊断日志</p>
+        )}
       </section>
       </div>
     </div>

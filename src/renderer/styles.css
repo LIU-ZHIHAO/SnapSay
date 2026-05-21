@@ -2125,38 +2125,7 @@ tr:last-child td {
   color: var(--text-muted);
 }
 
-/* ─── Failed Records Diagnostic Switch & Log Cards ────────────────────── */
-
-/* 🛠️ 诊断日志切换药丸按钮 */
-.toggle-diagnosis-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 34px;
-  padding: 0 12px;
-  color: var(--text-secondary);
-  background: var(--surface-app);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-control);
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  transition: background 120ms ease, border-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
-}
-
-.toggle-diagnosis-btn:hover {
-  color: var(--accent-strong);
-  background: var(--accent-soft);
-  border-color: rgb(18 132 216 / 28%);
-}
-
-.toggle-diagnosis-btn.active {
-  color: var(--accent-strong);
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-glow);
-}
+/* ─── Failed Records & Diagnostic Log Cards ───────────────────────────── */
 
 /* 失败记录卡片：温润柔和的浅红色底色和警示虚线描边 */
 .record-card.failed-card {
@@ -2169,53 +2138,69 @@ tr:last-child td {
   box-shadow: 0 4px 12px rgba(220, 53, 69, 0.04);
 }
 
-/* 诊断错误日志卡片 */
-.record-error-log {
-  margin-top: 12px;
-  padding: 12px;
-  border-radius: 8px;
-  background: rgba(220, 53, 69, 0.04);
-  border: 1px dashed rgba(220, 53, 69, 0.25);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
-  color: #c53030;
-  max-height: 120px;
-  overflow-y: auto;
-  word-break: break-all;
-  white-space: pre-wrap;
-  user-select: text;
-  animation: logFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
 /* 深色模式下的微调 */
 .dark .record-card.failed-card {
   border-color: rgba(239, 68, 68, 0.25);
   background: linear-gradient(135deg, var(--surface-app) 0%, rgba(239, 68, 68, 0.03) 100%);
 }
 
-.dark .record-error-log {
-  background: rgba(239, 68, 68, 0.06);
-  border: 1px dashed rgba(239, 68, 68, 0.35);
-  color: #f87171;
+.diagnostic-log-section {
+  margin-bottom: 0;
 }
 
-.record-error-title {
+.diagnostic-log-list {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 700;
-  margin-bottom: 5px;
-  color: #e53e3e;
-  font-family: inherit;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.dark .record-error-title {
+.diagnostic-log-entry {
+  min-width: 0;
+  padding: 12px;
+  color: #c53030;
+  background: rgba(220, 53, 69, 0.04);
+  border: 1px dashed rgba(220, 53, 69, 0.25);
+  border-radius: 8px;
+}
+
+.dark .diagnostic-log-entry {
   color: #f87171;
+  background: rgba(239, 68, 68, 0.06);
+  border-color: rgba(239, 68, 68, 0.35);
 }
 
-.record-error-body {
-  font-family: inherit;
+.diagnostic-log-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.diagnostic-log-meta span {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.diagnostic-log-body {
+  max-height: 140px;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
   line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+}
+
+.diagnostic-log-empty {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 
 @keyframes logFadeIn {

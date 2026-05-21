@@ -314,7 +314,7 @@ describe('TailKall main renderer', () => {
     expect(screen.getByRole('button', { name: '风格6' })).toBeInTheDocument();
   });
 
-  it('renders and toggles error diagnostic logs for failed records on dashboard', async () => {
+  it('renders diagnostic logs at the bottom of settings for failed records', async () => {
     // Mock the window.tailkall object with a failed transcription record
     window.tailkall = {
       getDashboard: async () => ({
@@ -359,7 +359,7 @@ describe('TailKall main renderer', () => {
             original: '',
             refined: '',
             status: '失败',
-            error: 'Connection timed out to LLM provider at api.deepseek.com'
+            error: 'Cleanup provider DeepSeek failed with HTTP 402: insufficient balance'
           }
         ]
       })
@@ -378,19 +378,15 @@ describe('TailKall main renderer', () => {
     expect(screen.getByText('平均语速')).toBeInTheDocument();
     expect(screen.getByText('0 字/分钟')).toBeInTheDocument();
 
-    // Verify that the error log is NOT visible by default
-    expect(screen.queryByText('Connection timed out to LLM provider at api.deepseek.com')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '显示诊断日志' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Cleanup provider DeepSeek failed with HTTP 402: insufficient balance')).not.toBeInTheDocument();
 
-    // Click the toggle button to show diagnosis logs
-    const toggleBtn = screen.getByRole('button', { name: '显示诊断日志' });
-    expect(toggleBtn).toBeInTheDocument();
-    fireEvent.click(toggleBtn);
+    fireEvent.click(screen.getByRole('button', { name: '设置' }));
 
-    // Verify the button text changes or gets active
-    expect(screen.getByRole('button', { name: '隐藏诊断日志' })).toBeInTheDocument();
-
-    // Verify the error log is now visible on the screen
-    expect(screen.getByText('Connection timed out to LLM provider at api.deepseek.com')).toBeInTheDocument();
+    const logRegion = screen.getByRole('region', { name: '诊断日志' });
+    expect(within(logRegion).getByText('大模型 / 接口错误')).toBeInTheDocument();
+    expect(within(logRegion).getByText('2026/05/20 22:45')).toBeInTheDocument();
+    expect(within(logRegion).getByText('Cleanup provider DeepSeek failed with HTTP 402: insufficient balance')).toBeInTheDocument();
 
     // Clean up to prevent impacting other tests
     delete (window as any).tailkall;
