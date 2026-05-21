@@ -600,7 +600,8 @@ h2 svg {
   min-width: 0;
 }
 
-.dashboard-style-trigger .style-icon {
+.dashboard-style-trigger .style-icon,
+.overview-stat-icon.style-icon {
   background: var(--accent-soft);
   color: var(--accent-strong);
   border-color: rgb(18 132 216 / 18%);
@@ -760,6 +761,15 @@ h2 svg {
   color: #4f46e5;
   border-color: #c7d2fe;
 }
+
+/* Custom color schemes for Rewrite style card & dropdown card */
+.overview-stat.stat-style-mode .overview-stat-icon,
+.overview-stat.dashboard-style-switch-card .overview-stat-icon {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  border-color: rgb(18 132 216 / 18%);
+}
+
 
 .overview-style {
   grid-column: span 3;
