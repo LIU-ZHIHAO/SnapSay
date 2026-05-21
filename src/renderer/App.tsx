@@ -529,7 +529,7 @@ export default function App() {
       <main className="app-shell">
         <aside className="sidebar" aria-label="主导航">
           <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: '1px', marginBottom: '24px' }}>
-            <svg width="16" height="24" viewBox="26 14 48 72" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, transform: 'translateY(-1px)' }}>
+            <svg width="17" height="24" viewBox="20 8 60 84" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, transform: 'translateY(-1px)' }}>
               <defs>
                 <linearGradient id="purple-pink-grad" x1="0%" y1="100%" x2="100%" y2="0%">
                   <stop offset="0%" stopColor="#7c3aed" />
@@ -744,15 +744,18 @@ function Dashboard(props: {
     <div className="view-stack dashboard-view">
       <h1>主页</h1>
       <section aria-label="主页概览" className="dashboard-overview">
-        <div className="overview-primary">
-          <CompactMetric icon={<Keyboard size={15} />} label="触发键" value={props.settings.triggerKey} />
-          <CompactMetric icon={<Mic size={15} />} label="语音模型" value={shortenAsrLabel(props.settings.asr)} title={props.settings.asr} />
-          <CompactMetric
-            icon={<PlugZap size={15} />}
-            label="整理模型"
-            value={shortenModelLabel(props.settings.model)}
-            title={`${props.settings.provider} / ${props.settings.model}`}
-          />
+        <CompactMetric icon={<Keyboard size={15} />} label="触发键" value={props.settings.triggerKey} />
+        <CompactMetric icon={<Mic size={15} />} label="语音模型" value={shortenAsrLabel(props.settings.asr)} title={props.settings.asr} />
+        <CompactMetric
+          icon={<PlugZap size={15} />}
+          label="整理模型"
+          value={shortenModelLabel(props.settings.model)}
+          title={`${props.settings.provider} / ${props.settings.model}`}
+        />
+        <div aria-label="录音统计" className="overview-stats">
+          <OverviewStat icon={<Clock size={13} />} label="时长" value={durationStr} type="duration" />
+          <OverviewStat icon={<FileText size={13} />} label="字数" value={charsStr} type="chars" />
+          <OverviewStat icon={<Gauge size={13} />} label="语速" value={speechRateStr} type="speed" />
         </div>
         <div className="overview-style">
           <div className="overview-style-current" title={activePreset?.name}>
@@ -812,11 +815,6 @@ function Dashboard(props: {
               </div>
             )}
           </div>
-        </div>
-        <div aria-label="录音统计" className="overview-stats">
-          <OverviewStat icon={<Clock size={13} />} label="时长" value={durationStr} type="duration" />
-          <OverviewStat icon={<FileText size={13} />} label="字数" value={charsStr} type="chars" />
-          <OverviewStat icon={<Gauge size={13} />} label="语速" value={speechRateStr} type="speed" />
         </div>
       </section>
 
