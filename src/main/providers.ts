@@ -117,6 +117,11 @@ export async function testCleanupProvider(options: {
   timeoutMs?: number;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
+    const configError = validateCleanupProviderTestConfig(options.provider);
+    if (configError) {
+      return { ok: false, error: configError };
+    }
+
     await cleanupText({
       provider: options.provider,
       transcript: 'ping',
@@ -131,6 +136,19 @@ export async function testCleanupProvider(options: {
       error: error instanceof Error ? error.message : String(error)
     };
   }
+}
+
+function validateCleanupProviderTestConfig(provider: CleanupProviderConfig): string | undefined {
+  const missing: string[] = [];
+  if (!provider.baseUrl?.trim()) missing.push('Base URL');
+  if (!provider.apiKey?.trim()) missing.push('API Key');
+  if (!provider.model?.trim()) missing.push('Model');
+
+  if (missing.length === 0) {
+    return undefined;
+  }
+
+  return `整理模型配置不完整：请填写 ${missing.join('、')} 后再测试连接。`;
 }
 
 export function maskApiKey(apiKey: string): string {

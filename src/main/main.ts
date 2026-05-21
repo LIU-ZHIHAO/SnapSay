@@ -466,10 +466,10 @@ function installIpcHandlers(): void {
   ipcMain.handle('tailkall:test-rewrite-api', async (_event, settings: RendererSettings) => {
     const provider = {
       type: 'openai-compatible' as const,
-      name: settings.provider || 'DeepSeek',
-      baseUrl: settings.baseURL || 'https://api.deepseek.com/v1',
+      name: settings.provider || '文案整理模型',
+      baseUrl: settings.baseURL,
       apiKey: settings.apiKey,
-      model: settings.model || 'deepseek-chat'
+      model: settings.model
     };
     const result = await testCleanupProvider({
       provider,

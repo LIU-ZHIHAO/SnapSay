@@ -119,6 +119,28 @@ describe('providers', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it('fails cleanup provider tests before network when required config is missing', async () => {
+    const fetch = vi.fn();
+
+    await expect(
+      testCleanupProvider({
+        provider: {
+          type: 'openai-compatible',
+          name: 'Custom',
+          baseUrl: '',
+          apiKey: '',
+          model: ''
+        },
+        fetch
+      })
+    ).resolves.toEqual({
+      ok: false,
+      error: '整理模型配置不完整：请填写 Base URL、API Key、Model 后再测试连接。'
+    });
+
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it('resolves the active LLM provider card for cleanup', () => {
     const settings = {
       ...defaultSettings,
