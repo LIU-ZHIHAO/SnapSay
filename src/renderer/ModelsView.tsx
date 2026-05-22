@@ -1,6 +1,118 @@
 import { useState, type ReactNode } from 'react';
-import { Brain, Server, PlugZap, X } from 'lucide-react';
+import { Brain, Server, PlugZap, X, Cpu, Globe, Zap } from 'lucide-react';
 import { CustomSelect } from './App';
+
+/* ─── Provider Brand Icons (inline SVG) ─── */
+function getProviderIcon(key: string): ReactNode {
+  const size = 28;
+  switch (key) {
+    case 'openai':
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="12" fill="#10a37f" />
+          <path d="M18.1 10.8c.3-1-.1-2.1-.8-2.9a3.2 3.2 0 0 0-3.4-1.2 3.2 3.2 0 0 0-2.4-1.1c-1.3 0-2.4.7-3 1.8a3.2 3.2 0 0 0-2.1 1.6c-.7 1.1-.5 2.5.2 3.5-.3 1 .1 2.1.8 2.9.8.9 2 1.3 3.2 1.2.6.7 1.5 1.1 2.4 1.1 1.3 0 2.4-.7 3-1.8 1.2-.2 2.2-1 2.6-2.1.5-1.1.4-2.3-.5-3z" fill="#fff" fillOpacity="0.9"/>
+        </svg>
+      );
+    case 'deepseek':
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="12" fill="#4D6BFE" />
+          <text x="12" y="16" textAnchor="middle" fill="#fff" fontSize="11" fontWeight="800" fontFamily="Inter, sans-serif">DS</text>
+        </svg>
+      );
+    case 'openrouter':
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="12" fill="#6366f1" />
+          <path d="M8 8l4 4-4 4M13 16h3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case 'siliconflow':
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="12" fill="#7C3AED" />
+          <text x="12" y="16" textAnchor="middle" fill="#fff" fontSize="11" fontWeight="800" fontFamily="Inter, sans-serif">SF</text>
+        </svg>
+      );
+    case 'volcengine-ark':
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="12" fill="#3370ff" />
+          <path d="M7 16l5-10 5 10" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+          <line x1="9" y1="13" x2="15" y2="13" stroke="#fff" strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+      );
+    case 'dashscope':
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="12" fill="#ff6a00" />
+          <text x="12" y="16" textAnchor="middle" fill="#fff" fontSize="10" fontWeight="800" fontFamily="Inter, sans-serif">阿里</text>
+        </svg>
+      );
+    case 'moonshot':
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="12" fill="#1a1a2e" />
+          <path d="M14 7a5 5 0 1 0 0 10 5 5 0 0 1 0-10z" fill="#fbbf24"/>
+          <circle cx="9" cy="9" r="1" fill="#fbbf24" opacity="0.6"/>
+          <circle cx="7" cy="13" r="0.6" fill="#fbbf24" opacity="0.4"/>
+        </svg>
+      );
+    case 'zhipu':
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="12" fill="#2563eb" />
+          <text x="12" y="16" textAnchor="middle" fill="#fff" fontSize="10" fontWeight="800" fontFamily="Inter, sans-serif">智谱</text>
+        </svg>
+      );
+    case 'tencent-hunyuan':
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="12" fill="#00a4ff" />
+          <text x="12" y="16" textAnchor="middle" fill="#fff" fontSize="10" fontWeight="800" fontFamily="Inter, sans-serif">混元</text>
+        </svg>
+      );
+    case 'gemini-compatible':
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="12" fill="#1a73e8" />
+          <path d="M12 6c-3.3 0-6 2.7-6 6s2.7 6 6 6c1.7 0 3.2-.7 4.2-1.8L12 12V6z" fill="#8ab4f8"/>
+          <path d="M12 6v6l4.2 4.2A6 6 0 0 0 12 6z" fill="#fff" fillOpacity="0.7"/>
+        </svg>
+      );
+    case 'ollama':
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="12" fill="#333" />
+          <text x="12" y="16" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="700" fontFamily="Inter, sans-serif">🦙</text>
+        </svg>
+      );
+    case 'custom-openai':
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="12" fill="#64748b" />
+          <path d="M12 7v4M12 13v4M7 12h4M13 12h4" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+      );
+    default:
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="12" fill="#94a3b8" />
+          <circle cx="12" cy="12" r="4" fill="#fff" fillOpacity="0.8"/>
+        </svg>
+      );
+  }
+}
+
+function getAsrIcon(profile: { kind: string; engine?: string }): ReactNode {
+  if (profile.kind === 'local') {
+    return <Cpu size={22} style={{ color: '#10b981' }} />;
+  }
+  if (profile.kind === 'cloud-streaming') {
+    return <Zap size={22} style={{ color: '#f59e0b' }} />;
+  }
+  return <Globe size={22} style={{ color: '#3b82f6' }} />;
+}
 
 type WordbookEntry = {
   id: string;
@@ -251,6 +363,9 @@ export default function ModelsView(props: {
           {settings.asrProfiles.filter((profile) => profile.kind !== 'local').map((profile) => (
             <article className={profile.id === settings.activeAsrProfileId ? 'provider-card active' : 'provider-card'} key={profile.id}>
               <div className="provider-card-header">
+                <div className="provider-icon-container">
+                  {getAsrIcon(profile)}
+                </div>
                 <div>
                   <h3>{profile.displayName}</h3>
                   <span>{profile.kind === 'cloud-upload' ? '云端上传' : '云端流式'}</span>
@@ -344,6 +459,9 @@ export default function ModelsView(props: {
           {settings.llmProviders.map((provider) => (
             <article className={provider.key === settings.activeLlmProviderKey ? 'provider-card active' : 'provider-card'} key={provider.key}>
               <div className="provider-card-header">
+                <div className="provider-icon-container">
+                  {getProviderIcon(provider.key)}
+                </div>
                 <div>
                   <h3>{provider.displayName}</h3>
                   <span>OpenAI-compatible</span>

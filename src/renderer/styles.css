@@ -1379,6 +1379,19 @@ button:focus-visible {
   border-bottom: 1px solid var(--border-subtle);
 }
 
+.provider-icon-container {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--surface-hover);
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
 .provider-card-header > div {
   min-width: 0;
 }
@@ -3866,5 +3879,21 @@ tr:last-child td {
   background: var(--surface-panel) !important;
   backdrop-filter: blur(20px) saturate(180%) !important;
   border: 1px solid var(--border-subtle) !important;
+}
+
+/* Fix provider modal transparency on glassmorphism themes */
+[data-appearance="glass-light"] .provider-modal,
+[data-appearance="pink"] .provider-modal {
+  background: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.18), 0 0 1px rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-appearance="glass-light"] .provider-modal-header,
+[data-appearance="pink"] .provider-modal-header {
+  background: rgba(255, 255, 255, 0.88) !important;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.6) !important;
 }
 
