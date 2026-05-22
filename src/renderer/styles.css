@@ -2608,11 +2608,21 @@ tr:last-child td {
 }
 
 /* Dark mode overrides for the dropdown */
-.dark .style-preset-dropdown {
+[data-appearance="dark"] .style-preset-dropdown {
   background: rgba(30, 41, 59, 0.8);
   border: 1px solid rgba(51, 65, 85, 0.8);
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 16px -6px rgba(0, 0, 0, 0.2);
 }
+
+[data-appearance="dark"] .style-preset-dropdown-item {
+  color: #cbd5e1;
+}
+
+[data-appearance="dark"] .style-preset-dropdown-item:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
 
 @keyframes dropdownFadeIn {
   from {
@@ -2666,7 +2676,7 @@ tr:last-child td {
 }
 
 /* 深色模式下的微调 */
-.dark .record-card.failed-card {
+[data-appearance="dark"] .record-card.failed-card {
   border-color: rgba(239, 68, 68, 0.25);
   background: linear-gradient(135deg, var(--surface-app) 0%, rgba(239, 68, 68, 0.03) 100%);
 }
@@ -2722,7 +2732,7 @@ tr:last-child td {
   border-radius: 8px;
 }
 
-.dark .diagnostic-log-entry {
+[data-appearance="dark"] .diagnostic-log-entry {
   color: #f87171;
   background: rgba(239, 68, 68, 0.06);
   border-color: rgba(239, 68, 68, 0.35);
@@ -3093,11 +3103,21 @@ tr:last-child td {
 }
 
 /* Dark mode overrides for the custom select dropdown */
-.dark .custom-select-dropdown {
+[data-appearance="dark"] .custom-select-dropdown {
   background: rgba(30, 41, 59, 0.8);
   border: 1px solid rgba(51, 65, 85, 0.8);
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 16px -6px rgba(0, 0, 0, 0.2);
 }
+
+[data-appearance="dark"] .custom-select-dropdown-item {
+  color: #cbd5e1;
+}
+
+[data-appearance="dark"] .custom-select-dropdown-item:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
 
 .custom-select-dropdown-item {
   display: flex;
@@ -3179,7 +3199,7 @@ tr:last-child td {
   border-color: rgba(59, 130, 246, 0.4);
 }
 
-.dark-mode .stat-card:hover {
+[data-appearance="dark"] .stat-card:hover {
   border-color: rgba(96, 165, 250, 0.5);
 }
 
@@ -3195,7 +3215,7 @@ tr:last-child td {
   transition: transform 0.2s;
 }
 
-.dark-mode .stat-card-icon {
+[data-appearance="dark"] .stat-card-icon {
   color: #60a5fa;
   background: rgba(96, 165, 250, 0.12);
 }
