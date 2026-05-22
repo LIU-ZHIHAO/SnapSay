@@ -21,7 +21,8 @@ import {
   ChevronDown,
   Bug,
   Clock,
-  FileText
+  FileText,
+  AlertTriangle
 } from 'lucide-react';
 import ModelsView from './ModelsView';
 import StylesView from './StylesView';
@@ -29,6 +30,15 @@ import { blobToArrayBuffer, encodeBlobToWav } from './audioEncoding';
 import './styles.css';
 import logoUrl from './logo.png';
 import { DEFAULT_CLEANUP_PROMPT, ENGINEER_CLEANUP_PROMPT, CHARM_CLEANUP_PROMPT } from '../shared/cleanupPolicy';
+
+export interface ConfirmConfig {
+  title: string;
+  message: string;
+  onConfirm: () => void;
+  confirmText?: string;
+  cancelText?: string;
+  type?: 'danger' | 'warning' | 'info';
+}
 
 export interface StylePreset {
   id: string;
@@ -412,6 +422,12 @@ function useAppearance(): [Appearance, (appearance: Appearance) => void] {
 
 export default function App() {
   const [appearance, setAppearance] = useAppearance();
+  const [confirmConfig, setConfirmConfig] = useState<ConfirmConfig | null>(null);
+
+  const showConfirm = (config: ConfirmConfig) => {
+    setConfirmConfig(config);
+  };
+
   const [view, setView] = useState<View>('dashboard');
   const [settings, setSettings] = useState<SettingsState>(demoSettings);
   const [records, setRecords] = useState<RecordItem[]>(demoRecords);
@@ -562,17 +578,35 @@ export default function App() {
   };
 
   const clearAllRecords = async () => {
-    await getFacade().clearAllRecords?.();
-    setRecords([]);
+    showConfirm({
+      title: '确认清空历史记录？',
+      message: '清空后所有语音输入与整理历史记录都将被清除，且该操作无法撤销。',
+      type: 'danger',
+      confirmText: '确认清空',
+      cancelText: '取消',
+      onConfirm: async () => {
+        await getFacade().clearAllRecords?.();
+        setRecords([]);
+      }
+    });
   };
 
   const clearDiagnosticLogs = async () => {
-    const result = await getFacade().clearDiagnosticLogs?.();
-    if (result?.records) {
-      setRecords(result.records);
-      return;
-    }
-    setRecords((current) => current.map((record) => ({ ...record, error: undefined })));
+    showConfirm({
+      title: '确认清空诊断日志？',
+      message: '清空后将清除系统所有后台错误报告与调试日志。',
+      type: 'warning',
+      confirmText: '确认清空',
+      cancelText: '取消',
+      onConfirm: async () => {
+        const result = await getFacade().clearDiagnosticLogs?.();
+        if (result?.records) {
+          setRecords(result.records);
+          return;
+        }
+        setRecords((current) => current.map((record) => ({ ...record, error: undefined })));
+      }
+    });
   };
 
   const saveCorrection = async (id: string, text: string) => {
@@ -645,6 +679,7 @@ export default function App() {
               <StylesView
                 settings={settings}
                 onUpdate={updateSetting}
+                showConfirm={showConfirm}
               />
             )}
             {view === 'settings' && (
@@ -662,6 +697,22 @@ export default function App() {
         </div>
         <WindowControls />
       </main>
+
+      {confirmConfig && (
+        <ConfirmModal
+          isOpen={!!confirmConfig}
+          title={confirmConfig.title}
+          message={confirmConfig.message}
+          confirmText={confirmConfig.confirmText}
+          cancelText={confirmConfig.cancelText}
+          type={confirmConfig.type}
+          onConfirm={() => {
+            confirmConfig.onConfirm();
+            setConfirmConfig(null);
+          }}
+          onCancel={() => setConfirmConfig(null)}
+        />
+      )}
     </div>
   );
 }
@@ -1862,6 +1913,69 @@ export function CustomSelect({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+interface ConfirmModalProps {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  confirmText?: string;
+  cancelText?: string;
+  type?: 'danger' | 'warning' | 'info';
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+function ConfirmModal({
+  isOpen,
+  title,
+  message,
+  confirmText = '确定',
+  cancelText = '取消',
+  type = 'info',
+  onConfirm,
+  onCancel
+}: ConfirmModalProps) {
+  if (!isOpen) return null;
+  const getIcon = () => {
+    switch (type) {
+      case 'danger': return <Trash2 size={20} />;
+      case 'warning': return <AlertTriangle size={20} />;
+      case 'info':
+      default: return <Sparkles size={20} />;
+    }
+  };
+  return (
+    <div className="modal-backdrop confirm-modal-backdrop" role="presentation" onClick={onCancel}>
+      <section
+        aria-modal="true"
+        aria-label={title}
+        className="provider-modal confirm-modal"
+        role="dialog"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="confirm-modal-body">
+          <div className="confirm-modal-content-wrapper">
+            <div className={`confirm-modal-icon-container ${type}`}>
+              {getIcon()}
+            </div>
+            <div className="confirm-modal-text-container">
+              <h2>{title}</h2>
+              <p>{message}</p>
+            </div>
+          </div>
+        </div>
+        <div className="confirm-modal-footer">
+          <button className="confirm-modal-btn cancel" onClick={onCancel} type="button">
+            {cancelText}
+          </button>
+          <button className={`confirm-modal-btn confirm ${type}`} onClick={onConfirm} type="button">
+            {confirmText}
+          </button>
+        </div>
+      </section>
     </div>
   );
 }

@@ -13,7 +13,7 @@ import {
   Sliders,
   FileSpreadsheet
 } from 'lucide-react';
-import { parseMultiPrompt, type StylePreset, type MultiPromptData } from './App';
+import { parseMultiPrompt, type StylePreset, type MultiPromptData, type ConfirmConfig } from './App';
 import { DEFAULT_CLEANUP_PROMPT, ENGINEER_CLEANUP_PROMPT, CHARM_CLEANUP_PROMPT } from '../shared/cleanupPolicy';
 
 type SettingsState = {
@@ -55,8 +55,9 @@ type SettingsState = {
 export default function StylesView(props: {
   settings: SettingsState;
   onUpdate: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void;
+  showConfirm?: (config: ConfirmConfig) => void;
 }) {
-  const { settings, onUpdate } = props;
+  const { settings, onUpdate, showConfirm } = props;
   const multiPrompt = parseMultiPrompt(settings.prompt);
 
   const [editingPresetId, setEditingPresetId] = useState<string | null>(null);
@@ -139,42 +140,72 @@ export default function StylesView(props: {
   const handleResetPreset = (id: string) => {
     const preset = multiPrompt.presets.find(p => p.id === id);
     if (!preset) return;
-    if (!window.confirm(`确定要将“${preset.name}”恢复为官方出厂预设吗？当前修改将被覆盖。`)) {
-      return;
-    }
 
-    let originalPrompt = '';
-    if (id === 'default') originalPrompt = DEFAULT_CLEANUP_PROMPT;
-    else if (id === 'engineer') originalPrompt = ENGINEER_CLEANUP_PROMPT;
-    else if (id === 'charm') originalPrompt = CHARM_CLEANUP_PROMPT;
-    else return;
+    const performReset = () => {
+      let originalPrompt = '';
+      if (id === 'default') originalPrompt = DEFAULT_CLEANUP_PROMPT;
+      else if (id === 'engineer') originalPrompt = ENGINEER_CLEANUP_PROMPT;
+      else if (id === 'charm') originalPrompt = CHARM_CLEANUP_PROMPT;
+      else return;
 
-    const updatedPresets = multiPrompt.presets.map(p => {
-      if (p.id === id) {
-        return { ...p, prompt: originalPrompt };
+      const updatedPresets = multiPrompt.presets.map(p => {
+        if (p.id === id) {
+          return { ...p, prompt: originalPrompt };
+        }
+        return p;
+      });
+
+      savePresets(updatedPresets, multiPrompt.activeStyle);
+
+      // 如果当前正在编辑被重置的内置预设，同步更新编辑器内容
+      if (editingPresetId === id) {
+        setEditPrompt(originalPrompt);
       }
-      return p;
-    });
+    };
 
-    savePresets(updatedPresets, multiPrompt.activeStyle);
-
-    // 如果当前正在编辑被重置的内置预设，同步更新编辑器内容
-    if (editingPresetId === id) {
-      setEditPrompt(originalPrompt);
+    if (showConfirm) {
+      showConfirm({
+        title: '确认恢复出厂预设？',
+        message: `确定要将“${preset.name}”恢复为官方出厂预设吗？当前修改将被覆盖。`,
+        type: 'warning',
+        confirmText: '确认恢复',
+        cancelText: '取消',
+        onConfirm: performReset
+      });
+    } else if (window.confirm(`确定要将“${preset.name}”恢复为官方出厂预设吗？当前修改将被覆盖。`)) {
+      performReset();
     }
   };
 
   const handleDeletePreset = (id: string) => {
-    const updatedPresets = multiPrompt.presets.filter(p => p.id !== id);
-    // 如果删除的是当前选中的风格，重置为 'default'
-    let nextActive = multiPrompt.activeStyle;
-    if (multiPrompt.activeStyle === id) {
-      nextActive = 'default';
-    }
-    savePresets(updatedPresets, nextActive);
+    const preset = multiPrompt.presets.find(p => p.id === id);
+    if (!preset) return;
 
-    if (editingPresetId === id) {
-      setEditingPresetId(null);
+    const performDelete = () => {
+      const updatedPresets = multiPrompt.presets.filter(p => p.id !== id);
+      // 如果删除的是当前选中的风格，重置为 'default'
+      let nextActive = multiPrompt.activeStyle;
+      if (multiPrompt.activeStyle === id) {
+        nextActive = 'default';
+      }
+      savePresets(updatedPresets, nextActive);
+
+      if (editingPresetId === id) {
+        setEditingPresetId(null);
+      }
+    };
+
+    if (showConfirm) {
+      showConfirm({
+        title: '确认删除此风格？',
+        message: `确定要删除自定义风格“${preset.name}”吗？此操作无法撤销。`,
+        type: 'danger',
+        confirmText: '确认删除',
+        cancelText: '取消',
+        onConfirm: performDelete
+      });
+    } else {
+      performDelete();
     }
   };
 

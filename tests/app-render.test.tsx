@@ -518,11 +518,12 @@ describe('TailKall main renderer', () => {
     const deleteBtn = screen.getByTitle('删除此自定义风格');
     fireEvent.click(deleteBtn);
 
+    fireEvent.click(screen.getByRole('button', { name: '确认删除' }));
+
     expect(screen.queryByRole('heading', { name: '我的修改风格' })).not.toBeInTheDocument();
   });
 
   it('asks for confirmation before resetting a built-in style preset', () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
     render(<App />);
 
     fireEvent.click(screen.getByRole('button', { name: '风格' }));
@@ -536,57 +537,38 @@ describe('TailKall main renderer', () => {
 
     fireEvent.click(screen.getAllByTitle('重置为系统出厂配置')[0]);
 
-    expect(confirmSpy).toHaveBeenCalledWith('确定要将“日常聊天”恢复为官方出厂预设吗？当前修改将被覆盖。');
+    expect(screen.getByText('确定要将“日常聊天”恢复为官方出厂预设吗？当前修改将被覆盖。')).toBeInTheDocument();
+    
+    fireEvent.click(screen.getByRole('button', { name: '取消' }));
     expect(screen.getByText('用户改过的默认提示词')).toBeInTheDocument();
 
-    confirmSpy.mockReturnValue(true);
     fireEvent.click(screen.getAllByTitle('重置为系统出厂配置')[0]);
+    fireEvent.click(screen.getByRole('button', { name: '确认恢复' }));
 
     expect(screen.queryByText('用户改过的默认提示词')).not.toBeInTheDocument();
     expect(screen.getAllByText(/你是一个中文语音输入整理器/).length).toBeGreaterThan(0);
   });
 
   it('switches the dashboard style from the current-style dropdown', () => {
-    // 构造一个包含 6 个预设的 settings.prompt 序列化值
-    const customPromptData = {
-      activeStyle: 'default',
-      presets: [
-        { id: 'default', name: '日常聊天', prompt: 'Prompt 1', isBuiltIn: true },
-        { id: 'engineer', name: '理智工科', prompt: 'Prompt 2', isBuiltIn: true },
-        { id: 'charm', name: '高情商夸夸', prompt: 'Prompt 3', isBuiltIn: true },
-        { id: 'style4', name: '风格4', prompt: 'Prompt 4', isBuiltIn: false },
-        { id: 'style5', name: '风格5', prompt: 'Prompt 5', isBuiltIn: false },
-        { id: 'style6', name: '风格6', prompt: 'Prompt 6', isBuiltIn: false }
-      ]
-    };
-    
-    // 我们可以在渲染 App 前覆盖 localStorage 模拟 settings 状态，
-    // 不过我们也可以直接模拟 settings 的加载或交互。
-    // 在这里，我们可以通过在“风格”页面中新增 3 个自定义风格来让预设总数达到 6 个！
     render(<App />);
 
-    // 先进风格页面
     fireEvent.click(screen.getByRole('button', { name: '风格' }));
 
-    // 添加第 1 个自定义预设（总数达 4 个）
     fireEvent.click(screen.getByRole('button', { name: '新增风格' }));
     fireEvent.change(screen.getByPlaceholderText('输入风格名称，例如：会议纪要提炼、微信回复助手'), { target: { value: '风格4' } });
     fireEvent.change(screen.getByPlaceholderText('请输入你的自定义整理提示词，例如：请把我说的杂乱无章的语音，提取并提炼成简明扼要的三句话要点...'), { target: { value: 'Prompt 4' } });
     fireEvent.click(screen.getByRole('button', { name: '保存配置' }));
 
-    // 添加第 2 个自定义预设（总数达 5 个）
     fireEvent.click(screen.getByRole('button', { name: '新增风格' }));
     fireEvent.change(screen.getByPlaceholderText('输入风格名称，例如：会议纪要提炼、微信回复助手'), { target: { value: '风格5' } });
     fireEvent.change(screen.getByPlaceholderText('请输入你的自定义整理提示词，例如：请把我说的杂乱无章的语音，提取并提炼成简明扼要的三句话要点...'), { target: { value: 'Prompt 5' } });
     fireEvent.click(screen.getByRole('button', { name: '保存配置' }));
 
-    // 添加第 3 个自定义预设（总数达 6 个）
     fireEvent.click(screen.getByRole('button', { name: '新增风格' }));
     fireEvent.change(screen.getByPlaceholderText('输入风格名称，例如：会议纪要提炼、微信回复助手'), { target: { value: '风格6' } });
     fireEvent.change(screen.getByPlaceholderText('请输入你的自定义整理提示词，例如：请把我说的杂乱无章的语音，提取并提炼成简明扼要的三句话要点...'), { target: { value: 'Prompt 6' } });
     fireEvent.click(screen.getByRole('button', { name: '保存配置' }));
 
-    // 回到主页
     fireEvent.click(screen.getByRole('button', { name: '主页' }));
 
     const styleSelect = screen.getByRole('button', { name: /改写风格/ });
@@ -602,7 +584,6 @@ describe('TailKall main renderer', () => {
   });
 
   it('renders diagnostic logs at the bottom of settings for failed records', async () => {
-    // Mock the window.tailkall object with a failed transcription record
     window.tailkall = {
       getDashboard: async () => ({
         settings: {
@@ -663,7 +644,6 @@ describe('TailKall main renderer', () => {
 
     render(<App />);
 
-    // Wait for the mock dashboard record to load and render
     const failedStatuses = await screen.findAllByText('失败');
     expect(failedStatuses).toHaveLength(2);
 
@@ -685,7 +665,6 @@ describe('TailKall main renderer', () => {
     expect(within(logRegion).getByText('2026/05/20 22:46')).toBeInTheDocument();
     expect(within(logRegion).getAllByText('Cleanup provider DeepSeek failed with HTTP 402: insufficient balance')).toHaveLength(2);
 
-    // Clean up to prevent impacting other tests
     delete (window as any).tailkall;
   });
 
@@ -761,6 +740,8 @@ describe('TailKall main renderer', () => {
     expect(screen.getByText('Cleanup provider DeepSeek failed with HTTP 402: insufficient balance')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '清空诊断日志' }));
+
+    fireEvent.click(screen.getByRole('button', { name: '确认清空' }));
 
     expect(clearDiagnosticLogs).toHaveBeenCalledOnce();
     expect(await screen.findByText('暂无诊断日志')).toBeInTheDocument();
