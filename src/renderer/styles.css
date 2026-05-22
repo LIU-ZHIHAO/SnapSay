@@ -511,6 +511,16 @@ h2 svg {
   background: var(--surface-muted);
   border: 1px solid var(--border-subtle);
   border-radius: 10px;
+  position: relative;
+}
+
+/* Ensure the first grid (containing the dropdown) stacks on top of the second grid */
+.dashboard-stat-grid:first-of-type {
+  z-index: 10;
+}
+
+.dashboard-stat-grid:nth-of-type(2) {
+  z-index: 5;
 }
 
 .overview-stat {

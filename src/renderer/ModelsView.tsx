@@ -35,10 +35,6 @@ type SettingsState = {
   asr: string;
   asrAcceleration: string;
   localModelDir: string;
-  localAsrExePath: string;
-  localAsrModelPath: string;
-  ffmpegPath: string;
-  fasterWhisperModelPath: string;
   senseVoiceModelPath: string;
   pythonPath: string;
   cleanupEnabled: boolean;
@@ -68,8 +64,6 @@ type SettingsState = {
 function getFacade() {
   return window.tailkall ?? {};
 }
-
-const LOCAL_ASR_ENGINES = ['SenseVoice / FunASR', 'faster-whisper', 'whisper.cpp'];
 
 export default function ModelsView(props: {
   settings: SettingsState;
@@ -279,10 +273,26 @@ export default function ModelsView(props: {
 
       {/* ─── LLM Panel ─── */}
       <section className="panel settings-card">
-        <h2>
-          <Brain size={18} />
-          文案整理（LLM）
-        </h2>
+        <div className="panel-header">
+          <h2>
+            <Brain size={18} />
+            文案整理（LLM）
+          </h2>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', userSelect: 'none' }}>
+            <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
+              启用文案整理
+            </span>
+            <span className="switch-control">
+              <input
+                aria-label="启用文案整理"
+                checked={settings.cleanupEnabled}
+                onChange={(event) => onUpdate('cleanupEnabled', event.target.checked)}
+                type="checkbox"
+              />
+              <span aria-hidden="true" />
+            </span>
+          </label>
+        </div>
         <div className="form-grid" style={{ alignItems: 'end', marginBottom: '16px' }}>
           <label style={{ gridColumn: '1 / -1' }}>
             当前大模型引擎
@@ -329,21 +339,6 @@ export default function ModelsView(props: {
             </div>
           </label>
         </div>
-        <label className="setting-row smart-mouse-row" style={{ marginBottom: '16px' }}>
-          <span>
-            <strong>启用文案整理</strong>
-            <small>关闭后将跳过大模型整理，直接使用 ASR 识别结果</small>
-          </span>
-          <span className="switch-control">
-            <input
-              aria-label="启用文案整理"
-              checked={settings.cleanupEnabled}
-              onChange={(event) => onUpdate('cleanupEnabled', event.target.checked)}
-              type="checkbox"
-            />
-            <span aria-hidden="true" />
-          </span>
-        </label>
 
         <div className="provider-card-grid" style={{ marginBottom: '16px' }}>
           {settings.llmProviders.map((provider) => (
