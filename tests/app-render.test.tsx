@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import App from '../src/renderer/App';
+import App, { parseMultiPrompt } from '../src/renderer/App';
 import { DEFAULT_CLEANUP_PROMPT } from '../src/shared/cleanupPolicy';
 
 function demoDashboardSettings() {
@@ -468,6 +468,18 @@ describe('TailKall main renderer', () => {
 
     const setButtons = screen.getAllByRole('button', { name: '设为生效' });
     expect(setButtons.length).toBeGreaterThan(0);
+  });
+
+  it('renames the legacy default style preset to daily chat', () => {
+    const multiPrompt = parseMultiPrompt(JSON.stringify({
+      activeStyle: 'default',
+      presets: [
+        { id: 'default', name: '默认整理', prompt: 'Prompt 1', isBuiltIn: true },
+        { id: 'engineer', name: '理智工科', prompt: 'Prompt 2', isBuiltIn: true }
+      ]
+    }));
+
+    expect(multiPrompt.presets.find((preset) => preset.id === 'default')?.name).toBe('日常聊天');
   });
 
   it('allows adding, editing and deleting a custom style preset', () => {

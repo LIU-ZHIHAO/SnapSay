@@ -50,6 +50,10 @@ export function parseMultiPrompt(promptStr: string): MultiPromptData {
     { id: 'charm', name: '高情商夸夸', prompt: CHARM_CLEANUP_PROMPT, isBuiltIn: true }
   ];
 
+  const resolveBuiltInPresetName = (id: string, fallback: string) => {
+    return defaultPresets.find((preset) => preset.id === id)?.name ?? fallback;
+  };
+
   const makePromptsMap = (presets: StylePreset[]) => {
     const map: Record<string, string> = {};
     for (const p of presets) {
@@ -77,7 +81,7 @@ export function parseMultiPrompt(promptStr: string): MultiPromptData {
         if (Array.isArray(parsed.presets)) {
           const presets: StylePreset[] = parsed.presets.map((p: any) => ({
             id: String(p.id || ''),
-            name: String(p.name || ''),
+            name: resolveBuiltInPresetName(String(p.id || ''), String(p.name || '')),
             prompt: String(p.prompt || ''),
             isBuiltIn: Boolean(p.isBuiltIn)
           })).filter((p: any) => p.id && p.name);
