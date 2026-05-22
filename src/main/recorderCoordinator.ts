@@ -1,6 +1,8 @@
 import type { AsrProvider } from './providers';
 import type { SettingsStore, TranscriptionRecord } from './settingsStore';
 
+const TERMINAL_PUNCTUATION_RE = /[。．，、！？!?.,：:；;]+$/u;
+
 export type RecordingPipelineOptions = {
   audio: ArrayBuffer;
   asrProvider: AsrProvider;
@@ -11,6 +13,10 @@ export type RecordingPipelineOptions = {
   pasteText: (text: string) => Promise<unknown>;
   settingsStore: SettingsStore;
 };
+
+export function stripTerminalPunctuation(text: string): string {
+  return text.replace(TERMINAL_PUNCTUATION_RE, '');
+}
 
 export async function runRecordingPipeline(
   options: RecordingPipelineOptions
@@ -26,7 +32,8 @@ export async function runRecordingPipeline(
     const asr = await options.asrProvider.transcribe(options.audio);
     asrDurationMs = Date.now() - asrStart;
     console.log(`[ASR] Transcribe completed. Cost: ${asrDurationMs}ms, Audio physical duration: ${options.durationMs}ms`);
-    transcript = options.applyWordbook ? options.applyWordbook(asr.text) : asr.text;
+    const rawTranscript = options.applyWordbook ? options.applyWordbook(asr.text) : asr.text;
+    transcript = stripTerminalPunctuation(rawTranscript);
 
     const shouldCleanup = options.shouldCleanupText?.(transcript) ?? true;
     if (shouldCleanup) {

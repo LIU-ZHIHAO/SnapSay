@@ -223,6 +223,48 @@ describe('recorderCoordinator', () => {
     expect(paste).toHaveBeenCalledWith('打开设置页');
   });
 
+  it('strips trailing punctuation before pasting short transcripts that skip cleanup', async () => {
+    const store = createSettingsStore({ store: createMemoryStore() });
+    const cleanup = vi.fn().mockResolvedValue('clean text');
+    const paste = vi.fn().mockResolvedValue({ status: 'pasted' });
+
+    const record = await runRecordingPipeline({
+      audio: new ArrayBuffer(0),
+      durationMs: 600,
+      asrProvider: createMockAsrProvider('打开设置页。'),
+      cleanupText: cleanup,
+      pasteText: paste,
+      settingsStore: store,
+      shouldCleanupText: shouldCleanupTranscript
+    });
+
+    expect(record.status).toBe('completed');
+    expect(record.transcript).toBe('打开设置页');
+    expect(record.cleanedText).toBeUndefined();
+    expect(cleanup).not.toHaveBeenCalled();
+    expect(paste).toHaveBeenCalledWith('打开设置页');
+  });
+
+  it('keeps interior punctuation and removes only continuous trailing punctuation', async () => {
+    const store = createSettingsStore({ store: createMemoryStore() });
+    const cleanup = vi.fn().mockResolvedValue('clean text');
+    const paste = vi.fn().mockResolvedValue({ status: 'pasted' });
+
+    const record = await runRecordingPipeline({
+      audio: new ArrayBuffer(0),
+      durationMs: 600,
+      asrProvider: createMockAsrProvider('打开设置页，然后点击保存？！'),
+      cleanupText: cleanup,
+      pasteText: paste,
+      settingsStore: store,
+      shouldCleanupText: shouldCleanupTranscript
+    });
+
+    expect(record.transcript).toBe('打开设置页，然后点击保存');
+    expect(cleanup).not.toHaveBeenCalled();
+    expect(paste).toHaveBeenCalledWith('打开设置页，然后点击保存');
+  });
+
   it('runs cleanup for transcripts longer than the cleanup threshold', async () => {
     const store = createSettingsStore({ store: createMemoryStore() });
     const cleanup = vi.fn().mockResolvedValue('整理后的长文本');
