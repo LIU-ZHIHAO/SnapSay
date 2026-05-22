@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('tailkall', {
   extractWordPairs: (id: string) => ipcRenderer.invoke('tailkall:extract-word-pairs', id),
   windowControl: (action: 'minimize' | 'toggle-maximize' | 'close') =>
     ipcRenderer.invoke('tailkall:window-control', action),
+  openExternal: (url: string) => ipcRenderer.invoke('tailkall:open-external', url),
   onRecordingStart: (callback: () => void) => {
     ipcRenderer.on('tailkall:recording-start', callback);
     return () => ipcRenderer.removeListener('tailkall:recording-start', callback);

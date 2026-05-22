@@ -1,4 +1,4 @@
-import { app, BrowserWindow, clipboard, globalShortcut, ipcMain, Menu, nativeImage, screen } from 'electron';
+import { app, BrowserWindow, clipboard, globalShortcut, ipcMain, Menu, nativeImage, screen, shell } from 'electron';
 import { execFile, spawn } from 'node:child_process';
 import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
@@ -522,6 +522,16 @@ function installIpcHandlers(): void {
       return true;
     }
     return false;
+  });
+
+  ipcMain.handle('tailkall:open-external', async (_event, url: string) => {
+    try {
+      await shell.openExternal(url);
+      return { ok: true };
+    } catch (err) {
+      console.error('Failed to open external URL:', err);
+      return { ok: false, error: String(err) };
+    }
   });
 }
 

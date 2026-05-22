@@ -1392,6 +1392,21 @@ button:focus-visible {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
+.provider-logo-img {
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.provider-logo-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+}
+
 .provider-card-header > div {
   min-width: 0;
 }
@@ -3884,16 +3899,16 @@ tr:last-child td {
 /* Fix provider modal transparency on glassmorphism themes */
 [data-appearance="glass-light"] .provider-modal,
 [data-appearance="pink"] .provider-modal {
-  background: rgba(255, 255, 255, 0.92) !important;
+  background: rgba(255, 255, 255, 0.98) !important;
   backdrop-filter: blur(24px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.65) !important;
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.18), 0 0 1px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.22), 0 0 1px rgba(0, 0, 0, 0.15) !important;
 }
 
 [data-appearance="glass-light"] .provider-modal-header,
 [data-appearance="pink"] .provider-modal-header {
-  background: rgba(255, 255, 255, 0.88) !important;
-  border-bottom: 1px solid rgba(226, 232, 240, 0.6) !important;
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8) !important;
 }
 

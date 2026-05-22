@@ -1,107 +1,141 @@
 import { useState, type ReactNode } from 'react';
-import { Brain, Server, PlugZap, X, Cpu, Globe, Zap } from 'lucide-react';
+import { Brain, Server, PlugZap, X, Cpu, Globe, Zap, ExternalLink } from 'lucide-react';
 import { CustomSelect } from './App';
 
-/* ─── Provider Brand Icons (inline SVG) ─── */
-function getProviderIcon(key: string): ReactNode {
-  const size = 28;
-  switch (key) {
-    case 'openai':
-      return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="12" fill="#10a37f" />
-          <path d="M18.1 10.8c.3-1-.1-2.1-.8-2.9a3.2 3.2 0 0 0-3.4-1.2 3.2 3.2 0 0 0-2.4-1.1c-1.3 0-2.4.7-3 1.8a3.2 3.2 0 0 0-2.1 1.6c-.7 1.1-.5 2.5.2 3.5-.3 1 .1 2.1.8 2.9.8.9 2 1.3 3.2 1.2.6.7 1.5 1.1 2.4 1.1 1.3 0 2.4-.7 3-1.8 1.2-.2 2.2-1 2.6-2.1.5-1.1.4-2.3-.5-3z" fill="#fff" fillOpacity="0.9"/>
-        </svg>
-      );
-    case 'deepseek':
-      return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="12" fill="#4D6BFE" />
-          <text x="12" y="16" textAnchor="middle" fill="#fff" fontSize="11" fontWeight="800" fontFamily="Inter, sans-serif">DS</text>
-        </svg>
-      );
-    case 'openrouter':
-      return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="12" fill="#6366f1" />
-          <path d="M8 8l4 4-4 4M13 16h3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
-    case 'siliconflow':
-      return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="12" fill="#7C3AED" />
-          <text x="12" y="16" textAnchor="middle" fill="#fff" fontSize="11" fontWeight="800" fontFamily="Inter, sans-serif">SF</text>
-        </svg>
-      );
-    case 'volcengine-ark':
-      return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="12" fill="#3370ff" />
-          <path d="M7 16l5-10 5 10" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-          <line x1="9" y1="13" x2="15" y2="13" stroke="#fff" strokeWidth="1.5" strokeLinecap="round"/>
-        </svg>
-      );
-    case 'dashscope':
-      return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="12" fill="#ff6a00" />
-          <text x="12" y="16" textAnchor="middle" fill="#fff" fontSize="10" fontWeight="800" fontFamily="Inter, sans-serif">阿里</text>
-        </svg>
-      );
-    case 'moonshot':
-      return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="12" fill="#1a1a2e" />
-          <path d="M14 7a5 5 0 1 0 0 10 5 5 0 0 1 0-10z" fill="#fbbf24"/>
-          <circle cx="9" cy="9" r="1" fill="#fbbf24" opacity="0.6"/>
-          <circle cx="7" cy="13" r="0.6" fill="#fbbf24" opacity="0.4"/>
-        </svg>
-      );
-    case 'zhipu':
-      return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="12" fill="#2563eb" />
-          <text x="12" y="16" textAnchor="middle" fill="#fff" fontSize="10" fontWeight="800" fontFamily="Inter, sans-serif">智谱</text>
-        </svg>
-      );
-    case 'tencent-hunyuan':
-      return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="12" fill="#00a4ff" />
-          <text x="12" y="16" textAnchor="middle" fill="#fff" fontSize="10" fontWeight="800" fontFamily="Inter, sans-serif">混元</text>
-        </svg>
-      );
-    case 'gemini-compatible':
-      return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="12" fill="#1a73e8" />
-          <path d="M12 6c-3.3 0-6 2.7-6 6s2.7 6 6 6c1.7 0 3.2-.7 4.2-1.8L12 12V6z" fill="#8ab4f8"/>
-          <path d="M12 6v6l4.2 4.2A6 6 0 0 0 12 6z" fill="#fff" fillOpacity="0.7"/>
-        </svg>
-      );
-    case 'ollama':
-      return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="12" fill="#333" />
-          <text x="12" y="16" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="700" fontFamily="Inter, sans-serif">🦙</text>
-        </svg>
-      );
-    case 'custom-openai':
-      return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="12" fill="#64748b" />
-          <path d="M12 7v4M12 13v4M7 12h4M13 12h4" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
-        </svg>
-      );
-    default:
-      return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="12" fill="#94a3b8" />
-          <circle cx="12" cy="12" r="4" fill="#fff" fillOpacity="0.8"/>
-        </svg>
-      );
+/* ─── Provider Metadata: Logos, Platform URLs ─── */
+type ProviderMeta = {
+  logoUrl: string;
+  platformUrl: string;
+  platformLabel: string;
+  fallbackBg: string;
+  fallbackText: string;
+};
+
+const PROVIDER_META: Record<string, ProviderMeta> = {
+  'openai': {
+    logoUrl: 'https://cdn.openai.com/API/logo-assets/openai-logos/PNG/openai-logomark.png',
+    platformUrl: 'https://platform.openai.com/api-keys',
+    platformLabel: '前往 OpenAI 获取 API Key',
+    fallbackBg: '#10a37f',
+    fallbackText: 'AI'
+  },
+  'deepseek': {
+    logoUrl: 'https://chat.deepseek.com/favicon.ico',
+    platformUrl: 'https://platform.deepseek.com/api_keys',
+    platformLabel: '前往 DeepSeek 获取 API Key',
+    fallbackBg: '#4D6BFE',
+    fallbackText: 'DS'
+  },
+  'openrouter': {
+    logoUrl: 'https://openrouter.ai/favicon.ico',
+    platformUrl: 'https://openrouter.ai/keys',
+    platformLabel: '前往 OpenRouter 获取 API Key',
+    fallbackBg: '#6366f1',
+    fallbackText: 'OR'
+  },
+  'siliconflow': {
+    logoUrl: 'https://siliconflow.cn/favicon.ico',
+    platformUrl: 'https://cloud.siliconflow.cn/account/ak',
+    platformLabel: '前往硅基流动获取 API Key',
+    fallbackBg: '#7C3AED',
+    fallbackText: 'SF'
+  },
+  'volcengine-ark': {
+    logoUrl: 'https://www.volcengine.com/favicon.ico',
+    platformUrl: 'https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey',
+    platformLabel: '前往火山方舟获取 API Key',
+    fallbackBg: '#3370ff',
+    fallbackText: '方舟'
+  },
+  'dashscope': {
+    logoUrl: 'https://img.alicdn.com/imgextra/i4/O1CN01c4NbGs23kFKEkJXln_!!6000000007294-2-tps-167-167.png',
+    platformUrl: 'https://dashscope.console.aliyun.com/apiKey',
+    platformLabel: '前往阿里云百炼获取 API Key',
+    fallbackBg: '#ff6a00',
+    fallbackText: '阿里'
+  },
+  'moonshot': {
+    logoUrl: 'https://www.moonshot.cn/favicon.ico',
+    platformUrl: 'https://platform.moonshot.cn/console/api-keys',
+    platformLabel: '前往 Kimi 开放平台获取 API Key',
+    fallbackBg: '#1a1a2e',
+    fallbackText: 'K'
+  },
+  'zhipu': {
+    logoUrl: 'https://open.bigmodel.cn/favicon.ico',
+    platformUrl: 'https://open.bigmodel.cn/usercenter/apikeys',
+    platformLabel: '前往智谱开放平台获取 API Key',
+    fallbackBg: '#2563eb',
+    fallbackText: '智谱'
+  },
+  'tencent-hunyuan': {
+    logoUrl: 'https://hunyuan.tencent.com/favicon.ico',
+    platformUrl: 'https://console.cloud.tencent.com/hunyuan',
+    platformLabel: '前往腾讯云获取 API Key',
+    fallbackBg: '#00a4ff',
+    fallbackText: '混元'
+  },
+  'gemini-compatible': {
+    logoUrl: 'https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d4735304ff6292a690b6.svg',
+    platformUrl: 'https://aistudio.google.com/app/apikey',
+    platformLabel: '前往 Google AI Studio 获取 API Key',
+    fallbackBg: '#1a73e8',
+    fallbackText: 'G'
+  },
+  'ollama': {
+    logoUrl: 'https://ollama.com/public/ollama.png',
+    platformUrl: 'https://ollama.com/',
+    platformLabel: 'Ollama 本地运行，无需 API Key',
+    fallbackBg: '#333',
+    fallbackText: 'OL'
+  },
+  'custom-openai': {
+    logoUrl: '',
+    platformUrl: '',
+    platformLabel: '',
+    fallbackBg: '#64748b',
+    fallbackText: '⚙'
   }
+};
+
+function openExternal(url: string) {
+  const facade = window.tailkall as any;
+  if (facade && typeof facade.openExternal === 'function') {
+    void facade.openExternal(url);
+  } else {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+}
+
+function ProviderLogo({ providerKey, size = 28 }: { providerKey: string; size?: number }) {
+  const [imgError, setImgError] = useState(false);
+  const meta = PROVIDER_META[providerKey];
+
+  if (!meta?.logoUrl || imgError) {
+    const bg = meta?.fallbackBg ?? '#94a3b8';
+    const text = meta?.fallbackText ?? '?';
+    return (
+      <span
+        className="provider-logo-fallback"
+        style={{ width: size, height: size, background: bg, fontSize: size * 0.35 }}
+      >
+        {text}
+      </span>
+    );
+  }
+
+  return (
+    <img
+      src={meta.logoUrl}
+      width={size}
+      height={size}
+      className="provider-logo-img"
+      onError={() => setImgError(true)}
+      alt=""
+      crossOrigin="anonymous"
+      referrerPolicy="no-referrer"
+    />
+  );
 }
 
 function getAsrIcon(profile: { kind: string; engine?: string }): ReactNode {
@@ -460,7 +494,7 @@ export default function ModelsView(props: {
             <article className={provider.key === settings.activeLlmProviderKey ? 'provider-card active' : 'provider-card'} key={provider.key}>
               <div className="provider-card-header">
                 <div className="provider-icon-container">
-                  {getProviderIcon(provider.key)}
+                  <ProviderLogo providerKey={provider.key} size={28} />
                 </div>
                 <div>
                   <h3>{provider.displayName}</h3>
@@ -489,9 +523,14 @@ export default function ModelsView(props: {
         <div className="modal-backdrop" role="presentation">
           <section aria-modal="true" aria-label={`${configAsrProfile.displayName} 设置`} className="provider-modal" role="dialog">
             <div className="provider-modal-header">
-              <div>
-                <h2>{configAsrProfile.displayName} 设置</h2>
-                <span>{configAsrProfile.kind === 'cloud-upload' ? '云端上传转写' : '云端流式转写'}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div className="provider-icon-container" style={{ background: 'var(--surface-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {getAsrIcon(configAsrProfile)}
+                </div>
+                <div>
+                  <h2>{configAsrProfile.displayName} 设置</h2>
+                  <span>{configAsrProfile.kind === 'cloud-upload' ? '云端上传转写' : '云端流式转写'}</span>
+                </div>
               </div>
               <div className="provider-modal-actions">
                 <button
@@ -534,9 +573,14 @@ export default function ModelsView(props: {
         <div className="modal-backdrop" role="presentation">
           <section aria-modal="true" aria-label={`${configProvider.displayName} 设置`} className="provider-modal" role="dialog">
             <div className="provider-modal-header">
-              <div>
-                <h2>{configProvider.displayName} 设置</h2>
-                <span>大模型服务商</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div className="provider-icon-container" style={{ background: 'var(--surface-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ProviderLogo providerKey={configProvider.key} size={28} />
+                </div>
+                <div>
+                  <h2>{configProvider.displayName} 设置</h2>
+                  <span>大模型服务商</span>
+                </div>
               </div>
               <div className="provider-modal-actions">
                 <button
@@ -558,9 +602,35 @@ export default function ModelsView(props: {
               </div>
             </div>
             <div className="provider-modal-body">
-              <label>
+              <label style={{ position: 'relative' }}>
                 {configProvider.displayName} API Key
                 <input onChange={(event) => updateLlmProvider(configProvider.key, 'apiKey', event.target.value)} type="password" value={configProvider.apiKey} />
+                {PROVIDER_META[configProvider.key]?.platformUrl && (
+                  <button
+                    onClick={() => openExternal(PROVIDER_META[configProvider.key].platformUrl)}
+                    type="button"
+                    className="api-key-link"
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      right: 0,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--accent-strong)',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      padding: 0,
+                      fontWeight: '600',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    {PROVIDER_META[configProvider.key].platformLabel}
+                    <ExternalLink size={12} />
+                  </button>
+                )}
               </label>
               <label>
                 {configProvider.displayName} Base URL
