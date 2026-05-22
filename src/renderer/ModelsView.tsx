@@ -13,77 +13,77 @@ type ProviderMeta = {
 
 const PROVIDER_META: Record<string, ProviderMeta> = {
   'openai': {
-    logoUrl: 'https://openai.com/favicon.ico',
+    logoUrl: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/openai.svg',
     platformUrl: 'https://platform.openai.com/api-keys',
     platformLabel: '前往 OpenAI 获取 API Key',
     fallbackBg: '#10a37f',
     fallbackText: 'AI'
   },
   'deepseek': {
-    logoUrl: 'https://www.deepseek.com/favicon.ico',
+    logoUrl: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/deepseek-color.svg',
     platformUrl: 'https://platform.deepseek.com/api_keys',
     platformLabel: '前往 DeepSeek 获取 API Key',
     fallbackBg: '#4D6BFE',
     fallbackText: 'DS'
   },
   'openrouter': {
-    logoUrl: 'https://openrouter.ai/favicon.ico',
+    logoUrl: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/openrouter.svg',
     platformUrl: 'https://openrouter.ai/keys',
     platformLabel: '前往 OpenRouter 获取 API Key',
     fallbackBg: '#6366f1',
     fallbackText: 'OR'
   },
   'siliconflow': {
-    logoUrl: 'https://siliconflow.cn/favicon.ico',
+    logoUrl: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/siliconcloud-color.svg',
     platformUrl: 'https://cloud.siliconflow.cn/account/ak',
     platformLabel: '前往硅基流动获取 API Key',
     fallbackBg: '#7C3AED',
     fallbackText: 'SF'
   },
   'volcengine-ark': {
-    logoUrl: 'https://www.volcengine.com/favicon.ico',
+    logoUrl: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/volcengine-color.svg',
     platformUrl: 'https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey',
     platformLabel: '前往火山方舟获取 API Key',
     fallbackBg: '#3370ff',
     fallbackText: '方舟'
   },
   'dashscope': {
-    logoUrl: 'https://www.aliyun.com/favicon.ico',
+    logoUrl: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/qwen-color.svg',
     platformUrl: 'https://dashscope.console.aliyun.com/apiKey',
     platformLabel: '前往阿里云百炼获取 API Key',
     fallbackBg: '#ff6a00',
     fallbackText: '阿里'
   },
   'moonshot': {
-    logoUrl: 'https://www.moonshot.cn/favicon.ico',
+    logoUrl: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/moonshot.svg',
     platformUrl: 'https://platform.moonshot.cn/console/api-keys',
     platformLabel: '前往 Kimi 开放平台获取 API Key',
     fallbackBg: '#1a1a2e',
     fallbackText: 'K'
   },
   'zhipu': {
-    logoUrl: 'https://open.bigmodel.cn/favicon.ico',
+    logoUrl: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/zhipu-color.svg',
     platformUrl: 'https://open.bigmodel.cn/usercenter/apikeys',
     platformLabel: '前往智谱开放平台获取 API Key',
     fallbackBg: '#2563eb',
     fallbackText: '智谱'
   },
   'tencent-hunyuan': {
-    logoUrl: 'https://hunyuan.tencent.com/favicon.ico',
+    logoUrl: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/hunyuan-color.svg',
     platformUrl: 'https://console.cloud.tencent.com/hunyuan',
     platformLabel: '前往腾讯云获取 API Key',
     fallbackBg: '#00a4ff',
     fallbackText: '混元'
   },
   'gemini-compatible': {
-    logoUrl: 'https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d4735304ff6292a690b6.svg',
+    logoUrl: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/gemini-color.svg',
     platformUrl: 'https://aistudio.google.com/app/apikey',
     platformLabel: '前往 Google AI Studio 获取 API Key',
     fallbackBg: '#1a73e8',
     fallbackText: 'G'
   },
   'ollama': {
-    logoUrl: 'https://ollama.com/public/ollama.png',
+    logoUrl: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/ollama.svg',
     platformUrl: 'https://ollama.com/',
     platformLabel: 'Ollama 本地运行，无需 API Key',
     fallbackBg: '#333',
