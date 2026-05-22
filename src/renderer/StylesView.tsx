@@ -200,7 +200,7 @@ export default function StylesView(props: {
         cancelText: '取消',
         onConfirm: performDelete
       });
-    } else {
+    } else if (window.confirm(`确定要删除自定义风格“${preset.name}”吗？此操作无法撤销。`)) {
       performDelete();
     }
   };
@@ -395,7 +395,11 @@ export default function StylesView(props: {
                 <div className="preset-card-footer">
                   <button
                     className="preset-card-action-btn edit-btn"
-                    onClick={() => startEdit(preset)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      startEdit(preset);
+                    }}
                     type="button"
                   >
                     编辑参数
@@ -404,7 +408,11 @@ export default function StylesView(props: {
                   {!preset.isBuiltIn && (
                     <button
                       className="preset-card-action-btn delete-btn"
-                      onClick={() => handleDeletePreset(preset.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        handleDeletePreset(preset.id);
+                      }}
                       type="button"
                       title="删除此自定义风格"
                     >
@@ -415,7 +423,11 @@ export default function StylesView(props: {
                   {preset.isBuiltIn && (
                     <button
                       className="preset-card-action-btn reset-btn"
-                      onClick={() => handleResetPreset(preset.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        handleResetPreset(preset.id);
+                      }}
                       type="button"
                       title="重置为系统出厂配置"
                     >
