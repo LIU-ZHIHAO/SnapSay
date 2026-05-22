@@ -435,6 +435,8 @@ h2 svg {
   border: 1px solid var(--border-subtle);
   border-radius: 16px;
   box-shadow: var(--shadow-soft);
+  position: relative;
+  z-index: 20;
 }
 
 .dashboard-summary-line {

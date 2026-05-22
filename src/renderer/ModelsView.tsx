@@ -278,7 +278,7 @@ export default function ModelsView(props: {
             <Brain size={18} />
             文案整理（LLM）
           </h2>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', userSelect: 'none' }}>
+          <label style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px', cursor: 'pointer', userSelect: 'none' }}>
             <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
               启用文案整理
             </span>
