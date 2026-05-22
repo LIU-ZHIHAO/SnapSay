@@ -46,7 +46,7 @@ describe('settingsStore', () => {
         localModelDir: 'D:\\Antigravity\\tailkall\\models\\sensevoice',
         localAsrExePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\Release\\whisper-cli.exe',
         localAsrModelPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin',
-        ffmpegPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ffmpeg.exe',
+        ffmpegPath: 'ffmpeg',
         fasterWhisperModelPath: 'D:\\Antigravity\\tailkall\\models\\faster-whisper\\small',
         senseVoiceModelPath: 'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
         pythonPath: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',

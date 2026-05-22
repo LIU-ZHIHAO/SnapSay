@@ -7,7 +7,7 @@ $ErrorActionPreference = "Stop"
 $python = Join-Path $Root ".venv\Scripts\python.exe"
 $whisper = Join-Path $Root "models\whisper\Release\whisper-cli.exe"
 $whisperModel = Join-Path $Root "models\whisper\ggml-small.bin"
-$ffmpeg = Join-Path $Root "models\whisper\ffmpeg.exe"
+$ffmpeg = "ffmpeg"
 $sample = Join-Path $Root "models\sensevoice\SenseVoiceSmall\example\zh.mp3"
 $wav = Join-Path $Root "tmp\asr-smoke.wav"
 

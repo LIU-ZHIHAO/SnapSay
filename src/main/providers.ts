@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { access, readFile, writeFile } from 'node:fs/promises';
-import { basename, join } from 'node:path';
+import { basename, isAbsolute, join } from 'node:path';
 import { createConnection, type Socket } from 'node:net';
 import { promisify } from 'node:util';
 import type { AppSettings, AsrProfileConfig, CleanupProviderConfig, CloudAsrProviderConfig } from './settingsStore';
@@ -476,6 +476,9 @@ async function assertFileExists(
   fileExists: WhisperCppProviderOptions['fileExists'],
   label: string
 ): Promise<void> {
+  if (!isFilesystemPath(path)) {
+    return;
+  }
   const exists = fileExists
     ? await fileExists(path)
     : await access(path)
@@ -484,6 +487,10 @@ async function assertFileExists(
   if (!exists) {
     throw new Error(`${label}: ${path}`);
   }
+}
+
+function isFilesystemPath(path: string): boolean {
+  return isAbsolute(path) || path.includes('\\') || path.includes('/');
 }
 
 function normalizeProvider(provider: CleanupProviderConfig): Required<CleanupProviderConfig> {

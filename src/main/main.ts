@@ -248,7 +248,7 @@ function toRendererSettings(): RendererSettings {
       settings?.input.localAsrExePath ?? join('D:\\Antigravity', 'tailkall', 'models', 'whisper', 'Release', 'whisper-cli.exe'),
     localAsrModelPath:
       settings?.input.localAsrModelPath ?? join('D:\\Antigravity', 'tailkall', 'models', 'whisper', 'ggml-small.bin'),
-    ffmpegPath: settings?.input.ffmpegPath ?? join('D:\\Antigravity', 'tailkall', 'models', 'whisper', 'ffmpeg.exe'),
+    ffmpegPath: settings?.input.ffmpegPath ?? 'ffmpeg',
     fasterWhisperModelPath:
       settings?.input.fasterWhisperModelPath ?? join('D:\\Antigravity', 'tailkall', 'models', 'faster-whisper', 'small'),
     senseVoiceModelPath:

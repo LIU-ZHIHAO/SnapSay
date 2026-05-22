@@ -31,11 +31,6 @@ if (-not (Test-Path -LiteralPath $modelPath)) {
   Invoke-WebRequest -Uri "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin" -OutFile $modelPath
 }
 
-$ffmpeg = Get-Command ffmpeg -ErrorAction SilentlyContinue
-if ($ffmpeg) {
-  Copy-Item -LiteralPath $ffmpeg.Source -Destination (Join-Path $whisperDir "ffmpeg.exe") -Force
-}
-
 Write-Output "whisper.cpp: $(Join-Path $whisperDir 'Release\whisper-cli.exe')"
 Write-Output "model: $modelPath"
-Write-Output "ffmpeg: $(Join-Path $whisperDir 'ffmpeg.exe')"
+Write-Output "ffmpeg fallback: system PATH command 'ffmpeg'"

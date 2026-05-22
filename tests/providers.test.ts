@@ -191,7 +191,7 @@ describe('providers', () => {
       executablePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\whisper-cli.exe',
       modelPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin',
       tmpDir: 'D:\\Antigravity\\tailkall\\tmp',
-      ffmpegPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ffmpeg.exe',
+      ffmpegPath: 'ffmpeg',
       idFactory: () => 'rec-1',
       writeFile: async (path, data) => {
         writes.push({ path, data });
@@ -211,7 +211,7 @@ describe('providers', () => {
     expect(result).toEqual({ text: '本地识别文本', provider: 'whisper.cpp' });
     expect(writes[0].path).toBe('D:\\Antigravity\\tailkall\\tmp\\rec-1.webm');
     expect(commands[0]).toEqual({
-      file: 'D:\\Antigravity\\tailkall\\models\\whisper\\ffmpeg.exe',
+      file: 'ffmpeg',
       args: ['-y', '-i', 'D:\\Antigravity\\tailkall\\tmp\\rec-1.webm', 'D:\\Antigravity\\tailkall\\tmp\\rec-1.wav']
     });
     expect(commands[1]).toEqual({
@@ -237,7 +237,7 @@ describe('providers', () => {
       executablePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\whisper-cli.exe',
       modelPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin',
       tmpDir: 'D:\\Antigravity\\tailkall\\tmp',
-      ffmpegPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ffmpeg.exe',
+      ffmpegPath: 'ffmpeg',
       idFactory: () => 'rec-wav',
       writeFile: async (path, data) => {
         writes.push({ path, data });
@@ -300,7 +300,7 @@ describe('providers', () => {
       scriptPath: 'D:\\Antigravity\\tailkall\\scripts\\asr-faster-whisper.py',
       modelPath: 'D:\\Antigravity\\tailkall\\models\\faster-whisper\\small',
       tmpDir: 'D:\\Antigravity\\tailkall\\tmp',
-      ffmpegPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ffmpeg.exe',
+      ffmpegPath: 'ffmpeg',
       acceleration: 'auto-gpu',
       idFactory: () => 'py-1',
       writeFile: async () => undefined,
@@ -342,7 +342,7 @@ describe('providers', () => {
       scriptPath: 'D:\\Antigravity\\tailkall\\scripts\\asr-faster-whisper.py',
       modelPath: 'D:\\Antigravity\\tailkall\\models\\faster-whisper\\small',
       tmpDir: 'D:\\Antigravity\\tailkall\\tmp',
-      ffmpegPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ffmpeg.exe',
+      ffmpegPath: 'ffmpeg',
       idFactory: () => 'py-wav',
       writeFile: async () => undefined,
       readTextFile: async () => 'python wav text',
