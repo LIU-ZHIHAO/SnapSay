@@ -13,7 +13,7 @@ import {
   type MouseTrigger,
   type TriggerBinding
 } from './inputController.js';
-import { cleanupText, createAsrDaemonProvider, createCloudAsrProvider, createCloudStreamingAsrProvider, createPythonAsrProvider, createWhisperCppAsrProvider, formatProviderTestDuration, resolveActiveCleanupProvider, testCleanupProvider, type FetchLike } from './providers.js';
+import { cleanupText, createAsrDaemonProvider, createCloudAsrProvider, createCloudStreamingAsrProvider, createPythonAsrProvider, formatProviderTestDuration, resolveActiveCleanupProvider, testCleanupProvider, type FetchLike } from './providers.js';
 import { runRecordingPipeline } from './recorderCoordinator.js';
 import { createElectronStoreAdapter, createSettingsStore, type SettingsStore, type TranscriptionRecord } from './settingsStore.js';
 import type { AsrProfileConfig, LlmProviderConfig } from './settingsStore.js';
@@ -27,10 +27,6 @@ type RendererSettings = {
   asr: string;
   asrAcceleration: string;
   localModelDir: string;
-  localAsrExePath: string;
-  localAsrModelPath: string;
-  ffmpegPath: string;
-  fasterWhisperModelPath: string;
   senseVoiceModelPath: string;
   pythonPath: string;
   cleanupEnabled: boolean;
@@ -90,11 +86,11 @@ let isRecording = false;
 let activeTriggerAccelerator: string | undefined;
 let stopLowLevelTrigger: (() => void) | undefined;
 let asrDaemonPort: number | undefined;
-let asrDaemonEngine: 'sensevoice' | 'faster-whisper' | undefined;
+let asrDaemonEngine: 'sensevoice' | undefined;
 const execFileAsync = promisify(execFile);
 const LONG_PRESS_MS = 350;
 const ASR_PORT_FILE_SV = join('D:\\Antigravity', 'tailkall', 'data', 'asr-daemon.port');
-const ASR_PORT_FILE_FW = join('D:\\Antigravity', 'tailkall', 'data', 'asr-daemon-fw.port');
+const SYSTEM_FFMPEG_COMMAND = 'ffmpeg';
 
 app.setPath('userData', join('D:\\Antigravity', 'tailkall', 'data', 'electron'));
 app.setPath('logs', join('D:\\Antigravity', 'tailkall', 'logs'));
@@ -119,17 +115,12 @@ function defaultDataRoot(): string {
 async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>): Promise<void> {
   const asrName = settings.input.asr;
   const isSenseVoice = /sensevoice|funasr/i.test(asrName);
-  const isFasterWhisper = /faster-whisper/i.test(asrName);
-  if (!isSenseVoice && !isFasterWhisper) return;
+  if (!isSenseVoice) return;
 
-  const portFile = isSenseVoice ? ASR_PORT_FILE_SV : ASR_PORT_FILE_FW;
-  const scriptPath = isSenseVoice
-    ? join('D:\\Antigravity', 'tailkall', 'scripts', 'asr-daemon.py')
-    : join('D:\\Antigravity', 'tailkall', 'scripts', 'asr-daemon-fw.py');
-  const modelPath = isSenseVoice
-    ? settings.input.senseVoiceModelPath
-    : settings.input.fasterWhisperModelPath;
-  const device = settings.input.asrAcceleration === 'CPU' ? 'cpu' : (isSenseVoice ? 'cuda:0' : 'cuda');
+  const portFile = ASR_PORT_FILE_SV;
+  const scriptPath = join('D:\\Antigravity', 'tailkall', 'scripts', 'asr-daemon.py');
+  const modelPath = settings.input.senseVoiceModelPath;
+  const device = settings.input.asrAcceleration === 'CPU' ? 'cpu' : 'cuda:0';
 
   try { unlinkSync(portFile); } catch { /* ignore */ }
 
@@ -163,7 +154,7 @@ async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>
         const port = parseInt(readFileSync(portFile, 'utf-8').trim(), 10);
         if (port > 0) {
           asrDaemonPort = port;
-          asrDaemonEngine = isSenseVoice ? 'sensevoice' : 'faster-whisper';
+          asrDaemonEngine = 'sensevoice';
           clearInterval(poll);
           resolve();
         }
@@ -241,16 +232,9 @@ function toRendererSettings(): RendererSettings {
         ? `${settings.input.trigger.modifiers.join(' + ')} + ${settings.input.trigger.key}`
         : settings?.input.trigger.key ?? 'F8'),
     recordMode: settings?.input.recordMode ?? '按住说话',
-    asr: settings?.input.asr ?? 'whisper.cpp',
+    asr: settings?.input.asr ?? 'SenseVoice',
     asrAcceleration: settings?.input.asrAcceleration ?? 'GPU 优先',
     localModelDir: settings?.input.localModelDir ?? join('D:\\Antigravity', 'tailkall', 'models'),
-    localAsrExePath:
-      settings?.input.localAsrExePath ?? join('D:\\Antigravity', 'tailkall', 'models', 'whisper', 'Release', 'whisper-cli.exe'),
-    localAsrModelPath:
-      settings?.input.localAsrModelPath ?? join('D:\\Antigravity', 'tailkall', 'models', 'whisper', 'ggml-small.bin'),
-    ffmpegPath: settings?.input.ffmpegPath ?? 'ffmpeg',
-    fasterWhisperModelPath:
-      settings?.input.fasterWhisperModelPath ?? join('D:\\Antigravity', 'tailkall', 'models', 'faster-whisper', 'small'),
     senseVoiceModelPath:
       settings?.input.senseVoiceModelPath ?? join('D:\\Antigravity', 'tailkall', 'models', 'sensevoice', 'SenseVoiceSmall'),
     pythonPath: settings?.input.pythonPath ?? join('D:\\Antigravity', 'tailkall', '.venv', 'Scripts', 'python.exe'),
@@ -335,10 +319,6 @@ function installIpcHandlers(): void {
         asr: settings.asr,
         asrAcceleration: settings.asrAcceleration,
         localModelDir: settings.localModelDir,
-        localAsrExePath: settings.localAsrExePath,
-        localAsrModelPath: settings.localAsrModelPath,
-        ffmpegPath: settings.ffmpegPath,
-        fasterWhisperModelPath: settings.fasterWhisperModelPath,
         senseVoiceModelPath: settings.senseVoiceModelPath,
         pythonPath: settings.pythonPath,
         outputMode: settings.outputMode,
@@ -745,14 +725,10 @@ function mouseButtonCode(button: MouseTrigger['button']): number {
 function createConfiguredAsrProvider(settings: ReturnType<SettingsStore['getSettings']>, durationMs: number) {
   const activeProfile = settings.input.asrProfiles.find((profile) => profile.id === settings.input.activeAsrProfileId);
   const asrName = activeProfile?.kind === 'local' ? activeProfile.engine : settings.input.asr;
-  const wordbookPrompt = (settings.input.wordbook ?? [])
-    .map((e) => e.target)
-    .filter(Boolean)
-    .join(', ');
   const commonPythonOptions = {
     pythonPath: settings.input.pythonPath,
     tmpDir: join('D:\\Antigravity', 'tailkall', 'tmp'),
-    ffmpegPath: settings.input.ffmpegPath || undefined,
+    ffmpegPath: SYSTEM_FFMPEG_COMMAND,
     acceleration: settings.input.asrAcceleration === 'CPU' ? ('cpu' as const) : ('auto-gpu' as const)
   };
   if (/sensevoice|funasr/i.test(asrName)) {
@@ -765,28 +741,6 @@ function createConfiguredAsrProvider(settings: ReturnType<SettingsStore['getSett
       scriptPath: join('D:\\Antigravity', 'tailkall', 'scripts', 'asr-sensevoice.py'),
       modelPath: settings.input.senseVoiceModelPath
       // SenseVoice does not support prompt injection
-    });
-  }
-  if (/faster-whisper/i.test(asrName)) {
-    if (asrDaemonPort && asrDaemonEngine === 'faster-whisper') {
-      return createAsrDaemonProvider(asrDaemonPort);
-    }
-    return createPythonAsrProvider({
-      ...commonPythonOptions,
-      engine: 'faster-whisper',
-      scriptPath: join('D:\\Antigravity', 'tailkall', 'scripts', 'asr-faster-whisper.py'),
-      modelPath: settings.input.fasterWhisperModelPath,
-      prompt: wordbookPrompt || undefined
-    });
-  }
-  if (/whisper|本地/i.test(asrName)) {
-    return createWhisperCppAsrProvider({
-      executablePath: settings.input.localAsrExePath,
-      modelPath: settings.input.localAsrModelPath,
-      tmpDir: join('D:\\Antigravity', 'tailkall', 'tmp'),
-      ffmpegPath: settings.input.ffmpegPath || undefined,
-      acceleration: settings.input.asrAcceleration === 'CPU' ? 'cpu' : 'auto-gpu',
-      prompt: wordbookPrompt || undefined
     });
   }
   if (activeProfile?.kind === 'cloud-upload') {

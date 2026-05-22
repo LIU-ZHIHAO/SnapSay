@@ -22,10 +22,6 @@ type SettingsState = {
   asr: string;
   asrAcceleration: string;
   localModelDir: string;
-  localAsrExePath: string;
-  localAsrModelPath: string;
-  ffmpegPath: string;
-  fasterWhisperModelPath: string;
   senseVoiceModelPath: string;
   pythonPath: string;
   cleanupEnabled: boolean;

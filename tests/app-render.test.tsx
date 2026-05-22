@@ -7,13 +7,9 @@ function demoDashboardSettings() {
   return {
     triggerKey: 'Ctrl + Alt + Space',
     recordMode: '按住说话',
-    asr: 'whisper.cpp',
+    asr: 'SenseVoice',
     asrAcceleration: 'GPU 优先',
     localModelDir: 'D:\\Antigravity\\tailkall\\models',
-    localAsrExePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\Release\\whisper-cli.exe',
-    localAsrModelPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin',
-    ffmpegPath: 'ffmpeg',
-    fasterWhisperModelPath: 'D:\\Antigravity\\tailkall\\models\\faster-whisper\\small',
     senseVoiceModelPath: 'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
     pythonPath: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
     cleanupEnabled: false,
@@ -37,7 +33,7 @@ function demoDashboardSettings() {
     cloudAsrApiKey: '',
     cloudAsrModel: 'whisper-1',
     asrProfiles: [],
-    activeAsrProfileId: 'local-whisper-cpp'
+    activeAsrProfileId: 'local-sensevoice'
   };
 }
 
@@ -63,7 +59,7 @@ describe('TailKall main renderer', () => {
     expect(screen.getByRole('button', { name: '设置' })).toBeInTheDocument();
     expect(screen.queryByLabelText('切换主题')).not.toBeInTheDocument();
     expect(screen.getByText('Ctrl + Alt + Space')).toBeInTheDocument();
-    expect(screen.getByText('whisper.cpp')).toBeInTheDocument();
+    expect(screen.getByText('SenseVoice')).toBeInTheDocument();
     expect(screen.getByText('GPT-4.1')).toBeInTheDocument();
     expect(screen.getByText('时长')).toBeInTheDocument();
     expect(screen.getByText('8秒')).toBeInTheDocument();
@@ -84,7 +80,7 @@ describe('TailKall main renderer', () => {
       getDashboard: async () => ({
         settings: {
           ...demoDashboardSettings(),
-          asr: 'SenseVoice / FunASR',
+          asr: 'SenseVoice',
           provider: '火山方舟',
           model: 'deepseek-v3-2-251201'
         },
@@ -334,18 +330,17 @@ describe('TailKall main renderer', () => {
 
     expect(screen.getByRole('heading', { name: '模型' })).toBeInTheDocument();
     const asrProfileSelect = screen.getByRole('button', { name: '当前 ASR 档案' });
-    expect(asrProfileSelect).toHaveTextContent('本地 whisper.cpp');
+    expect(asrProfileSelect).toHaveTextContent('本地 SenseVoice');
     fireEvent.click(asrProfileSelect);
-    expect(screen.getAllByText('本地 SenseVoice / FunASR').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('本地 SenseVoice').length).toBeGreaterThan(0);
     expect(screen.getAllByText('云端上传转写 API').length).toBeGreaterThan(0);
     expect(screen.getAllByText('云端流式转写 API').length).toBeGreaterThan(0);
-    expect(screen.getByLabelText('ASR 引擎')).toHaveValue('whisper.cpp');
+    expect(screen.getByLabelText('ASR 引擎')).toHaveValue('SenseVoice');
     expect(screen.getByRole('button', { name: '加速策略' })).toHaveTextContent('GPU 优先');
     expect(screen.queryByLabelText('云端上传转写 API Base URL')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('云端上传转写 API Model')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('云端上传转写 API API Key')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('本地模型目录')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('whisper.cpp 程序')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('whisper 模型文件')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('ffmpeg 程序')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Python 运行时')).not.toBeInTheDocument();
@@ -589,14 +584,10 @@ describe('TailKall main renderer', () => {
         settings: {
           triggerKey: 'Ctrl + Alt + Space',
           recordMode: '按住说话',
-          asr: 'whisper.cpp',
+          asr: 'SenseVoice',
           asrAcceleration: 'GPU 优先',
           localModelDir: 'D:\\Antigravity\\tailkall\\models',
-          localAsrExePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\Release\\whisper-cli.exe',
-          localAsrModelPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin',
-          ffmpegPath: 'ffmpeg',
-          fasterWhisperModelPath: 'D:\\Antigravity\\tailkall\\models\\faster-whisper\\small',
-          senseVoiceModelPath: 'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
+                                  senseVoiceModelPath: 'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
           pythonPath: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
           cleanupEnabled: false,
           provider: 'OpenAI Compatible',
@@ -619,7 +610,7 @@ describe('TailKall main renderer', () => {
           cloudAsrApiKey: '',
           cloudAsrModel: 'whisper-1',
           asrProfiles: [],
-          activeAsrProfileId: 'local-whisper-cpp'
+          activeAsrProfileId: 'local-sensevoice'
         },
         records: [
           {
@@ -688,14 +679,10 @@ describe('TailKall main renderer', () => {
         settings: {
           triggerKey: 'Ctrl + Alt + Space',
           recordMode: '按住说话',
-          asr: 'whisper.cpp',
+          asr: 'SenseVoice',
           asrAcceleration: 'GPU 优先',
           localModelDir: 'D:\\Antigravity\\tailkall\\models',
-          localAsrExePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\Release\\whisper-cli.exe',
-          localAsrModelPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin',
-          ffmpegPath: 'ffmpeg',
-          fasterWhisperModelPath: 'D:\\Antigravity\\tailkall\\models\\faster-whisper\\small',
-          senseVoiceModelPath: 'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
+                                  senseVoiceModelPath: 'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
           pythonPath: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
           cleanupEnabled: false,
           provider: 'OpenAI Compatible',
@@ -718,7 +705,7 @@ describe('TailKall main renderer', () => {
           cloudAsrApiKey: '',
           cloudAsrModel: 'whisper-1',
           asrProfiles: [],
-          activeAsrProfileId: 'local-whisper-cpp'
+          activeAsrProfileId: 'local-sensevoice'
         },
         records: [
           {

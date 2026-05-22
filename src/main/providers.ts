@@ -212,23 +212,8 @@ export function createPlaceholderLocalAsrProvider(options?: {
   };
 }
 
-export type WhisperCppProviderOptions = {
-  executablePath: string;
-  modelPath: string;
-  tmpDir: string;
-  ffmpegPath?: string;
-  language?: string;
-  acceleration?: 'auto-gpu' | 'cpu';
-  prompt?: string;
-  idFactory?: () => string;
-  writeFile?: (path: string, data: Buffer) => Promise<void>;
-  readTextFile?: (path: string) => Promise<string>;
-  fileExists?: (path: string) => Promise<boolean>;
-  runCommand?: (file: string, args: string[]) => Promise<void>;
-};
-
 export type PythonAsrProviderOptions = {
-  engine: 'faster-whisper' | 'sensevoice-funasr';
+  engine: 'sensevoice-funasr';
   pythonPath: string;
   scriptPath: string;
   modelPath: string;
@@ -236,61 +221,12 @@ export type PythonAsrProviderOptions = {
   ffmpegPath?: string;
   acceleration?: 'auto-gpu' | 'cpu';
   language?: string;
-  prompt?: string;
   idFactory?: () => string;
   writeFile?: (path: string, data: Buffer) => Promise<void>;
   readTextFile?: (path: string) => Promise<string>;
   fileExists?: (path: string) => Promise<boolean>;
   runCommand?: (file: string, args: string[]) => Promise<void>;
 };
-
-export function createWhisperCppAsrProvider(options: WhisperCppProviderOptions): AsrProvider {
-  return {
-    name: `whisper.cpp ${basename(options.modelPath)}`,
-    async transcribe(audio: ArrayBuffer): Promise<AsrResult> {
-      await assertFileExists(options.executablePath, options.fileExists, 'whisper.cpp 可执行文件不存在');
-      await assertFileExists(options.modelPath, options.fileExists, 'whisper.cpp 模型文件不存在');
-
-      const id = options.idFactory?.() ?? `voice-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const isWav = isWavAudio(audio);
-      const inputPath = join(options.tmpDir, `${id}.${isWav ? 'wav' : 'webm'}`);
-      const wavPath = join(options.tmpDir, `${id}.wav`);
-      const outputBase = join(options.tmpDir, id);
-      const outputTextPath = `${outputBase}.txt`;
-      const writer = options.writeFile ?? writeFile;
-      const reader = options.readTextFile ?? ((path: string) => readFile(path, 'utf8'));
-      const runner = options.runCommand ?? runExecFile;
-
-      await writer(inputPath, Buffer.from(audio));
-
-      const audioPath = !isWav && options.ffmpegPath ? wavPath : inputPath;
-      if (!isWav && options.ffmpegPath) {
-        await assertFileExists(options.ffmpegPath, options.fileExists, 'ffmpeg.exe 不存在，无法转换浏览器录音格式');
-        await runner(options.ffmpegPath, ['-y', '-i', inputPath, wavPath]);
-      }
-
-      await runner(options.executablePath, [
-        ...(options.prompt ? ['--prompt', options.prompt] : []),
-        '-m',
-        options.modelPath,
-        '-f',
-        audioPath,
-        '-l',
-        options.language ?? 'zh',
-        ...(options.acceleration === 'cpu' ? ['-ng'] : []),
-        '-otxt',
-        '-of',
-        outputBase
-      ]);
-
-      const text = (await reader(outputTextPath)).trim();
-      if (!text) {
-        throw new Error('本地 whisper.cpp 没有返回识别文本');
-      }
-      return { text, provider: 'whisper.cpp' };
-    }
-  };
-}
 
 export function createPythonAsrProvider(options: PythonAsrProviderOptions): AsrProvider {
   return {
@@ -328,8 +264,7 @@ export function createPythonAsrProvider(options: PythonAsrProviderOptions): AsrP
         '--device',
         options.acceleration === 'cpu' ? 'cpu' : 'auto',
         '--language',
-        options.language ?? 'zh',
-        ...(options.engine === 'faster-whisper' && options.prompt ? ['--prompt', options.prompt] : [])
+        options.language ?? 'zh'
       ]);
 
       const text = (await reader(outputTextPath)).trim();
@@ -473,7 +408,7 @@ async function runExecFile(file: string, args: string[]): Promise<void> {
 
 async function assertFileExists(
   path: string,
-  fileExists: WhisperCppProviderOptions['fileExists'],
+  fileExists: PythonAsrProviderOptions['fileExists'],
   label: string
 ): Promise<void> {
   if (!isFilesystemPath(path)) {

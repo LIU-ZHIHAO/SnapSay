@@ -60,10 +60,6 @@ export type AppSettings = {
     asr: string;
     asrAcceleration: string;
     localModelDir: string;
-    localAsrExePath: string;
-    localAsrModelPath: string;
-    ffmpegPath: string;
-    fasterWhisperModelPath: string;
     senseVoiceModelPath: string;
     pythonPath: string;
     outputMode: string;
@@ -148,13 +144,9 @@ export const defaultSettings: AppSettings = {
     },
     triggerLabel: 'F8',
     recordMode: '按住说话',
-    asr: 'SenseVoice / FunASR',
+    asr: 'SenseVoice',
     asrAcceleration: 'GPU 优先',
     localModelDir: 'D:\\Antigravity\\tailkall\\models',
-    localAsrExePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\Release\\whisper-cli.exe',
-    localAsrModelPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin',
-    ffmpegPath: 'ffmpeg',
-    fasterWhisperModelPath: 'D:\\Antigravity\\tailkall\\models\\faster-whisper\\small',
     senseVoiceModelPath: 'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
     pythonPath: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
     outputMode: '粘贴到当前光标',
@@ -194,9 +186,7 @@ export function defaultLlmProviders(): LlmProviderConfig[] {
 
 export function defaultAsrProfiles(): AsrProfileConfig[] {
   return [
-    { id: 'local-sensevoice', kind: 'local', displayName: '本地 SenseVoice / FunASR', engine: 'SenseVoice / FunASR', enabled: true },
-    { id: 'local-faster-whisper', kind: 'local', displayName: '本地 faster-whisper', engine: 'faster-whisper', enabled: true },
-    { id: 'local-whisper-cpp', kind: 'local', displayName: '本地 whisper.cpp', engine: 'whisper.cpp', enabled: true },
+    { id: 'local-sensevoice', kind: 'local', displayName: '本地 SenseVoice', engine: 'SenseVoice', enabled: true },
     { id: 'cloud-upload-openai', kind: 'cloud-upload', displayName: '云端上传转写 API', engine: 'openai-whisper', enabled: false, baseUrl: 'https://api.openai.com', apiKey: '', model: 'whisper-1' },
     { id: 'cloud-streaming-custom', kind: 'cloud-streaming', displayName: '云端流式转写 API', engine: 'streaming-compatible', enabled: false, baseUrl: '', apiKey: '', model: '' }
   ];
@@ -405,8 +395,11 @@ function mergeLlmProviders(
 
 function mergeAsrProfiles(savedProfiles: AsrProfileConfig[] | undefined): AsrProfileConfig[] {
   const byId = new Map(defaultAsrProfiles().map((profile) => [profile.id, profile]));
+  const allowedIds = new Set(byId.keys());
   for (const profile of savedProfiles ?? []) {
-    byId.set(profile.id, { ...byId.get(profile.id), ...profile });
+    if (allowedIds.has(profile.id)) {
+      byId.set(profile.id, { ...byId.get(profile.id), ...profile });
+    }
   }
   return [...byId.values()];
 }
@@ -444,8 +437,6 @@ function activeAsrProfileFromLegacy(asr: string | undefined): string | undefined
   if (!asr) {
     return undefined;
   }
-  if (/faster-whisper/i.test(asr)) return 'local-faster-whisper';
-  if (/whisper\.cpp|whisper|本地/i.test(asr)) return 'local-whisper-cpp';
   if (/云端|cloud|api/i.test(asr)) return 'cloud-upload-openai';
   if (/sensevoice|funasr/i.test(asr)) return 'local-sensevoice';
   return undefined;

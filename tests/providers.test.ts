@@ -4,7 +4,6 @@ import {
   cleanupText,
   createMockAsrProvider,
   createPythonAsrProvider,
-  createWhisperCppAsrProvider,
   formatProviderTestDuration,
   maskApiKey,
   resolveActiveCleanupProvider,
@@ -184,121 +183,13 @@ describe('providers', () => {
     });
   });
 
-  it('transcribes audio through a local whisper.cpp CLI adapter', async () => {
-    const writes: Array<{ path: string; data: Buffer }> = [];
-    const commands: Array<{ file: string; args: string[] }> = [];
-    const asr = createWhisperCppAsrProvider({
-      executablePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\whisper-cli.exe',
-      modelPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin',
-      tmpDir: 'D:\\Antigravity\\tailkall\\tmp',
-      ffmpegPath: 'ffmpeg',
-      idFactory: () => 'rec-1',
-      writeFile: async (path, data) => {
-        writes.push({ path, data });
-      },
-      readTextFile: async (path) => {
-        expect(path).toBe('D:\\Antigravity\\tailkall\\tmp\\rec-1.txt');
-        return '  本地识别文本  ';
-      },
-      fileExists: async () => true,
-      runCommand: async (file, args) => {
-        commands.push({ file, args });
-      }
-    });
-
-    const result = await asr.transcribe(new Uint8Array([1, 2, 3]).buffer);
-
-    expect(result).toEqual({ text: '本地识别文本', provider: 'whisper.cpp' });
-    expect(writes[0].path).toBe('D:\\Antigravity\\tailkall\\tmp\\rec-1.webm');
-    expect(commands[0]).toEqual({
-      file: 'ffmpeg',
-      args: ['-y', '-i', 'D:\\Antigravity\\tailkall\\tmp\\rec-1.webm', 'D:\\Antigravity\\tailkall\\tmp\\rec-1.wav']
-    });
-    expect(commands[1]).toEqual({
-      file: 'D:\\Antigravity\\tailkall\\models\\whisper\\whisper-cli.exe',
-      args: [
-        '-m',
-        'D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin',
-        '-f',
-        'D:\\Antigravity\\tailkall\\tmp\\rec-1.wav',
-        '-l',
-        'zh',
-        '-otxt',
-        '-of',
-        'D:\\Antigravity\\tailkall\\tmp\\rec-1'
-      ]
-    });
-  });
-
-  it('skips ffmpeg conversion when whisper.cpp receives WAV audio', async () => {
-    const writes: Array<{ path: string; data: Buffer }> = [];
-    const commands: Array<{ file: string; args: string[] }> = [];
-    const asr = createWhisperCppAsrProvider({
-      executablePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\whisper-cli.exe',
-      modelPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin',
-      tmpDir: 'D:\\Antigravity\\tailkall\\tmp',
-      ffmpegPath: 'ffmpeg',
-      idFactory: () => 'rec-wav',
-      writeFile: async (path, data) => {
-        writes.push({ path, data });
-      },
-      readTextFile: async () => 'wav text',
-      fileExists: async () => true,
-      runCommand: async (file, args) => {
-        commands.push({ file, args });
-      }
-    });
-
-    const wav = new TextEncoder().encode('RIFF....WAVEfmt ');
-    await expect(asr.transcribe(wav.buffer)).resolves.toEqual({ text: 'wav text', provider: 'whisper.cpp' });
-
-    expect(writes[0].path).toBe('D:\\Antigravity\\tailkall\\tmp\\rec-wav.wav');
-    expect(commands).toEqual([
-      {
-        file: 'D:\\Antigravity\\tailkall\\models\\whisper\\whisper-cli.exe',
-        args: [
-          '-m',
-          'D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin',
-          '-f',
-          'D:\\Antigravity\\tailkall\\tmp\\rec-wav.wav',
-          '-l',
-          'zh',
-          '-otxt',
-          '-of',
-          'D:\\Antigravity\\tailkall\\tmp\\rec-wav'
-        ]
-      }
-    ]);
-  });
-
-  it('can disable GPU for whisper.cpp when CPU mode is selected', async () => {
-    const commands: Array<{ file: string; args: string[] }> = [];
-    const asr = createWhisperCppAsrProvider({
-      executablePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\Release\\whisper-cli.exe',
-      modelPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin',
-      tmpDir: 'D:\\Antigravity\\tailkall\\tmp',
-      acceleration: 'cpu',
-      idFactory: () => 'cpu-1',
-      writeFile: async () => undefined,
-      readTextFile: async () => 'cpu text',
-      fileExists: async () => true,
-      runCommand: async (file, args) => {
-        commands.push({ file, args });
-      }
-    });
-
-    await asr.transcribe(new ArrayBuffer(0));
-
-    expect(commands[0].args).toContain('-ng');
-  });
-
-  it('transcribes through Python ASR providers with GPU auto device', async () => {
+  it('transcribes through the SenseVoice Python ASR provider with GPU auto device', async () => {
     const commands: Array<{ file: string; args: string[] }> = [];
     const asr = createPythonAsrProvider({
-      engine: 'faster-whisper',
+      engine: 'sensevoice-funasr',
       pythonPath: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
-      scriptPath: 'D:\\Antigravity\\tailkall\\scripts\\asr-faster-whisper.py',
-      modelPath: 'D:\\Antigravity\\tailkall\\models\\faster-whisper\\small',
+      scriptPath: 'D:\\Antigravity\\tailkall\\scripts\\asr-sensevoice.py',
+      modelPath: 'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
       tmpDir: 'D:\\Antigravity\\tailkall\\tmp',
       ffmpegPath: 'ffmpeg',
       acceleration: 'auto-gpu',
@@ -313,19 +204,19 @@ describe('providers', () => {
 
     await expect(asr.transcribe(new ArrayBuffer(0))).resolves.toEqual({
       text: 'python text',
-      provider: 'faster-whisper'
+      provider: 'sensevoice-funasr'
     });
 
     expect(commands[1]).toEqual({
       file: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
       args: [
-        'D:\\Antigravity\\tailkall\\scripts\\asr-faster-whisper.py',
+        'D:\\Antigravity\\tailkall\\scripts\\asr-sensevoice.py',
         '--audio',
         'D:\\Antigravity\\tailkall\\tmp\\py-1.wav',
         '--model',
-        'D:\\Antigravity\\tailkall\\models\\faster-whisper\\small',
+        'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
         '--out',
-        'D:\\Antigravity\\tailkall\\tmp\\py-1.faster-whisper.txt',
+        'D:\\Antigravity\\tailkall\\tmp\\py-1.sensevoice-funasr.txt',
         '--device',
         'auto',
         '--language',
@@ -337,10 +228,10 @@ describe('providers', () => {
   it('skips ffmpeg conversion when Python ASR receives WAV audio', async () => {
     const commands: Array<{ file: string; args: string[] }> = [];
     const asr = createPythonAsrProvider({
-      engine: 'faster-whisper',
+      engine: 'sensevoice-funasr',
       pythonPath: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
-      scriptPath: 'D:\\Antigravity\\tailkall\\scripts\\asr-faster-whisper.py',
-      modelPath: 'D:\\Antigravity\\tailkall\\models\\faster-whisper\\small',
+      scriptPath: 'D:\\Antigravity\\tailkall\\scripts\\asr-sensevoice.py',
+      modelPath: 'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
       tmpDir: 'D:\\Antigravity\\tailkall\\tmp',
       ffmpegPath: 'ffmpeg',
       idFactory: () => 'py-wav',
@@ -359,13 +250,13 @@ describe('providers', () => {
     expect(commands[0]).toEqual({
       file: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
       args: [
-        'D:\\Antigravity\\tailkall\\scripts\\asr-faster-whisper.py',
+        'D:\\Antigravity\\tailkall\\scripts\\asr-sensevoice.py',
         '--audio',
         'D:\\Antigravity\\tailkall\\tmp\\py-wav.wav',
         '--model',
-        'D:\\Antigravity\\tailkall\\models\\faster-whisper\\small',
+        'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
         '--out',
-        'D:\\Antigravity\\tailkall\\tmp\\py-wav.faster-whisper.txt',
+        'D:\\Antigravity\\tailkall\\tmp\\py-wav.sensevoice-funasr.txt',
         '--device',
         'auto',
         '--language',

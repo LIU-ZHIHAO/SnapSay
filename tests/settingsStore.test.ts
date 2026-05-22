@@ -18,9 +18,9 @@ describe('settingsStore', () => {
     );
     expect(store.getSettings().input.activeAsrProfileId).toBe('local-sensevoice');
     expect(store.getSettings().input.microphoneDeviceId).toBe('');
-    expect(store.getSettings().input.asrProfiles.map((profile) => profile.kind)).toEqual(
-      expect.arrayContaining(['local', 'cloud-upload', 'cloud-streaming'])
-    );
+    expect(store.getSettings().input.asrProfiles.filter((profile) => profile.kind === 'local')).toEqual([
+      { id: 'local-sensevoice', kind: 'local', displayName: '本地 SenseVoice', engine: 'SenseVoice', enabled: true }
+    ]);
 
     const saved = store.saveSettings({
       cleanup: {
@@ -41,13 +41,9 @@ describe('settingsStore', () => {
         },
         triggerLabel: 'Mouse Middle',
         recordMode: '点击开始/停止',
-        asr: 'faster-whisper',
+        asr: 'removed-local-engine',
         asrAcceleration: 'GPU 优先',
         localModelDir: 'D:\\Antigravity\\tailkall\\models\\sensevoice',
-        localAsrExePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\Release\\whisper-cli.exe',
-        localAsrModelPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin',
-        ffmpegPath: 'ffmpeg',
-        fasterWhisperModelPath: 'D:\\Antigravity\\tailkall\\models\\faster-whisper\\small',
         senseVoiceModelPath: 'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
         pythonPath: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
         outputMode: '仅保存记录',
@@ -65,10 +61,31 @@ describe('settingsStore', () => {
     expect(store.getSettings().cleanup.activeProviderKey).toBe('deepseek');
     expect(store.getSettings().cleanup.providers.find((provider) => provider.key === 'deepseek')?.model).toBe('deepseek-chat');
     expect(store.getSettings().input.recordMode).toBe('点击开始/停止');
-    expect(store.getSettings().input.asr).toBe('faster-whisper');
+    expect(store.getSettings().input.asr).toBe('SenseVoice');
     expect(store.getSettings().input.asrAcceleration).toBe('GPU 优先');
     expect(store.getSettings().input.microphoneDeviceId).toBe('mic-2');
     expect(store.getSettings().input.outputMode).toBe('仅保存记录');
+  });
+
+  it('does not restore removed local fallback profiles from saved settings', () => {
+    const store = createSettingsStore({
+      store: createMemoryStore({
+        settings: {
+          input: {
+            activeAsrProfileId: 'removed-local-engine',
+            asrProfiles: [
+              { id: 'removed-local-engine', kind: 'local', displayName: '已移除本地引擎', engine: 'removed-local-engine', enabled: true }
+            ]
+          }
+        }
+      })
+    });
+
+    expect(store.getSettings().input.activeAsrProfileId).toBe('local-sensevoice');
+    expect(store.getSettings().input.asr).toBe('SenseVoice');
+    expect(store.getSettings().input.asrProfiles.map((profile) => profile.id)).not.toEqual(
+      expect.arrayContaining(['removed-local-engine'])
+    );
   });
 
   it('saves multiple LLM provider cards and ASR profile choices', () => {

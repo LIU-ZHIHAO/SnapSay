@@ -224,10 +224,6 @@ type SettingsState = {
   asr: string;
   asrAcceleration: string;
   localModelDir: string;
-  localAsrExePath: string;
-  localAsrModelPath: string;
-  ffmpegPath: string;
-  fasterWhisperModelPath: string;
   senseVoiceModelPath: string;
   pythonPath: string;
   cleanupEnabled: boolean;
@@ -287,13 +283,9 @@ declare global {
 const demoSettings: SettingsState = {
   triggerKey: 'Ctrl + Alt + Space',
   recordMode: '按住说话',
-  asr: 'whisper.cpp',
+  asr: 'SenseVoice',
   asrAcceleration: 'GPU 优先',
   localModelDir: 'D:\\Antigravity\\tailkall\\models',
-  localAsrExePath: 'D:\\Antigravity\\tailkall\\models\\whisper\\Release\\whisper-cli.exe',
-  localAsrModelPath: 'D:\\Antigravity\\tailkall\\models\\whisper\\ggml-small.bin',
-  ffmpegPath: 'ffmpeg',
-  fasterWhisperModelPath: 'D:\\Antigravity\\tailkall\\models\\faster-whisper\\small',
   senseVoiceModelPath: 'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
   pythonPath: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
   cleanupEnabled: false,
@@ -330,13 +322,11 @@ const demoSettings: SettingsState = {
   cloudAsrApiKey: '',
   cloudAsrModel: 'whisper-1',
   asrProfiles: [
-    { id: 'local-sensevoice', kind: 'local', displayName: '本地 SenseVoice / FunASR', engine: 'SenseVoice / FunASR', enabled: true },
-    { id: 'local-faster-whisper', kind: 'local', displayName: '本地 faster-whisper', engine: 'faster-whisper', enabled: true },
-    { id: 'local-whisper-cpp', kind: 'local', displayName: '本地 whisper.cpp', engine: 'whisper.cpp', enabled: true },
+    { id: 'local-sensevoice', kind: 'local', displayName: '本地 SenseVoice', engine: 'SenseVoice', enabled: true },
     { id: 'cloud-upload-openai', kind: 'cloud-upload', displayName: '云端上传转写 API', engine: 'openai-whisper', enabled: false, baseUrl: 'https://api.openai.com', apiKey: '', model: 'whisper-1' },
     { id: 'cloud-streaming-custom', kind: 'cloud-streaming', displayName: '云端流式转写 API', engine: 'streaming-compatible', enabled: false, baseUrl: '', apiKey: '', model: '' }
   ],
-  activeAsrProfileId: 'local-whisper-cpp'
+  activeAsrProfileId: 'local-sensevoice'
 };
 
 const demoRecords: RecordItem[] = [
@@ -347,7 +337,7 @@ const demoRecords: RecordItem[] = [
       '请帮我整理今天会议关于登录体验、首屏性能和快捷键冲突处理的讨论，保留结论、负责人和下次跟进时间。',
     refined: '会议结论：优化登录体验与首屏性能，排查快捷键冲突。负责人分别跟进，下次例会同步结果。',
     status: '已输入',
-    asr: '本地 Whisper / small',
+    asr: '本地 SenseVoice',
     cleanup: 'OpenAI Compatible / gpt-4.1-mini',
     durationMs: 8200,
     asrDurationMs: 3200,
@@ -936,9 +926,6 @@ function OverviewStat({ icon, label, value, type }: { icon: ReactNode; label: st
 function shortenAsrLabel(value: string): string {
   const label = value.trim();
   if (/sensevoice/i.test(label)) return 'SenseVoice';
-  if (/faster[-\s]?whisper/i.test(label)) return 'faster-whisper';
-  if (/whisper\.cpp/i.test(label)) return 'whisper.cpp';
-  if (/whisper/i.test(label)) return 'Whisper';
   if (/cloud|云端|api/i.test(label)) return '云端 ASR';
   return label.replace(/^本地\s*/i, '').split(/[\/｜|]/)[0]?.trim() || label;
 }

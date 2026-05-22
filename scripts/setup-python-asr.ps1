@@ -22,7 +22,7 @@ if (-not (Test-Path -LiteralPath $python)) {
 }
 
 & $python -m pip install --upgrade pip
-& $python -m pip install huggingface_hub modelscope faster-whisper funasr
+& $python -m pip install huggingface_hub modelscope funasr
 & $python -m pip install --upgrade --force-reinstall torch torchaudio --index-url https://download.pytorch.org/whl/cu124
 
 $download = @'
@@ -34,12 +34,6 @@ root = r"D:\Antigravity\tailkall"
 os.environ["HF_HOME"] = os.path.join(root, "cache", "huggingface")
 os.environ["HUGGINGFACE_HUB_CACHE"] = os.path.join(root, "cache", "huggingface", "hub")
 os.environ["MODELSCOPE_CACHE"] = os.path.join(root, "cache", "modelscope")
-
-snapshot_download(
-    repo_id="Systran/faster-whisper-small",
-    local_dir=os.path.join(root, "models", "faster-whisper", "small"),
-    local_dir_use_symlinks=False,
-)
 
 try:
     ms_snapshot_download(
@@ -57,5 +51,4 @@ except Exception:
 & $python -c $download
 
 Write-Output "python: $python"
-Write-Output "faster-whisper: $(Join-Path $models 'faster-whisper\small')"
 Write-Output "sensevoice: $(Join-Path $models 'sensevoice\SenseVoiceSmall')"
