@@ -2,6 +2,18 @@ import { useState, type ReactNode } from 'react';
 import { Brain, Server, PlugZap, X, Cpu, Globe, Zap, ExternalLink } from 'lucide-react';
 import { CustomSelect } from './App';
 
+import openaiLogo from './logos/openai.svg';
+import deepseekLogo from './logos/deepseek.svg';
+import openrouterLogo from './logos/openrouter.svg';
+import siliconflowLogo from './logos/siliconflow.svg';
+import volcengineLogo from './logos/volcengine.svg';
+import dashscopeLogo from './logos/dashscope.svg';
+import moonshotLogo from './logos/moonshot.svg';
+import zhipuLogo from './logos/zhipu.svg';
+import hunyuanLogo from './logos/tencent-hunyuan.svg';
+import geminiLogo from './logos/gemini.svg';
+import ollamaLogo from './logos/ollama.svg';
+
 /* ─── Provider Metadata: Logos, Platform URLs ─── */
 type ProviderMeta = {
   logoUrl: string;
@@ -13,77 +25,77 @@ type ProviderMeta = {
 
 const PROVIDER_META: Record<string, ProviderMeta> = {
   'openai': {
-    logoUrl: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/openai.svg',
+    logoUrl: openaiLogo,
     platformUrl: 'https://platform.openai.com/api-keys',
     platformLabel: '前往 OpenAI 获取 API Key',
     fallbackBg: '#10a37f',
     fallbackText: 'AI'
   },
   'deepseek': {
-    logoUrl: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/deepseek-color.svg',
+    logoUrl: deepseekLogo,
     platformUrl: 'https://platform.deepseek.com/api_keys',
     platformLabel: '前往 DeepSeek 获取 API Key',
     fallbackBg: '#4D6BFE',
     fallbackText: 'DS'
   },
   'openrouter': {
-    logoUrl: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/openrouter.svg',
+    logoUrl: openrouterLogo,
     platformUrl: 'https://openrouter.ai/keys',
     platformLabel: '前往 OpenRouter 获取 API Key',
     fallbackBg: '#6366f1',
     fallbackText: 'OR'
   },
   'siliconflow': {
-    logoUrl: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/siliconcloud-color.svg',
+    logoUrl: siliconflowLogo,
     platformUrl: 'https://cloud.siliconflow.cn/account/ak',
     platformLabel: '前往硅基流动获取 API Key',
     fallbackBg: '#7C3AED',
     fallbackText: 'SF'
   },
   'volcengine-ark': {
-    logoUrl: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/volcengine-color.svg',
+    logoUrl: volcengineLogo,
     platformUrl: 'https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey',
     platformLabel: '前往火山方舟获取 API Key',
     fallbackBg: '#3370ff',
     fallbackText: '方舟'
   },
   'dashscope': {
-    logoUrl: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/qwen-color.svg',
+    logoUrl: dashscopeLogo,
     platformUrl: 'https://dashscope.console.aliyun.com/apiKey',
     platformLabel: '前往阿里云百炼获取 API Key',
     fallbackBg: '#ff6a00',
     fallbackText: '阿里'
   },
   'moonshot': {
-    logoUrl: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/moonshot.svg',
+    logoUrl: moonshotLogo,
     platformUrl: 'https://platform.moonshot.cn/console/api-keys',
     platformLabel: '前往 Kimi 开放平台获取 API Key',
     fallbackBg: '#1a1a2e',
     fallbackText: 'K'
   },
   'zhipu': {
-    logoUrl: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/zhipu-color.svg',
+    logoUrl: zhipuLogo,
     platformUrl: 'https://open.bigmodel.cn/usercenter/apikeys',
     platformLabel: '前往智谱开放平台获取 API Key',
     fallbackBg: '#2563eb',
     fallbackText: '智谱'
   },
   'tencent-hunyuan': {
-    logoUrl: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/hunyuan-color.svg',
+    logoUrl: hunyuanLogo,
     platformUrl: 'https://console.cloud.tencent.com/hunyuan',
     platformLabel: '前往腾讯云获取 API Key',
     fallbackBg: '#00a4ff',
     fallbackText: '混元'
   },
   'gemini-compatible': {
-    logoUrl: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/gemini-color.svg',
+    logoUrl: geminiLogo,
     platformUrl: 'https://aistudio.google.com/app/apikey',
     platformLabel: '前往 Google AI Studio 获取 API Key',
     fallbackBg: '#1a73e8',
     fallbackText: 'G'
   },
   'ollama': {
-    logoUrl: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/ollama.svg',
+    logoUrl: ollamaLogo,
     platformUrl: 'https://ollama.com/',
     platformLabel: 'Ollama 本地运行，无需 API Key',
     fallbackBg: '#333',
