@@ -696,6 +696,27 @@ h2 svg {
   border-color: #ddd6fe;
 }
 
+.overview-stat.stat-records-count .overview-stat-icon {
+  background: #f0fdfa;
+  color: #0d9488;
+  border-color: #99f6e4;
+}
+[data-appearance="dark"] .overview-stat.stat-records-count .overview-stat-icon {
+  background: rgba(45, 212, 191, 0.12);
+  color: #2dd4bf;
+  border-color: rgba(45, 212, 191, 0.2);
+}
+[data-appearance="pink"] .overview-stat.stat-records-count .overview-stat-icon {
+  background: #f0fdfa;
+  color: #0d9488;
+  border-color: #99f6e4;
+}
+[data-appearance="green"] .overview-stat.stat-records-count .overview-stat-icon {
+  background: #e6fffa;
+  color: #0d9488;
+  border-color: #99f6e4;
+}
+
 /* Custom color schemes for shortcut key card */
 .overview-stat.stat-shortcut .overview-stat-icon {
   background: #eff6ff;

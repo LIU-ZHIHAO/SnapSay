@@ -818,6 +818,18 @@ function Dashboard(props: {
   const speechRateStr = `${avgSpeechRate} 字/分钟`;
   const activePreset = allPresets.find((preset) => preset.id === activeId) ?? allPresets[0];
 
+  // Calculate today and total count of chats/records
+  const todayDateStr = (() => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}/${mm}/${dd}`;
+  })();
+  const todayRecordsCount = props.records.filter(r => (r.time || '').startsWith(todayDateStr)).length;
+  const totalRecordsCount = props.records.length;
+
+
   return (
     <div className="view-stack dashboard-view">
       <h1>主页</h1>
@@ -826,13 +838,6 @@ function Dashboard(props: {
           <OverviewStat icon={<Keyboard size={16} />} label="快捷键" value={props.settings.triggerKey} type="shortcut" />
           <OverviewStat icon={<Mic size={16} />} label="语音模型" value={shortenAsrLabel(props.settings.asr)} type="asr" />
           <OverviewStat icon={<PlugZap size={16} />} label="转写模型" value={shortenModelLabel(props.settings.model)} type="model" />
-          <OverviewStat icon={<Sparkles size={16} />} label="改写风格" value="智能改写" type="style-mode" />
-        </div>
-
-        <div className="dashboard-stat-grid" aria-label="录音统计" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
-          <OverviewStat icon={<Clock size={16} />} label="时长" value={durationStr} type="duration" />
-          <OverviewStat icon={<FileText size={16} />} label="字数" value={charsStr} type="chars" />
-          <OverviewStat icon={<Gauge size={16} />} label="语速" value={speechRateStr} type="speed" />
           <div
             aria-label="改写风格"
             aria-expanded={isMoreOpen}
@@ -847,10 +852,10 @@ function Dashboard(props: {
             role="button"
             style={{ cursor: 'pointer', position: 'relative' }}
             tabIndex={0}
-            title={`当前风格: ${activePreset.name}`}
+            title={`改写风格: ${activePreset.name}`}
           >
             <span className="overview-stat-icon"><Sparkles size={16} /></span>
-            <span>当前风格</span>
+            <span>改写风格</span>
             <strong style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               {activePreset.name}
               <ChevronDown size={13} className={isMoreOpen ? 'style-chevron open' : 'style-chevron'} />
@@ -876,6 +881,27 @@ function Dashboard(props: {
             )}
           </div>
         </div>
+
+        <div className="dashboard-stat-grid" aria-label="录音统计" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+          <OverviewStat icon={<Clock size={16} />} label="时长" value={durationStr} type="duration" />
+          <OverviewStat icon={<FileText size={16} />} label="字数" value={charsStr} type="chars" />
+          <OverviewStat icon={<Gauge size={16} />} label="语速" value={speechRateStr} type="speed" />
+          <OverviewStat
+            icon={<BookOpen size={16} />}
+            label="记录次数"
+            value={
+              <span style={{ fontSize: 'inherit', fontWeight: 'inherit', display: 'flex', gap: '8px', alignItems: 'baseline' }}>
+                <span style={{ fontSize: '0.85em', opacity: 0.8, fontWeight: 500 }}>今日</span>
+                <span>{todayRecordsCount}</span>
+                <span style={{ fontSize: '0.8em', opacity: 0.4, fontWeight: 300 }}>/</span>
+                <span style={{ fontSize: '0.85em', opacity: 0.8, fontWeight: 500 }}>累计</span>
+                <span>{totalRecordsCount}</span>
+                <span style={{ fontSize: '0.75em', opacity: 0.6, fontWeight: 400, marginLeft: '-2px' }}>次</span>
+              </span>
+            }
+            type="records-count"
+          />
+        </div>
       </section>
 
       <section className="panel dashboard-panel" aria-label="最近记录">
@@ -896,9 +922,10 @@ function Dashboard(props: {
   );
 }
 
-function OverviewStat({ icon, label, value, type }: { icon: ReactNode; label: string; value: string; type?: string }) {
+function OverviewStat({ icon, label, value, type }: { icon: ReactNode; label: string; value: ReactNode; type?: string }) {
+  const titleText = typeof value === 'string' || typeof value === 'number' ? `${label} ${value}` : label;
   return (
-    <div className={`overview-stat${type ? ` stat-${type}` : ''}`} title={`${label} ${value}`}>
+    <div className={`overview-stat${type ? ` stat-${type}` : ''}`} title={titleText}>
       <span className="overview-stat-icon">{icon}</span>
       <span>{label}</span>
       <strong>{value}</strong>
