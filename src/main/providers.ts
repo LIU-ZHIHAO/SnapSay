@@ -252,7 +252,8 @@ export function createWhisperCppAsrProvider(options: WhisperCppProviderOptions):
       await assertFileExists(options.modelPath, options.fileExists, 'whisper.cpp 模型文件不存在');
 
       const id = options.idFactory?.() ?? `voice-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const inputPath = join(options.tmpDir, `${id}.webm`);
+      const isWav = isWavAudio(audio);
+      const inputPath = join(options.tmpDir, `${id}.${isWav ? 'wav' : 'webm'}`);
       const wavPath = join(options.tmpDir, `${id}.wav`);
       const outputBase = join(options.tmpDir, id);
       const outputTextPath = `${outputBase}.txt`;
@@ -262,8 +263,8 @@ export function createWhisperCppAsrProvider(options: WhisperCppProviderOptions):
 
       await writer(inputPath, Buffer.from(audio));
 
-      const audioPath = options.ffmpegPath ? wavPath : inputPath;
-      if (options.ffmpegPath) {
+      const audioPath = !isWav && options.ffmpegPath ? wavPath : inputPath;
+      if (!isWav && options.ffmpegPath) {
         await assertFileExists(options.ffmpegPath, options.fileExists, 'ffmpeg.exe 不存在，无法转换浏览器录音格式');
         await runner(options.ffmpegPath, ['-y', '-i', inputPath, wavPath]);
       }
@@ -300,7 +301,8 @@ export function createPythonAsrProvider(options: PythonAsrProviderOptions): AsrP
       await assertFileExists(options.modelPath, options.fileExists, 'ASR 模型目录不存在');
 
       const id = options.idFactory?.() ?? `voice-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const inputPath = join(options.tmpDir, `${id}.webm`);
+      const isWav = isWavAudio(audio);
+      const inputPath = join(options.tmpDir, `${id}.${isWav ? 'wav' : 'webm'}`);
       const wavPath = join(options.tmpDir, `${id}.wav`);
       const outputTextPath = join(options.tmpDir, `${id}.${options.engine}.txt`);
       const writer = options.writeFile ?? writeFile;
@@ -309,8 +311,8 @@ export function createPythonAsrProvider(options: PythonAsrProviderOptions): AsrP
 
       await writer(inputPath, Buffer.from(audio));
 
-      const audioPath = options.ffmpegPath ? wavPath : inputPath;
-      if (options.ffmpegPath) {
+      const audioPath = !isWav && options.ffmpegPath ? wavPath : inputPath;
+      if (!isWav && options.ffmpegPath) {
         await assertFileExists(options.ffmpegPath, options.fileExists, 'ffmpeg.exe 不存在，无法转换浏览器录音格式');
         await runner(options.ffmpegPath, ['-y', '-i', inputPath, wavPath]);
       }
@@ -354,13 +356,16 @@ export function createCloudAsrProvider(options: CloudAsrProviderOptions): AsrPro
     async transcribe(audio: ArrayBuffer): Promise<AsrResult> {
       const boundary = `----TailKall${Date.now().toString(36)}`;
       const audioBuf = Buffer.from(audio);
+      const audioMeta = isWavAudio(audio)
+        ? { filename: 'audio.wav', contentType: 'audio/wav' }
+        : { filename: 'audio.webm', contentType: 'audio/webm' };
       const parts: Uint8Array[] = [];
 
       // file field
       parts.push(strToBuf(
         `--${boundary}\r\n` +
-        `Content-Disposition: form-data; name="file"; filename="audio.webm"\r\n` +
-        `Content-Type: audio/webm\r\n\r\n`
+        `Content-Disposition: form-data; name="file"; filename="${audioMeta.filename}"\r\n` +
+        `Content-Type: ${audioMeta.contentType}\r\n\r\n`
       ));
       parts.push(audioBuf);
       parts.push(strToBuf('\r\n'));
@@ -445,6 +450,21 @@ function concatBuffers(buffers: Uint8Array[]): Uint8Array {
     offset += buf.length;
   }
   return result;
+}
+
+function isWavAudio(audio: ArrayBuffer): boolean {
+  if (audio.byteLength < 12) {
+    return false;
+  }
+  const view = new Uint8Array(audio, 0, 12);
+  return view[0] === 0x52 &&
+    view[1] === 0x49 &&
+    view[2] === 0x46 &&
+    view[3] === 0x46 &&
+    view[8] === 0x57 &&
+    view[9] === 0x41 &&
+    view[10] === 0x56 &&
+    view[11] === 0x45;
 }
 
 async function runExecFile(file: string, args: string[]): Promise<void> {

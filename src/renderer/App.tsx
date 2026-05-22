@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import ModelsView from './ModelsView';
 import StylesView from './StylesView';
+import { blobToArrayBuffer, encodeBlobToWav } from './audioEncoding';
 import './styles.css';
 import logoUrl from './logo.png';
 import { DEFAULT_CLEANUP_PROMPT, ENGINEER_CLEANUP_PROMPT, CHARM_CLEANUP_PROMPT } from '../shared/cleanupPolicy';
@@ -414,6 +415,8 @@ export default function App() {
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [testStatus, setTestStatus] = useState('未测试');
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const pendingStopRef = useRef(false);
 
   useEffect(() => {
     getFacade()
@@ -485,13 +488,18 @@ export default function App() {
       void startBrowserRecording();
     });
     const offStop = facade.onRecordingStop?.(() => {
-      mediaRecorder?.stop();
+      const recorder = mediaRecorderRef.current;
+      if (recorder) {
+        recorder.stop();
+      } else {
+        pendingStopRef.current = true;
+      }
     });
     return () => {
       offStart?.();
       offStop?.();
     };
-  }, [mediaRecorder, settings.microphoneDeviceId]);
+  }, [settings.microphoneDeviceId]);
 
   const startBrowserRecording = async () => {
     const audioConstraint = settings.microphoneDeviceId
@@ -508,12 +516,19 @@ export default function App() {
     };
     recorder.onstop = async () => {
       stream.getTracks().forEach((track) => track.stop());
-      const audio = await new Blob(chunks, { type: recorder.mimeType }).arrayBuffer();
+      const blob = new Blob(chunks, { type: recorder.mimeType });
+      const audio = await encodeBlobToWav(blob).catch(() => blobToArrayBuffer(blob));
       await getFacade().submitRecording?.(audio, Date.now() - startedAt);
+      mediaRecorderRef.current = null;
       setMediaRecorder(null);
     };
     recorder.start();
+    mediaRecorderRef.current = recorder;
     setMediaRecorder(recorder);
+    if (pendingStopRef.current) {
+      pendingStopRef.current = false;
+      recorder.stop();
+    }
   };
 
   const updateSetting = <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => {
@@ -764,9 +779,19 @@ function Dashboard(props: {
           <OverviewStat icon={<FileText size={16} />} label="字数" value={charsStr} type="chars" />
           <OverviewStat icon={<Gauge size={16} />} label="语速" value={speechRateStr} type="speed" />
           <div
-            className="overview-stat dashboard-style-switch-card"
+            aria-label="改写风格"
+            aria-expanded={isMoreOpen}
+            className="overview-stat dashboard-style-switch dashboard-style-switch-card"
             onClick={() => setIsMoreOpen((open) => !open)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                setIsMoreOpen((open) => !open);
+              }
+            }}
+            role="button"
             style={{ cursor: 'pointer', position: 'relative' }}
+            tabIndex={0}
             title={`当前风格: ${activePreset.name}`}
           >
             <span className="overview-stat-icon"><Sparkles size={16} /></span>

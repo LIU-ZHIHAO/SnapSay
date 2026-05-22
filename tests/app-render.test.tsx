@@ -262,6 +262,71 @@ describe('TailKall main renderer', () => {
     stopRecording?.();
   });
 
+  it('submits browser recordings as WAV audio for local ASR comparison', async () => {
+    let startRecording: (() => void) | undefined;
+    let stopRecording: (() => void) | undefined;
+    const getUserMedia = vi.fn().mockResolvedValue({
+      getTracks: () => [{ stop: vi.fn() }]
+    });
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: {
+        enumerateDevices: vi.fn().mockResolvedValue([]),
+        getUserMedia
+      }
+    });
+    class FakeMediaRecorder {
+      mimeType = 'audio/webm';
+      ondataavailable: ((event: { data: Blob }) => void) | null = null;
+      onstop: (() => void) | null = null;
+      constructor(public stream: unknown) {}
+      start() {
+        this.ondataavailable?.({ data: new Blob(['audio']) });
+      }
+      stop() {
+        this.onstop?.();
+      }
+    }
+    vi.stubGlobal('MediaRecorder', FakeMediaRecorder);
+    class FakeAudioBuffer {
+      numberOfChannels = 1;
+      sampleRate = 16000;
+      length = 2;
+      getChannelData() {
+        return new Float32Array([0, 0.5]);
+      }
+    }
+    class FakeAudioContext {
+      decodeAudioData = vi.fn().mockResolvedValue(new FakeAudioBuffer());
+      close = vi.fn().mockResolvedValue(undefined);
+    }
+    vi.stubGlobal('AudioContext', FakeAudioContext);
+    const submitRecording = vi.fn().mockResolvedValue({ ok: true });
+    window.tailkall = {
+      getDashboard: vi.fn().mockResolvedValue({ settings: demoDashboardSettings(), records: [] }),
+      onRecordingStart: (callback) => {
+        startRecording = callback;
+        return () => undefined;
+      },
+      onRecordingStop: (callback) => {
+        stopRecording = callback;
+        return () => undefined;
+      },
+      submitRecording
+    };
+
+    render(<App />);
+    await waitFor(() => expect(startRecording).toBeDefined());
+
+    startRecording?.();
+    stopRecording?.();
+
+    await waitFor(() => expect(submitRecording).toHaveBeenCalled());
+    const audio = new Uint8Array(submitRecording.mock.calls[0][0]);
+    expect(new TextDecoder().decode(audio.slice(0, 4))).toBe('RIFF');
+    expect(new TextDecoder().decode(audio.slice(8, 12))).toBe('WAVE');
+  });
+
   it('switches to models and shows ASR and LLM configuration', () => {
     render(<App />);
 
