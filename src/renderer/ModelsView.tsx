@@ -13,14 +13,14 @@ type ProviderMeta = {
 
 const PROVIDER_META: Record<string, ProviderMeta> = {
   'openai': {
-    logoUrl: 'https://cdn.openai.com/API/logo-assets/openai-logos/PNG/openai-logomark.png',
+    logoUrl: 'https://openai.com/favicon.ico',
     platformUrl: 'https://platform.openai.com/api-keys',
     platformLabel: '前往 OpenAI 获取 API Key',
     fallbackBg: '#10a37f',
     fallbackText: 'AI'
   },
   'deepseek': {
-    logoUrl: 'https://chat.deepseek.com/favicon.ico',
+    logoUrl: 'https://www.deepseek.com/favicon.ico',
     platformUrl: 'https://platform.deepseek.com/api_keys',
     platformLabel: '前往 DeepSeek 获取 API Key',
     fallbackBg: '#4D6BFE',
@@ -48,7 +48,7 @@ const PROVIDER_META: Record<string, ProviderMeta> = {
     fallbackText: '方舟'
   },
   'dashscope': {
-    logoUrl: 'https://img.alicdn.com/imgextra/i4/O1CN01c4NbGs23kFKEkJXln_!!6000000007294-2-tps-167-167.png',
+    logoUrl: 'https://www.aliyun.com/favicon.ico',
     platformUrl: 'https://dashscope.console.aliyun.com/apiKey',
     platformLabel: '前往阿里云百炼获取 API Key',
     fallbackBg: '#ff6a00',
@@ -132,8 +132,6 @@ function ProviderLogo({ providerKey, size = 28 }: { providerKey: string; size?: 
       className="provider-logo-img"
       onError={() => setImgError(true)}
       alt=""
-      crossOrigin="anonymous"
-      referrerPolicy="no-referrer"
     />
   );
 }
