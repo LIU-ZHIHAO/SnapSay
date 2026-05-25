@@ -852,24 +852,15 @@ function Dashboard(props: {
               <ChevronDown size={13} className={isMoreOpen ? 'style-chevron open' : 'style-chevron'} />
             </strong>
             <button
-              aria-checked={props.settings.cleanupEnabled}
-              aria-label="文案整理"
-              className={props.settings.cleanupEnabled ? 'dashboard-cleanup-toggle active' : 'dashboard-cleanup-toggle'}
+              aria-label={props.settings.cleanupEnabled ? '文案整理已开启，点击关闭整理' : '文案整理已关闭，点击开启整理'}
+              className={props.settings.cleanupEnabled ? 'dashboard-cleanup-toggle active' : 'dashboard-cleanup-toggle inactive'}
               onClick={(event) => {
                 event.stopPropagation();
                 props.onToggleCleanup?.(!props.settings.cleanupEnabled);
               }}
-              role="switch"
-              title={props.settings.cleanupEnabled ? '关闭文案整理' : '开启文案整理'}
+              title={props.settings.cleanupEnabled ? '当前会整理文本，点击关闭整理' : '当前直出文本，点击开启整理'}
               type="button"
-            >
-              <span className="dashboard-cleanup-toggle-track">
-                <span className="dashboard-cleanup-toggle-thumb" />
-              </span>
-              <span className="dashboard-cleanup-toggle-text">
-                {props.settings.cleanupEnabled ? '整理' : '直出'}
-              </span>
-            </button>
+            />
             {isMoreOpen && (
               <div className="style-preset-dropdown dashboard-style-dropdown" onClick={(e) => e.stopPropagation()}>
                 {allPresets.map((preset) => (

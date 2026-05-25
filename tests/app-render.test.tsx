@@ -110,18 +110,22 @@ describe('TailKall main renderer', () => {
     expect(within(overview).getByRole('button', { name: /改写风格/ })).toHaveTextContent('日常聊天');
   });
 
-  it('toggles cleanup from the dashboard style card without opening the style menu', async () => {
+  it('toggles cleanup from the dashboard style card action button without opening the style menu', async () => {
     const saveSettings = vi.fn().mockResolvedValue(undefined);
     window.tailkall = { saveSettings };
 
     render(<App />);
 
-    const cleanupSwitch = screen.getByRole('switch', { name: '文案整理' });
-    expect(cleanupSwitch).toHaveAttribute('aria-checked', 'false');
+    const cleanupToggle = screen.getByRole('button', { name: '文案整理已关闭，点击开启整理' });
+    expect(cleanupToggle).toHaveClass('inactive');
+    expect(cleanupToggle).toHaveAttribute('title', '当前直出文本，点击开启整理');
+    expect(cleanupToggle).not.toHaveTextContent(/整理|直出/);
 
-    fireEvent.click(cleanupSwitch);
+    fireEvent.click(cleanupToggle);
 
-    expect(cleanupSwitch).toHaveAttribute('aria-checked', 'true');
+    expect(cleanupToggle).toHaveClass('active');
+    expect(cleanupToggle).toHaveAttribute('aria-label', '文案整理已开启，点击关闭整理');
+    expect(cleanupToggle).toHaveAttribute('title', '当前会整理文本，点击关闭整理');
     await waitFor(() => {
       expect(saveSettings).toHaveBeenCalledWith(expect.objectContaining({ cleanupEnabled: true }));
     });
