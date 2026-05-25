@@ -91,6 +91,7 @@ function saveFloatingPosition(x: number, y: number): void {
 let mainWindow: BrowserWindow | undefined;
 let settingsStore: SettingsStore | undefined;
 let isRecording = false;
+let isProcessingRecording = false;
 let activeTriggerAccelerator: string | undefined;
 let stopLowLevelTrigger: (() => void) | undefined;
 let asrDaemonPort: number | undefined;
@@ -359,64 +360,73 @@ function installIpcHandlers(): void {
   });
 
   ipcMain.handle('tailkall:submit-recording', async (_event, audio: ArrayBuffer, durationMs: number) => {
+    if (isProcessingRecording) {
+      return { ok: false, message: '上一段录音仍在转写中' };
+    }
+    isProcessingRecording = true;
     updateFloatingState({ visible: true, recording: false, status: 'recognizing' });
     const settings = settingsStore?.getSettings();
     if (!settingsStore || !settings) {
+      isProcessingRecording = false;
       return { ok: false, message: '设置存储不可用' };
     }
 
-    const record = await runRecordingPipeline({
-      audio,
-      asrProvider: createConfiguredAsrProvider(settings, durationMs),
-      durationMs,
-      applyWordbook: (text) => applyWordbook(text, settings.input.wordbook ?? []),
-      shouldCleanupText: (transcript) =>
-        Boolean(settings.cleanup.enabled && settings.cleanup.provider && shouldCleanupTranscript(transcript)),
-      cleanupText: async (transcript) => {
-        const provider = resolveActiveCleanupProvider(settings);
-        if (!settings.cleanup.enabled || !provider) {
-          return { text: transcript };
-        }
-        updateFloatingState({ visible: true, recording: false, status: 'rewriting' });
-        const basePrompt = resolvePromptText(settings.cleanup.prompt);
-        const wordbookSuffix = buildWordbookPrompt(settings.input.wordbook ?? []);
-        return cleanupText({
-          provider,
-          transcript,
-          prompt: basePrompt + wordbookSuffix,
-          fetch: fetch as FetchLike,
-          timeoutMs: 15_000
-        });
-      },
-      pasteText: async (text) => {
-        if (settings.input.outputMode === '仅保存记录') {
-          return { status: 'saved' };
-        }
-        await pasteTextToCursor(text, { clipboard, keyboard: { pressPasteShortcut: pressSystemPasteShortcut } });
-        return { status: 'pasted' };
-      },
-      settingsStore
-    });
+    try {
+      const record = await runRecordingPipeline({
+        audio,
+        asrProvider: createConfiguredAsrProvider(settings, durationMs),
+        durationMs,
+        applyWordbook: (text) => applyWordbook(text, settings.input.wordbook ?? []),
+        shouldCleanupText: (transcript) =>
+          Boolean(settings.cleanup.enabled && settings.cleanup.provider && shouldCleanupTranscript(transcript)),
+        cleanupText: async (transcript) => {
+          const provider = resolveActiveCleanupProvider(settings);
+          if (!settings.cleanup.enabled || !provider) {
+            return { text: transcript };
+          }
+          updateFloatingState({ visible: true, recording: false, status: 'rewriting' });
+          const basePrompt = resolvePromptText(settings.cleanup.prompt);
+          const wordbookSuffix = buildWordbookPrompt(settings.input.wordbook ?? []);
+          return cleanupText({
+            provider,
+            transcript,
+            prompt: basePrompt + wordbookSuffix,
+            fetch: fetch as FetchLike,
+            timeoutMs: 15_000
+          });
+        },
+        pasteText: async (text) => {
+          if (settings.input.outputMode === '仅保存记录') {
+            return { status: 'saved' };
+          }
+          await pasteTextToCursor(text, { clipboard, keyboard: { pressPasteShortcut: pressSystemPasteShortcut } });
+          return { status: 'pasted' };
+        },
+        settingsStore
+      });
 
-    updateFloatingState({
-      visible: true,
-      recording: false,
-      status: record.status === 'completed' ? 'done' : 'failed',
-      error: record.error
-    });
-    setTimeout(() => updateFloatingState({ visible: false, recording: false }), 1200);
+      updateFloatingState({
+        visible: true,
+        recording: false,
+        status: record.status === 'completed' ? 'done' : 'failed',
+        error: record.error
+      });
+      setTimeout(() => updateFloatingState({ visible: false, recording: false }), 1200);
 
-    // Auto-delete short accidental recordings (< 5 chars)
-    const transcript = record.transcript ?? '';
-    if (transcript.length < 5) {
-      settingsStore?.deleteRecord(record.id);
-    } else {
-      // Send full records list to avoid race condition with getDashboard
-      const allRecords = settingsStore?.listRecords() ?? [];
-      mainWindow?.webContents.send('tailkall:records-synced', allRecords.map(toRendererRecord));
+      // Auto-delete short accidental recordings (< 5 chars)
+      const transcript = record.transcript ?? '';
+      if (transcript.length < 5) {
+        settingsStore?.deleteRecord(record.id);
+      } else {
+        // Send full records list to avoid race condition with getDashboard
+        const allRecords = settingsStore?.listRecords() ?? [];
+        mainWindow?.webContents.send('tailkall:records-synced', allRecords.map(toRendererRecord));
+      }
+
+      return { ok: record.status === 'completed', record };
+    } finally {
+      isProcessingRecording = false;
     }
-
-    return { ok: record.status === 'completed', record };
   });
 
   ipcMain.handle('tailkall:copy-text', (_event, text: string) => {
@@ -550,6 +560,9 @@ function installIpcHandlers(): void {
 }
 
 function setRecording(next: boolean): void {
+  if (next && isProcessingRecording) {
+    return;
+  }
   if (isRecording === next) {
     return;
   }
@@ -609,7 +622,10 @@ async function registerLowLevelTriggers(labels: string[], recordMode?: string): 
       }
       downStartedAt.set(bindingId, Date.now());
       recordingStateAtDown.set(bindingId, isRecording);
-      const action = resolveTriggerDownAction({ recordMode, isRecording });
+      const action = resolveTriggerDownAction({ recordMode, isRecording, isProcessing: isProcessingRecording });
+      if (action === 'ignore') {
+        return;
+      }
       setRecording(action === 'start-recording');
     };
     const onUp = (event: unknown) => {

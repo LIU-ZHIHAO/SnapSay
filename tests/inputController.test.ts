@@ -115,6 +115,11 @@ describe('inputController', () => {
     ).toBe('keep-recording');
   });
 
+  it('ignores trigger down while a recording is being processed', () => {
+    expect(resolveTriggerDownAction({ recordMode: '点击开始/停止', isRecording: false, isProcessing: true })).toBe('ignore');
+    expect(resolveTriggerDownAction({ recordMode: '按住说话', isRecording: false, isProcessing: true })).toBe('ignore');
+  });
+
   it('registers keyboard triggers through an injected adapter', () => {
     const unregister = vi.fn();
     const adapter = {

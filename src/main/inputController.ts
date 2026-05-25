@@ -109,7 +109,11 @@ export function resolveTriggerReleaseAction(options: {
 export function resolveTriggerDownAction(options: {
   recordMode?: string;
   isRecording: boolean;
-}): 'start-recording' | 'stop-recording' {
+  isProcessing?: boolean;
+}): 'start-recording' | 'stop-recording' | 'ignore' {
+  if (options.isProcessing) {
+    return 'ignore';
+  }
   if (isClickToggleRecordMode(options.recordMode) && options.isRecording) {
     return 'stop-recording';
   }
