@@ -209,6 +209,7 @@ type RecordItem = {
   asrDurationMs?: number;
   cleanupDurationMs?: number;
   pasteSucceeded?: boolean;
+  totalTokens?: number;
   error?: string;
 };
 
@@ -808,16 +809,8 @@ function Dashboard(props: {
   const speechRateStr = `${avgSpeechRate} 字/分钟`;
   const activePreset = allPresets.find((preset) => preset.id === activeId) ?? allPresets[0];
 
-  // Calculate today and total count of chats/records
-  const todayDateStr = (() => {
-    const d = new Date();
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    return `${yyyy}/${mm}/${dd}`;
-  })();
-  const todayRecordsCount = props.records.filter(r => (r.time || '').startsWith(todayDateStr)).length;
   const totalRecordsCount = props.records.length;
+  const totalTokensSum = props.records.reduce((sum, r) => sum + (r.totalTokens ?? 0), 0);
 
 
   return (
@@ -880,13 +873,10 @@ function Dashboard(props: {
             icon={<BookOpen size={16} />}
             label="记录次数"
             value={
-              <span style={{ fontSize: 'inherit', fontWeight: 'inherit', display: 'flex', gap: '8px', alignItems: 'baseline' }}>
-                <span style={{ fontSize: '0.85em', opacity: 0.8, fontWeight: 500 }}>今日</span>
-                <span>{todayRecordsCount}</span>
-                <span style={{ fontSize: '0.8em', opacity: 0.4, fontWeight: 300 }}>/</span>
-                <span style={{ fontSize: '0.85em', opacity: 0.8, fontWeight: 500 }}>累计</span>
-                <span>{totalRecordsCount}</span>
-                <span style={{ fontSize: '0.75em', opacity: 0.6, fontWeight: 400, marginLeft: '-2px' }}>次</span>
+              <span style={{ fontSize: 'inherit', fontWeight: 'inherit', display: 'flex', gap: '10px', alignItems: 'baseline' }}>
+                <span>{totalRecordsCount}<span style={{ fontSize: '0.75em', opacity: 0.6, fontWeight: 400 }}>次</span></span>
+                <span style={{ fontSize: '0.8em', opacity: 0.4, fontWeight: 300 }}>|</span>
+                <span>{totalTokensSum >= 1000 ? `${(totalTokensSum / 1000).toFixed(1)}k` : totalTokensSum}<span style={{ fontSize: '0.75em', opacity: 0.6, fontWeight: 400 }}> tok</span></span>
               </span>
             }
             type="records-count"

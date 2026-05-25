@@ -296,6 +296,7 @@ function toRendererRecord(record: TranscriptionRecord) {
     asrDurationMs: record.asrDurationMs,
     cleanupDurationMs: record.cleanupDurationMs,
     pasteSucceeded: record.pasteSucceeded,
+    totalTokens: record.totalTokens,
     error: record.error
   };
 }
@@ -485,11 +486,11 @@ function installIpcHandlers(): void {
       prompt: resolvePromptText(settings.cleanup.prompt),
       fetch: fetch as FetchLike
     });
-    const updated = settingsStore?.updateRecord(id, { cleanedText: cleaned, status: 'completed' });
+    const updated = settingsStore?.updateRecord(id, { cleanedText: cleaned.text, totalTokens: cleaned.totalTokens, status: 'completed' });
     if (updated) {
       mainWindow?.webContents.send('tailkall:record-updated', updated);
     }
-    return { ok: true, text: cleaned };
+    return { ok: true, text: cleaned.text };
   });
 
   ipcMain.handle('tailkall:save-correction', (_event, id: string, correctionText: string) => {

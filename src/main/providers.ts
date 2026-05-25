@@ -69,13 +69,18 @@ export function buildChatCompletionPayload(options: {
   };
 }
 
+export type CleanupResult = {
+  text: string;
+  totalTokens?: number;
+};
+
 export async function cleanupText(options: {
   provider: CleanupProviderConfig;
   transcript: string;
   prompt?: string;
   fetch: FetchLike;
   timeoutMs?: number;
-}): Promise<string> {
+}): Promise<CleanupResult> {
   const provider = normalizeProvider(options.provider);
   const response = await options.fetch(`${provider.baseUrl}/chat/completions`, {
     method: 'POST',
@@ -108,7 +113,8 @@ export async function cleanupText(options: {
   if (!content) {
     throw new Error(`Cleanup provider ${provider.name} returned no text`);
   }
-  return content;
+  const totalTokens = readTotalTokens(json);
+  return { text: content, totalTokens };
 }
 
 export async function testCleanupProvider(options: {
@@ -471,6 +477,18 @@ function readAssistantContent(json: unknown): string | undefined {
   }
   const first = choices[0] as { message?: { content?: unknown } } | undefined;
   return typeof first?.message?.content === 'string' ? first.message.content : undefined;
+}
+
+function readTotalTokens(json: unknown): number | undefined {
+  if (!json || typeof json !== 'object' || !('usage' in json)) {
+    return undefined;
+  }
+  const usage = (json as { usage?: unknown }).usage;
+  if (!usage || typeof usage !== 'object') {
+    return undefined;
+  }
+  const total = (usage as { total_tokens?: unknown }).total_tokens;
+  return typeof total === 'number' ? total : undefined;
 }
 
 function sanitizeProviderError(message: string, apiKey: string): string {

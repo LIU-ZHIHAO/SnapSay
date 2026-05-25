@@ -95,6 +95,7 @@ export type TranscriptionRecord = {
   durationMs?: number;
   asrDurationMs?: number;
   cleanupDurationMs?: number;
+  totalTokens?: number;
   pasteSucceeded?: boolean;
   createdAt: string;
   updatedAt: string;

@@ -1,4 +1,4 @@
-import type { AsrProvider } from './providers';
+import type { AsrProvider, CleanupResult } from './providers';
 import type { SettingsStore, TranscriptionRecord } from './settingsStore';
 
 const TERMINAL_PUNCTUATION_RE = /[。．，、！？!?.,：:；;]+$/u;
@@ -9,7 +9,7 @@ export type RecordingPipelineOptions = {
   durationMs: number;
   applyWordbook?: (text: string) => string;
   shouldCleanupText?: (transcript: string) => boolean;
-  cleanupText: (transcript: string) => Promise<string>;
+  cleanupText: (transcript: string) => Promise<CleanupResult>;
   pasteText: (text: string) => Promise<unknown>;
   settingsStore: SettingsStore;
 };
@@ -26,6 +26,7 @@ export async function runRecordingPipeline(
   let cleanupError: string | undefined;
   let asrDurationMs: number | undefined;
   let cleanupDurationMs: number | undefined;
+  let totalTokens: number | undefined;
 
   try {
     const asrStart = Date.now();
@@ -39,7 +40,9 @@ export async function runRecordingPipeline(
     if (shouldCleanup) {
       const cleanupStart = Date.now();
       try {
-        cleanedText = await options.cleanupText(transcript);
+        const result = await options.cleanupText(transcript);
+        cleanedText = result.text;
+        totalTokens = result.totalTokens;
       } catch (error) {
         cleanupError = error instanceof Error ? error.message : String(error);
       } finally {
@@ -61,6 +64,7 @@ export async function runRecordingPipeline(
       durationMs: options.durationMs,
       asrDurationMs,
       cleanupDurationMs,
+      totalTokens,
       pasteSucceeded: true
     });
   } catch (error) {

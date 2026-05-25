@@ -155,7 +155,7 @@ describe('inputController', () => {
 describe('recorderCoordinator', () => {
   it('saves a completed record after ASR, cleanup, and paste', async () => {
     const store = createSettingsStore({ store: createMemoryStore() });
-    const cleanup = vi.fn().mockResolvedValue('clean text');
+    const cleanup = vi.fn().mockResolvedValue({ text: 'clean text', totalTokens: undefined });
     const paste = vi.fn().mockResolvedValue({ status: 'pasted' });
 
     const record = await runRecordingPipeline({
@@ -203,7 +203,7 @@ describe('recorderCoordinator', () => {
       audio: new ArrayBuffer(0),
       durationMs: 1000,
       asrProvider: createMockAsrProvider('raw text'),
-      cleanupText: vi.fn().mockResolvedValue('clean text'),
+      cleanupText: vi.fn().mockResolvedValue({ text: 'clean text', totalTokens: undefined }),
       pasteText: vi.fn().mockRejectedValue(new Error('paste failed')),
       settingsStore: store
     });
@@ -217,7 +217,7 @@ describe('recorderCoordinator', () => {
 
   it('skips cleanup and pastes ASR text for short transcripts', async () => {
     const store = createSettingsStore({ store: createMemoryStore() });
-    const cleanup = vi.fn().mockResolvedValue('clean text');
+    const cleanup = vi.fn().mockResolvedValue({ text: 'clean text', totalTokens: undefined });
     const paste = vi.fn().mockResolvedValue({ status: 'pasted' });
 
     const record = await runRecordingPipeline({
@@ -240,7 +240,7 @@ describe('recorderCoordinator', () => {
 
   it('strips trailing punctuation before pasting short transcripts that skip cleanup', async () => {
     const store = createSettingsStore({ store: createMemoryStore() });
-    const cleanup = vi.fn().mockResolvedValue('clean text');
+    const cleanup = vi.fn().mockResolvedValue({ text: 'clean text', totalTokens: undefined });
     const paste = vi.fn().mockResolvedValue({ status: 'pasted' });
 
     const record = await runRecordingPipeline({
@@ -262,7 +262,7 @@ describe('recorderCoordinator', () => {
 
   it('keeps interior punctuation and removes only continuous trailing punctuation', async () => {
     const store = createSettingsStore({ store: createMemoryStore() });
-    const cleanup = vi.fn().mockResolvedValue('clean text');
+    const cleanup = vi.fn().mockResolvedValue({ text: 'clean text', totalTokens: undefined });
     const paste = vi.fn().mockResolvedValue({ status: 'pasted' });
 
     const record = await runRecordingPipeline({
@@ -282,7 +282,7 @@ describe('recorderCoordinator', () => {
 
   it('runs cleanup for transcripts longer than the cleanup threshold', async () => {
     const store = createSettingsStore({ store: createMemoryStore() });
-    const cleanup = vi.fn().mockResolvedValue('整理后的长文本');
+    const cleanup = vi.fn().mockResolvedValue({ text: '整理后的长文本', totalTokens: undefined });
     const paste = vi.fn().mockResolvedValue({ status: 'pasted' });
 
     const record = await runRecordingPipeline({

@@ -82,7 +82,7 @@ describe('providers', () => {
         transcript: 'raw',
         fetch
       })
-    ).resolves.toBe('clean text');
+    ).resolves.toEqual({ text: 'clean text', totalTokens: undefined });
 
     await expect(
       testCleanupProvider({
