@@ -812,6 +812,12 @@ function Dashboard(props: {
   const totalRecordsCount = props.records.length;
   const totalTokensSum = props.records.reduce((sum, r) => sum + (r.totalTokens ?? 0), 0);
 
+  const formatCount = (n: number): string => {
+    if (n >= 100_000_000) return `${(n / 100_000_000).toFixed(1).replace(/\.0$/, '')}亿`;
+    if (n >= 10_000) return `${(n / 10_000).toFixed(1).replace(/\.0$/, '')}万`;
+    return String(n);
+  };
+
 
   return (
     <div className="view-stack dashboard-view">
@@ -872,7 +878,7 @@ function Dashboard(props: {
           <OverviewStat
             icon={<BookOpen size={16} />}
             label="记录次数"
-            value={`${totalRecordsCount}次 | ${totalTokensSum} tokens`}
+            value={`${formatCount(totalRecordsCount)}次 | ${formatCount(totalTokensSum)} tokens`}
             type="records-count"
           />
         </div>
