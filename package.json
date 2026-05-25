@@ -6,10 +6,10 @@
   "main": "dist-electron/main/main.js",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 14231",
-    "build": "npm run typecheck && vite build && tsc -p tsconfig.electron.json",
+    "build": "npm run typecheck && vite build && npx tsc -p tsconfig.electron.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit && tsc -p tsconfig.electron.json --noEmit",
+    "typecheck": "npx tsc --noEmit && npx tsc -p tsconfig.electron.json --noEmit",
     "electron": "npm run build && electron .",
     "watch-commit": "chokidar \"src/**/*\" -c \"git add . && git commit -m 'auto: code change detected' --allow-empty\""
   },
