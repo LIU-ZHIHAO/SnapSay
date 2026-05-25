@@ -2,7 +2,7 @@ import type { AppSettings, StoragePaths } from './types';
 import { DEFAULT_CLEANUP_PROMPT } from './cleanupPolicy';
 export { DEFAULT_CLEANUP_PROMPT } from './cleanupPolicy';
 
-export const PROJECT_ROOT = 'D:\\Antigravity\\tailkall';
+export const PROJECT_ROOT = 'D:\\Antigravity\\SnapSay';
 
 export const DEFAULT_STORAGE_PATHS: StoragePaths = {
   dataDir: `${PROJECT_ROOT}\\data`,

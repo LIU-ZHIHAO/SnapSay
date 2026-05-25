@@ -1,5 +1,5 @@
 param(
-  [string]$Root = "D:\Antigravity\tailkall"
+  [string]$Root = (Split-Path -Parent $PSScriptRoot)
 )
 
 $ErrorActionPreference = "Stop"
@@ -16,6 +16,7 @@ $env:MODELSCOPE_CACHE = Join-Path $cache "modelscope"
 $env:TORCH_HOME = Join-Path $cache "torch"
 $env:XDG_CACHE_HOME = $cache
 $env:PIP_CACHE_DIR = Join-Path $cache "pip"
+$env:SNAPSAY_ROOT = $Root
 
 if (-not (Test-Path -LiteralPath $python)) {
   python -m venv $venv
@@ -30,7 +31,7 @@ import os
 from huggingface_hub import snapshot_download
 from modelscope import snapshot_download as ms_snapshot_download
 
-root = r"D:\Antigravity\tailkall"
+root = os.environ["SNAPSAY_ROOT"]
 os.environ["HF_HOME"] = os.path.join(root, "cache", "huggingface")
 os.environ["HUGGINGFACE_HUB_CACHE"] = os.path.join(root, "cache", "huggingface", "hub")
 os.environ["MODELSCOPE_CACHE"] = os.path.join(root, "cache", "modelscope")

@@ -6,12 +6,14 @@ import json
 import struct
 import socket
 import threading
+from pathlib import Path
 
 import numpy as np
 import av
 
-os.environ.setdefault('MODELSCOPE_CACHE', r'D:\Antigravity\tailkall\cache\modelscope')
-os.environ.setdefault('HF_HOME', r'D:\Antigravity\tailkall\cache\huggingface')
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+os.environ.setdefault('MODELSCOPE_CACHE', str(PROJECT_ROOT / 'cache' / 'modelscope'))
+os.environ.setdefault('HF_HOME', str(PROJECT_ROOT / 'cache' / 'huggingface'))
 
 from funasr import AutoModel
 

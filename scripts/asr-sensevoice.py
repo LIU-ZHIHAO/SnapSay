@@ -1,6 +1,7 @@
 import argparse
 import os
 import re
+from pathlib import Path
 
 
 def main() -> None:
@@ -12,8 +13,9 @@ def main() -> None:
     parser.add_argument("--language", default="zh")
     args = parser.parse_args()
 
-    os.environ.setdefault("MODELSCOPE_CACHE", r"D:\Antigravity\tailkall\cache\modelscope")
-    os.environ.setdefault("HF_HOME", r"D:\Antigravity\tailkall\cache\huggingface")
+    project_root = Path(__file__).resolve().parents[1]
+    os.environ.setdefault("MODELSCOPE_CACHE", str(project_root / "cache" / "modelscope"))
+    os.environ.setdefault("HF_HOME", str(project_root / "cache" / "huggingface"))
 
     from funasr import AutoModel
 

@@ -1,6 +1,6 @@
 import { app, BrowserWindow, clipboard, globalShortcut, ipcMain, Menu, nativeImage, screen, shell } from 'electron';
 import { execFile, spawn } from 'node:child_process';
-import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
@@ -20,6 +20,13 @@ import type { AsrProfileConfig, LlmProviderConfig } from './settingsStore.js';
 import { applyWordbook, buildWordbookPrompt, extractWordPairCandidates } from './wordbook.js';
 import type { WordbookEntry } from './wordbook.js';
 import { DEFAULT_CLEANUP_PROMPT, shouldCleanupTranscript, resolvePromptText } from '../shared/cleanupPolicy.js';
+
+const PROJECT_ROOT = process.env.SNAPSAY_ROOT ?? app.getAppPath();
+const DATA_DIR = join(PROJECT_ROOT, 'data');
+const LOGS_DIR = join(PROJECT_ROOT, 'logs');
+const CACHE_DIR = join(PROJECT_ROOT, 'cache');
+const MODELS_DIR = join(PROJECT_ROOT, 'models');
+const TMP_DIR = join(PROJECT_ROOT, 'tmp');
 
 type RendererSettings = {
   triggerKey: string;
@@ -52,7 +59,7 @@ type RendererSettings = {
   activeAsrProfileId: string;
 };
 
-const FLOATING_POS_FILE = join('D:\\Antigravity', 'tailkall', 'data', 'floating-pos.json');
+const FLOATING_POS_FILE = join(DATA_DIR, 'floating-pos.json');
 let savePositionTimer: ReturnType<typeof setTimeout> | undefined;
 
 function loadFloatingPosition(): { x: number; y: number } | undefined {
@@ -89,13 +96,18 @@ let asrDaemonPort: number | undefined;
 let asrDaemonEngine: 'sensevoice' | undefined;
 const execFileAsync = promisify(execFile);
 const LONG_PRESS_MS = 350;
-const ASR_PORT_FILE_SV = join('D:\\Antigravity', 'tailkall', 'data', 'asr-daemon.port');
+const ASR_PORT_FILE_SV = join(DATA_DIR, 'asr-daemon.port');
 const SYSTEM_FFMPEG_COMMAND = 'ffmpeg';
 
-app.setPath('userData', join('D:\\Antigravity', 'tailkall', 'data', 'electron'));
-app.setPath('logs', join('D:\\Antigravity', 'tailkall', 'logs'));
+mkdirSync(DATA_DIR, { recursive: true });
+mkdirSync(LOGS_DIR, { recursive: true });
+mkdirSync(CACHE_DIR, { recursive: true });
+mkdirSync(TMP_DIR, { recursive: true });
+
+app.setPath('userData', join(DATA_DIR, 'electron'));
+app.setPath('logs', LOGS_DIR);
 try {
-  app.setPath('sessionData', join('D:\\Antigravity', 'tailkall', 'cache', 'electron-session'));
+  app.setPath('sessionData', join(CACHE_DIR, 'electron-session'));
 } catch {
   // Older Electron versions may not expose sessionData; userData/logs are still moved off C:.
 }
@@ -109,7 +121,7 @@ function rendererUrl(page: 'index.html' | 'floating.html'): string {
 }
 
 function defaultDataRoot(): string {
-  return join('D:\\Antigravity', 'tailkall', 'data');
+  return DATA_DIR;
 }
 
 async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>): Promise<void> {
@@ -118,22 +130,22 @@ async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>
   if (!isSenseVoice) return;
 
   const portFile = ASR_PORT_FILE_SV;
-  const scriptPath = join('D:\\Antigravity', 'tailkall', 'scripts', 'asr-daemon.py');
+  const scriptPath = join(PROJECT_ROOT, 'scripts', 'asr-daemon.py');
   const modelPath = settings.input.senseVoiceModelPath;
   const device = settings.input.asrAcceleration === 'CPU' ? 'cpu' : 'cuda:0';
 
   try { unlinkSync(portFile); } catch { /* ignore */ }
 
   const daemon = spawn(settings.input.pythonPath, [scriptPath], {
-    cwd: join('D:\\Antigravity', 'tailkall'),
+    cwd: PROJECT_ROOT,
     env: {
       ...process.env,
       ASR_MODEL_PATH: modelPath,
       ASR_DEVICE: device,
       ASR_PORT_FILE: portFile,
-      MODELSCOPE_CACHE: join('D:\\Antigravity', 'tailkall', 'cache', 'modelscope'),
-      HF_HOME: join('D:\\Antigravity', 'tailkall', 'cache', 'huggingface'),
-      HUGGINGFACE_HUB_CACHE: join('D:\\Antigravity', 'tailkall', 'cache', 'huggingface', 'hub')
+      MODELSCOPE_CACHE: join(CACHE_DIR, 'modelscope'),
+      HF_HOME: join(CACHE_DIR, 'huggingface'),
+      HUGGINGFACE_HUB_CACHE: join(CACHE_DIR, 'huggingface', 'hub')
     },
     windowsHide: true,
     stdio: 'ignore',
@@ -234,10 +246,10 @@ function toRendererSettings(): RendererSettings {
     recordMode: settings?.input.recordMode ?? '按住说话',
     asr: settings?.input.asr ?? 'SenseVoice',
     asrAcceleration: settings?.input.asrAcceleration ?? 'GPU 优先',
-    localModelDir: settings?.input.localModelDir ?? join('D:\\Antigravity', 'tailkall', 'models'),
+    localModelDir: settings?.input.localModelDir ?? MODELS_DIR,
     senseVoiceModelPath:
-      settings?.input.senseVoiceModelPath ?? join('D:\\Antigravity', 'tailkall', 'models', 'sensevoice', 'SenseVoiceSmall'),
-    pythonPath: settings?.input.pythonPath ?? join('D:\\Antigravity', 'tailkall', '.venv', 'Scripts', 'python.exe'),
+      settings?.input.senseVoiceModelPath ?? join(MODELS_DIR, 'sensevoice', 'SenseVoiceSmall'),
+    pythonPath: settings?.input.pythonPath ?? join(PROJECT_ROOT, '.venv', 'Scripts', 'python.exe'),
     cleanupEnabled: settings?.cleanup.enabled ?? false,
     provider: settings?.cleanup.provider?.name ?? 'DeepSeek',
     baseURL: settings?.cleanup.provider?.baseUrl ?? 'https://api.deepseek.com/v1',
@@ -737,7 +749,7 @@ function createConfiguredAsrProvider(settings: ReturnType<SettingsStore['getSett
   const asrName = activeProfile?.kind === 'local' ? activeProfile.engine : settings.input.asr;
   const commonPythonOptions = {
     pythonPath: settings.input.pythonPath,
-    tmpDir: join('D:\\Antigravity', 'tailkall', 'tmp'),
+    tmpDir: TMP_DIR,
     ffmpegPath: SYSTEM_FFMPEG_COMMAND,
     acceleration: settings.input.asrAcceleration === 'CPU' ? ('cpu' as const) : ('auto-gpu' as const)
   };
@@ -748,7 +760,7 @@ function createConfiguredAsrProvider(settings: ReturnType<SettingsStore['getSett
     return createPythonAsrProvider({
       ...commonPythonOptions,
       engine: 'sensevoice-funasr',
-      scriptPath: join('D:\\Antigravity', 'tailkall', 'scripts', 'asr-sensevoice.py'),
+      scriptPath: join(PROJECT_ROOT, 'scripts', 'asr-sensevoice.py'),
       modelPath: settings.input.senseVoiceModelPath
       // SenseVoice does not support prompt injection
     });

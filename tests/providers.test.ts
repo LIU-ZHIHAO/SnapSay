@@ -187,10 +187,10 @@ describe('providers', () => {
     const commands: Array<{ file: string; args: string[] }> = [];
     const asr = createPythonAsrProvider({
       engine: 'sensevoice-funasr',
-      pythonPath: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
-      scriptPath: 'D:\\Antigravity\\tailkall\\scripts\\asr-sensevoice.py',
-      modelPath: 'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
-      tmpDir: 'D:\\Antigravity\\tailkall\\tmp',
+      pythonPath: 'D:\\Antigravity\\SnapSay\\.venv\\Scripts\\python.exe',
+      scriptPath: 'D:\\Antigravity\\SnapSay\\scripts\\asr-sensevoice.py',
+      modelPath: 'D:\\Antigravity\\SnapSay\\models\\sensevoice\\SenseVoiceSmall',
+      tmpDir: 'D:\\Antigravity\\SnapSay\\tmp',
       ffmpegPath: 'ffmpeg',
       acceleration: 'auto-gpu',
       idFactory: () => 'py-1',
@@ -208,15 +208,15 @@ describe('providers', () => {
     });
 
     expect(commands[1]).toEqual({
-      file: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
+      file: 'D:\\Antigravity\\SnapSay\\.venv\\Scripts\\python.exe',
       args: [
-        'D:\\Antigravity\\tailkall\\scripts\\asr-sensevoice.py',
+        'D:\\Antigravity\\SnapSay\\scripts\\asr-sensevoice.py',
         '--audio',
-        'D:\\Antigravity\\tailkall\\tmp\\py-1.wav',
+        'D:\\Antigravity\\SnapSay\\tmp\\py-1.wav',
         '--model',
-        'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
+        'D:\\Antigravity\\SnapSay\\models\\sensevoice\\SenseVoiceSmall',
         '--out',
-        'D:\\Antigravity\\tailkall\\tmp\\py-1.sensevoice-funasr.txt',
+        'D:\\Antigravity\\SnapSay\\tmp\\py-1.sensevoice-funasr.txt',
         '--device',
         'auto',
         '--language',
@@ -229,10 +229,10 @@ describe('providers', () => {
     const commands: Array<{ file: string; args: string[] }> = [];
     const asr = createPythonAsrProvider({
       engine: 'sensevoice-funasr',
-      pythonPath: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
-      scriptPath: 'D:\\Antigravity\\tailkall\\scripts\\asr-sensevoice.py',
-      modelPath: 'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
-      tmpDir: 'D:\\Antigravity\\tailkall\\tmp',
+      pythonPath: 'D:\\Antigravity\\SnapSay\\.venv\\Scripts\\python.exe',
+      scriptPath: 'D:\\Antigravity\\SnapSay\\scripts\\asr-sensevoice.py',
+      modelPath: 'D:\\Antigravity\\SnapSay\\models\\sensevoice\\SenseVoiceSmall',
+      tmpDir: 'D:\\Antigravity\\SnapSay\\tmp',
       ffmpegPath: 'ffmpeg',
       idFactory: () => 'py-wav',
       writeFile: async () => undefined,
@@ -248,15 +248,15 @@ describe('providers', () => {
 
     expect(commands).toHaveLength(1);
     expect(commands[0]).toEqual({
-      file: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
+      file: 'D:\\Antigravity\\SnapSay\\.venv\\Scripts\\python.exe',
       args: [
-        'D:\\Antigravity\\tailkall\\scripts\\asr-sensevoice.py',
+        'D:\\Antigravity\\SnapSay\\scripts\\asr-sensevoice.py',
         '--audio',
-        'D:\\Antigravity\\tailkall\\tmp\\py-wav.wav',
+        'D:\\Antigravity\\SnapSay\\tmp\\py-wav.wav',
         '--model',
-        'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
+        'D:\\Antigravity\\SnapSay\\models\\sensevoice\\SenseVoiceSmall',
         '--out',
-        'D:\\Antigravity\\tailkall\\tmp\\py-wav.sensevoice-funasr.txt',
+        'D:\\Antigravity\\SnapSay\\tmp\\py-wav.sensevoice-funasr.txt',
         '--device',
         'auto',
         '--language',

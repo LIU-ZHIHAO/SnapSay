@@ -2,19 +2,19 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_APP_SETTINGS, DEFAULT_STORAGE_PATHS, PROJECT_ROOT } from '../src/shared/defaults';
 
 describe('shared defaults', () => {
-  it('keeps runtime data directories under the TailKall project on D drive', () => {
-    expect(PROJECT_ROOT).toBe('D:\\Antigravity\\tailkall');
+  it('keeps runtime data directories under the SnapSay project on D drive', () => {
+    expect(PROJECT_ROOT).toBe('D:\\Antigravity\\SnapSay');
     expect(DEFAULT_STORAGE_PATHS).toEqual({
-      dataDir: 'D:\\Antigravity\\tailkall\\data',
-      logsDir: 'D:\\Antigravity\\tailkall\\logs',
-      cacheDir: 'D:\\Antigravity\\tailkall\\cache',
-      modelsDir: 'D:\\Antigravity\\tailkall\\models',
-      tmpDir: 'D:\\Antigravity\\tailkall\\tmp'
+      dataDir: 'D:\\Antigravity\\SnapSay\\data',
+      logsDir: 'D:\\Antigravity\\SnapSay\\logs',
+      cacheDir: 'D:\\Antigravity\\SnapSay\\cache',
+      modelsDir: 'D:\\Antigravity\\SnapSay\\models',
+      tmpDir: 'D:\\Antigravity\\SnapSay\\tmp'
     });
 
     for (const path of Object.values(DEFAULT_STORAGE_PATHS)) {
       expect(path.startsWith('C:\\')).toBe(false);
-      expect(path.startsWith('D:\\Antigravity\\tailkall\\')).toBe(true);
+      expect(path.startsWith('D:\\Antigravity\\SnapSay\\')).toBe(true);
     }
   });
 

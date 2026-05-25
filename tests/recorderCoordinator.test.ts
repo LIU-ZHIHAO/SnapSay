@@ -11,7 +11,7 @@ describe('voice record pipeline model', () => {
       asr: { providerId: 'local-sensevoice', providerType: 'local', model: 'SenseVoiceSmall' },
       cleanup: { providerId: 'deepseek', providerType: 'openai-compatible', model: 'deepseek-chat' },
       metadata: {
-        audioPath: 'D:\\Antigravity\\tailkall\\data\\recordings\\sample.wav',
+        audioPath: 'D:\\Antigravity\\SnapSay\\data\\recordings\\sample.wav',
         outputMode: 'paste',
         pasteSucceeded: true
       },
@@ -28,7 +28,7 @@ describe('voice record pipeline model', () => {
       asr: { providerId: 'local-sensevoice', providerType: 'local', model: 'SenseVoiceSmall' },
       cleanup: { providerId: 'deepseek', providerType: 'openai-compatible', model: 'deepseek-chat' },
       metadata: {
-        audioPath: 'D:\\Antigravity\\tailkall\\data\\recordings\\sample.wav',
+        audioPath: 'D:\\Antigravity\\SnapSay\\data\\recordings\\sample.wav',
         outputMode: 'paste',
         pasteSucceeded: true
       },

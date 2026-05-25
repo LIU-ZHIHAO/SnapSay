@@ -1,5 +1,7 @@
 import { DEFAULT_CLEANUP_PROMPT } from '../shared/cleanupPolicy.js';
 
+const PROJECT_ROOT = process.env.SNAPSAY_ROOT ?? process.cwd();
+
 export type CleanupProviderConfig = {
   type: 'openai-compatible';
   name: string;
@@ -146,11 +148,11 @@ export const defaultSettings: AppSettings = {
     recordMode: '按住说话',
     asr: 'SenseVoice',
     asrAcceleration: 'GPU 优先',
-    localModelDir: 'D:\\Antigravity\\tailkall\\models',
-    senseVoiceModelPath: 'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
-    pythonPath: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
+    localModelDir: `${PROJECT_ROOT}\\models`,
+    senseVoiceModelPath: `${PROJECT_ROOT}\\models\\sensevoice\\SenseVoiceSmall`,
+    pythonPath: `${PROJECT_ROOT}\\.venv\\Scripts\\python.exe`,
     outputMode: '粘贴到当前光标',
-    dataDir: 'D:\\Antigravity\\tailkall\\data',
+    dataDir: `${PROJECT_ROOT}\\data`,
     microphoneDeviceId: '',
     shortPressAction: '语音输入',
     longPressAction: '语音助手',
@@ -357,7 +359,7 @@ function mergeInputSettings(settings?: Partial<AppSettings['input']>): AppSettin
   const activeProfile = asrProfiles.find((profile) => profile.id === activeAsrProfileId) ?? asrProfiles[0];
   return {
     ...defaultSettings.input,
-    ...settings,
+    ...migrateInputPaths(settings),
     trigger: {
       ...defaultSettings.input.trigger,
       ...settings?.trigger
@@ -365,6 +367,21 @@ function mergeInputSettings(settings?: Partial<AppSettings['input']>): AppSettin
     asrProfiles,
     activeAsrProfileId: activeProfile.id,
     asr: activeProfile.engine
+  };
+}
+
+function migrateInputPaths(settings?: Partial<AppSettings['input']>): Partial<AppSettings['input']> | undefined {
+  if (!settings) {
+    return settings;
+  }
+  const migrate = (value: string | undefined) =>
+    value?.replace(/^D:\\Antigravity\\tailkall(?=\\|$)/i, PROJECT_ROOT);
+  return {
+    ...settings,
+    localModelDir: migrate(settings.localModelDir),
+    senseVoiceModelPath: migrate(settings.senseVoiceModelPath),
+    pythonPath: migrate(settings.pythonPath),
+    dataDir: migrate(settings.dataDir)
   };
 }
 

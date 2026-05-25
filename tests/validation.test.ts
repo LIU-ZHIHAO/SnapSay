@@ -26,7 +26,7 @@ describe('shared validation helpers', () => {
       valid: false,
       reason: 'Storage paths must not default to the C drive or user profile.'
     });
-    expect(validateStoragePath('D:\\Antigravity\\tailkall\\data')).toEqual({ valid: true });
+    expect(validateStoragePath('D:\\Antigravity\\SnapSay\\data')).toEqual({ valid: true });
   });
 
   it('masks API keys by exposing only the last four characters', () => {

@@ -1,5 +1,5 @@
 param(
-  [string]$Root = "D:\Antigravity\tailkall"
+  [string]$Root = (Split-Path -Parent $PSScriptRoot)
 )
 
 $ErrorActionPreference = "Stop"

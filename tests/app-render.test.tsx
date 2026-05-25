@@ -9,9 +9,9 @@ function demoDashboardSettings() {
     recordMode: '按住说话',
     asr: 'SenseVoice',
     asrAcceleration: 'GPU 优先',
-    localModelDir: 'D:\\Antigravity\\tailkall\\models',
-    senseVoiceModelPath: 'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
-    pythonPath: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
+    localModelDir: 'D:\\Antigravity\\SnapSay\\models',
+    senseVoiceModelPath: 'D:\\Antigravity\\SnapSay\\models\\sensevoice\\SenseVoiceSmall',
+    pythonPath: 'D:\\Antigravity\\SnapSay\\.venv\\Scripts\\python.exe',
     cleanupEnabled: false,
     provider: 'OpenAI Compatible',
     baseURL: 'https://api.example.com/v1',
@@ -21,7 +21,7 @@ function demoDashboardSettings() {
     activeLlmProviderKey: 'deepseek',
     prompt: DEFAULT_CLEANUP_PROMPT,
     outputMode: '粘贴到当前光标',
-    dataDir: 'D:\\Antigravity\\tailkall\\data',
+    dataDir: 'D:\\Antigravity\\SnapSay\\data',
     shortPressAction: '语音输入',
     longPressAction: '语音助手',
     smartMouseMode: true,
@@ -121,7 +121,7 @@ describe('TailKall main renderer', () => {
     expect(screen.getByLabelText('短按动作')).toHaveValue('语音输入');
     expect(screen.getByLabelText('长按动作')).toHaveValue('语音助手');
     expect(screen.getByRole('button', { name: '输出模式' })).toHaveTextContent('粘贴到当前光标');
-    expect(screen.getByLabelText('数据目录')).toHaveValue('D:\\Antigravity\\tailkall\\data');
+    expect(screen.getByLabelText('数据目录')).toHaveValue('D:\\Antigravity\\SnapSay\\data');
     expect(screen.getByRole('radiogroup', { name: '界面风格' })).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: '浅色' })).toHaveAttribute('aria-checked', 'true');
     expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
@@ -586,9 +586,9 @@ describe('TailKall main renderer', () => {
           recordMode: '按住说话',
           asr: 'SenseVoice',
           asrAcceleration: 'GPU 优先',
-          localModelDir: 'D:\\Antigravity\\tailkall\\models',
-                                  senseVoiceModelPath: 'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
-          pythonPath: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
+          localModelDir: 'D:\\Antigravity\\SnapSay\\models',
+                                  senseVoiceModelPath: 'D:\\Antigravity\\SnapSay\\models\\sensevoice\\SenseVoiceSmall',
+          pythonPath: 'D:\\Antigravity\\SnapSay\\.venv\\Scripts\\python.exe',
           cleanupEnabled: false,
           provider: 'OpenAI Compatible',
           baseURL: 'https://api.example.com/v1',
@@ -598,7 +598,7 @@ describe('TailKall main renderer', () => {
           activeLlmProviderKey: 'deepseek',
           prompt: DEFAULT_CLEANUP_PROMPT,
           outputMode: '粘贴到当前光标',
-          dataDir: 'D:\\Antigravity\\tailkall\\data',
+          dataDir: 'D:\\Antigravity\\SnapSay\\data',
           microphoneDeviceId: '',
           shortPressAction: '语音输入',
           longPressAction: '语音助手',
@@ -681,9 +681,9 @@ describe('TailKall main renderer', () => {
           recordMode: '按住说话',
           asr: 'SenseVoice',
           asrAcceleration: 'GPU 优先',
-          localModelDir: 'D:\\Antigravity\\tailkall\\models',
-                                  senseVoiceModelPath: 'D:\\Antigravity\\tailkall\\models\\sensevoice\\SenseVoiceSmall',
-          pythonPath: 'D:\\Antigravity\\tailkall\\.venv\\Scripts\\python.exe',
+          localModelDir: 'D:\\Antigravity\\SnapSay\\models',
+                                  senseVoiceModelPath: 'D:\\Antigravity\\SnapSay\\models\\sensevoice\\SenseVoiceSmall',
+          pythonPath: 'D:\\Antigravity\\SnapSay\\.venv\\Scripts\\python.exe',
           cleanupEnabled: false,
           provider: 'OpenAI Compatible',
           baseURL: 'https://api.example.com/v1',
@@ -693,7 +693,7 @@ describe('TailKall main renderer', () => {
           activeLlmProviderKey: 'deepseek',
           prompt: DEFAULT_CLEANUP_PROMPT,
           outputMode: '粘贴到当前光标',
-          dataDir: 'D:\\Antigravity\\tailkall\\data',
+          dataDir: 'D:\\Antigravity\\SnapSay\\data',
           microphoneDeviceId: '',
           shortPressAction: '语音输入',
           longPressAction: '语音助手',
