@@ -872,13 +872,7 @@ function Dashboard(props: {
           <OverviewStat
             icon={<BookOpen size={16} />}
             label="记录次数"
-            value={
-              <span style={{ fontSize: 'inherit', fontWeight: 'inherit', display: 'flex', gap: '10px', alignItems: 'baseline' }}>
-                <span>{totalRecordsCount}<span style={{ fontSize: '0.75em', opacity: 0.6, fontWeight: 400 }}>次</span></span>
-                <span style={{ fontSize: '0.8em', opacity: 0.4, fontWeight: 300 }}>|</span>
-                <span>{totalTokensSum >= 1000 ? `${(totalTokensSum / 1000).toFixed(1)}k` : totalTokensSum}<span style={{ fontSize: '0.75em', opacity: 0.6, fontWeight: 400 }}> tok</span></span>
-              </span>
-            }
+            value={`${totalRecordsCount}次 | ${totalTokensSum} tokens`}
             type="records-count"
           />
         </div>
