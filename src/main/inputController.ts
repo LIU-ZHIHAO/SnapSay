@@ -89,17 +89,35 @@ export function classifyPressDuration(startedAt: number, endedAt: number, longPr
 }
 
 export function resolveTriggerReleaseAction(options: {
+  recordMode?: string;
   wasRecordingAtDown: boolean;
   startedAt: number;
   endedAt: number;
   longPressMs?: number;
 }): 'keep-recording' | 'stop-recording' {
+  if (isClickToggleRecordMode(options.recordMode)) {
+    return 'keep-recording';
+  }
   if (options.wasRecordingAtDown) {
     return 'stop-recording';
   }
   return classifyPressDuration(options.startedAt, options.endedAt, options.longPressMs) === 'long'
     ? 'stop-recording'
     : 'keep-recording';
+}
+
+export function resolveTriggerDownAction(options: {
+  recordMode?: string;
+  isRecording: boolean;
+}): 'start-recording' | 'stop-recording' {
+  if (isClickToggleRecordMode(options.recordMode) && options.isRecording) {
+    return 'stop-recording';
+  }
+  return 'start-recording';
+}
+
+function isClickToggleRecordMode(recordMode: string | undefined): boolean {
+  return /点击|开始\/停止|toggle/i.test(recordMode ?? '');
 }
 
 export function registerKeyboardTrigger(

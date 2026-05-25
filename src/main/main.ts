@@ -9,6 +9,7 @@ import {
   parseTriggerLabelToAccelerator,
   parseTriggerLabelToBinding,
   pasteTextToCursor,
+  resolveTriggerDownAction,
   resolveTriggerReleaseAction,
   type MouseTrigger,
   type TriggerBinding
@@ -575,7 +576,7 @@ async function registerConfiguredTrigger(keyboardLabel: string | undefined, mous
   }
 
   const triggerLabels = [keyboardLabel || 'F8', mouseLabel || 'Mouse Middle'].filter(Boolean);
-  const hookRegistered = await registerLowLevelTriggers(triggerLabels);
+  const hookRegistered = await registerLowLevelTriggers(triggerLabels, settingsStore?.getSettings().input.recordMode);
   if (hookRegistered) {
     return;
   }
@@ -586,7 +587,7 @@ async function registerConfiguredTrigger(keyboardLabel: string | undefined, mous
   }
 }
 
-async function registerLowLevelTriggers(labels: string[]): Promise<boolean> {
+async function registerLowLevelTriggers(labels: string[], recordMode?: string): Promise<boolean> {
   const bindings = uniqueBindings(labels.map((label) => parseTriggerLabelToBinding(label)).filter(Boolean) as TriggerBinding[]);
   if (!bindings.length) {
     return false;
@@ -607,7 +608,8 @@ async function registerLowLevelTriggers(labels: string[]): Promise<boolean> {
       }
       downStartedAt.set(bindingId, Date.now());
       recordingStateAtDown.set(bindingId, isRecording);
-      setRecording(true);
+      const action = resolveTriggerDownAction({ recordMode, isRecording });
+      setRecording(action === 'start-recording');
     };
     const onUp = (event: unknown) => {
       const binding = bindings.find((candidate) => matchesTriggerEvent(candidate, event));
@@ -623,6 +625,7 @@ async function registerLowLevelTriggers(labels: string[]): Promise<boolean> {
         return;
       }
       const releaseAction = resolveTriggerReleaseAction({
+        recordMode,
         wasRecordingAtDown,
         startedAt,
         endedAt: Date.now(),

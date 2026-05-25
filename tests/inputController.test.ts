@@ -6,6 +6,7 @@ import {
   parseTriggerLabelToBinding,
   registerKeyboardTrigger,
   registerMouseTrigger,
+  resolveTriggerDownAction,
   resolveTriggerReleaseAction,
   triggerToAccelerator
 } from '../src/main/inputController';
@@ -98,6 +99,20 @@ describe('inputController', () => {
         longPressMs: 350
       })
     ).toBe('stop-recording');
+  });
+
+  it('uses click-to-toggle mode without stopping on release', () => {
+    expect(resolveTriggerDownAction({ recordMode: '点击开始/停止', isRecording: false })).toBe('start-recording');
+    expect(resolveTriggerDownAction({ recordMode: '点击开始/停止', isRecording: true })).toBe('stop-recording');
+    expect(
+      resolveTriggerReleaseAction({
+        recordMode: '点击开始/停止',
+        wasRecordingAtDown: false,
+        startedAt: 1000,
+        endedAt: 1800,
+        longPressMs: 350
+      })
+    ).toBe('keep-recording');
   });
 
   it('registers keyboard triggers through an injected adapter', () => {
