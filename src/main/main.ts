@@ -1,6 +1,6 @@
 import { app, BrowserWindow, clipboard, globalShortcut, ipcMain, Menu, nativeImage, screen, shell } from 'electron';
 import { execFile, spawn } from 'node:child_process';
-import { mkdirSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync, unlinkSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
@@ -155,7 +155,21 @@ async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>
     // Dev: use Python script with venv
     const scriptPath = join(PROJECT_ROOT, 'scripts', 'asr-daemon.py');
     const device = settings.input.asrAcceleration === 'CPU' ? 'cpu' : 'cuda:0';
-    daemon = spawn(settings.input.pythonPath, [scriptPath], {
+    let pythonPath = settings.input.pythonPath;
+    if (!existsSync(pythonPath)) {
+      // Auto-detect .venv vs venv mismatch
+      const alt = pythonPath.replace(/[/\\]\.venv([/\\])/, '$1venv$1');
+      const alt2 = pythonPath.replace(/[/\\]venv([/\\])/, '$1.venv$1');
+      if (existsSync(alt)) {
+        pythonPath = alt;
+      } else if (existsSync(alt2)) {
+        pythonPath = alt2;
+      } else {
+        console.error(`[ASR daemon] Python not found at ${pythonPath}, skipping ASR daemon startup.`);
+        return;
+      }
+    }
+    daemon = spawn(pythonPath, [scriptPath], {
       cwd: PROJECT_ROOT,
       env: {
         ...process.env,
@@ -171,6 +185,10 @@ async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>
       detached: false
     });
   }
+
+  daemon.on('error', (err) => {
+    console.error('[ASR daemon] Failed to start:', err.message);
+  });
 
   daemon.unref();
 
