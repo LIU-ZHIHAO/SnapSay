@@ -375,7 +375,7 @@ function installIpcHandlers(): void {
       cleanupText: async (transcript) => {
         const provider = resolveActiveCleanupProvider(settings);
         if (!settings.cleanup.enabled || !provider) {
-          return transcript;
+          return { text: transcript };
         }
         updateFloatingState({ visible: true, recording: false, status: 'rewriting' });
         const basePrompt = resolvePromptText(settings.cleanup.prompt);
