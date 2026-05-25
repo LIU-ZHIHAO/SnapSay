@@ -654,6 +654,7 @@ export default function App() {
                 onUpdateOriginal={(record, value) => {
                   setRecords((current) => current.map((item) => (item.id === record.id ? { ...item, original: value } : item)));
                 }}
+                onToggleCleanup={(enabled) => updateSetting('cleanupEnabled', enabled)}
                 onUpdatePrompt={(newPrompt) => updateSetting('prompt', newPrompt)}
                 onUpdateWordbook={(wb) => updateSetting('wordbook', wb)}
               />
@@ -755,6 +756,7 @@ function Dashboard(props: {
   onEdit?: (record: RecordItem) => void;
   onSaveCorrection?: (id: string, text: string) => void;
   onUpdateOriginal?: (record: RecordItem, value: string) => void;
+  onToggleCleanup?: (enabled: boolean) => void;
   onUpdatePrompt?: (newPrompt: string) => void;
   onUpdateWordbook?: (wordbook: WordbookEntry[]) => void;
   onOpenStyles?: () => void;
@@ -849,6 +851,25 @@ function Dashboard(props: {
               {activePreset.name}
               <ChevronDown size={13} className={isMoreOpen ? 'style-chevron open' : 'style-chevron'} />
             </strong>
+            <button
+              aria-checked={props.settings.cleanupEnabled}
+              aria-label="文案整理"
+              className={props.settings.cleanupEnabled ? 'dashboard-cleanup-toggle active' : 'dashboard-cleanup-toggle'}
+              onClick={(event) => {
+                event.stopPropagation();
+                props.onToggleCleanup?.(!props.settings.cleanupEnabled);
+              }}
+              role="switch"
+              title={props.settings.cleanupEnabled ? '关闭文案整理' : '开启文案整理'}
+              type="button"
+            >
+              <span className="dashboard-cleanup-toggle-track">
+                <span className="dashboard-cleanup-toggle-thumb" />
+              </span>
+              <span className="dashboard-cleanup-toggle-text">
+                {props.settings.cleanupEnabled ? '整理' : '直出'}
+              </span>
+            </button>
             {isMoreOpen && (
               <div className="style-preset-dropdown dashboard-style-dropdown" onClick={(e) => e.stopPropagation()}>
                 {allPresets.map((preset) => (

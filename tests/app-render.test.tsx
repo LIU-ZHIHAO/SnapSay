@@ -110,6 +110,24 @@ describe('TailKall main renderer', () => {
     expect(within(overview).getByRole('button', { name: /改写风格/ })).toHaveTextContent('日常聊天');
   });
 
+  it('toggles cleanup from the dashboard style card without opening the style menu', async () => {
+    const saveSettings = vi.fn().mockResolvedValue(undefined);
+    window.tailkall = { saveSettings };
+
+    render(<App />);
+
+    const cleanupSwitch = screen.getByRole('switch', { name: '文案整理' });
+    expect(cleanupSwitch).toHaveAttribute('aria-checked', 'false');
+
+    fireEvent.click(cleanupSwitch);
+
+    expect(cleanupSwitch).toHaveAttribute('aria-checked', 'true');
+    await waitFor(() => {
+      expect(saveSettings).toHaveBeenCalledWith(expect.objectContaining({ cleanupEnabled: true }));
+    });
+    expect(screen.queryByRole('button', { name: '理智工科' })).not.toBeInTheDocument();
+  });
+
   it('switches to settings and shows shortcut and behavior config', () => {
     render(<App />);
 
