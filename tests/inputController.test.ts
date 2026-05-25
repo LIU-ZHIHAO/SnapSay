@@ -233,7 +233,7 @@ describe('recorderCoordinator', () => {
     expect(record.status).toBe('completed');
     expect(record.transcript).toBe('打开设置页');
     expect(record.cleanedText).toBeUndefined();
-    expect(record.cleanupDurationMs).toBeUndefined();
+    expect(record.cleanupDurationMs).toBe(0);
     expect(cleanup).not.toHaveBeenCalled();
     expect(paste).toHaveBeenCalledWith('打开设置页');
   });

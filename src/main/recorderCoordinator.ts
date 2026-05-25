@@ -48,6 +48,8 @@ export async function runRecordingPipeline(
       } finally {
         cleanupDurationMs = Date.now() - cleanupStart;
       }
+    } else {
+      cleanupDurationMs = 0;
     }
 
     await options.pasteText(cleanedText ?? transcript);

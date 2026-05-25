@@ -1212,6 +1212,10 @@ function FullRecordList(props: {
 function getCleanupDisplay(record: RecordItem): { label: string; title?: string; className: string } | undefined {
   if (record.cleanupDurationMs == null) return undefined;
 
+  if (record.cleanupDurationMs === 0) {
+    return { label: '无需整理', title: '短文本跳过整理', className: '' };
+  }
+
   const cleanupFailed =
     record.cleanupStatus === 'failed' ||
     (record.error != null && !record.cleanup && record.refined === record.original);
