@@ -14,6 +14,9 @@ cache/
 models/
 tmp/
 temp/
+asr/
+asr-daemon.spec
+asr-daemon-onnx.spec
 *.log
 *.local
 .env
