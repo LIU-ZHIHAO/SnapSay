@@ -132,27 +132,45 @@ async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>
   if (!isSenseVoice) return;
 
   const portFile = ASR_PORT_FILE_SV;
-  const scriptPath = join(PROJECT_ROOT, 'scripts', 'asr-daemon.py');
   const modelPath = settings.input.senseVoiceModelPath;
-  const device = settings.input.asrAcceleration === 'CPU' ? 'cpu' : 'cuda:0';
 
   try { unlinkSync(portFile); } catch { /* ignore */ }
 
-  const daemon = spawn(settings.input.pythonPath, [scriptPath], {
-    cwd: PROJECT_ROOT,
-    env: {
-      ...process.env,
-      ASR_MODEL_PATH: modelPath,
-      ASR_DEVICE: device,
-      ASR_PORT_FILE: portFile,
-      MODELSCOPE_CACHE: join(CACHE_DIR, 'modelscope'),
-      HF_HOME: join(CACHE_DIR, 'huggingface'),
-      HUGGINGFACE_HUB_CACHE: join(CACHE_DIR, 'huggingface', 'hub')
-    },
-    windowsHide: true,
-    stdio: 'ignore',
-    detached: false
-  });
+  let daemon;
+  if (app.isPackaged) {
+    // Packaged: use ONNX daemon EXE from extraResources
+    const daemonExe = join(process.resourcesPath, 'asr-daemon-onnx.exe');
+    daemon = spawn(daemonExe, [], {
+      cwd: PROJECT_ROOT,
+      env: {
+        ...process.env,
+        ASR_MODEL_PATH: modelPath,
+        ASR_PORT_FILE: portFile
+      },
+      windowsHide: true,
+      stdio: 'ignore',
+      detached: false
+    });
+  } else {
+    // Dev: use Python script with venv
+    const scriptPath = join(PROJECT_ROOT, 'scripts', 'asr-daemon.py');
+    const device = settings.input.asrAcceleration === 'CPU' ? 'cpu' : 'cuda:0';
+    daemon = spawn(settings.input.pythonPath, [scriptPath], {
+      cwd: PROJECT_ROOT,
+      env: {
+        ...process.env,
+        ASR_MODEL_PATH: modelPath,
+        ASR_DEVICE: device,
+        ASR_PORT_FILE: portFile,
+        MODELSCOPE_CACHE: join(CACHE_DIR, 'modelscope'),
+        HF_HOME: join(CACHE_DIR, 'huggingface'),
+        HUGGINGFACE_HUB_CACHE: join(CACHE_DIR, 'huggingface', 'hub')
+      },
+      windowsHide: true,
+      stdio: 'ignore',
+      detached: false
+    });
+  }
 
   daemon.unref();
 
