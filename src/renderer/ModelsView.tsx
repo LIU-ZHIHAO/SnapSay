@@ -111,7 +111,7 @@ const PROVIDER_META: Record<string, ProviderMeta> = {
 };
 
 function openExternal(url: string) {
-  const facade = window.tailkall as any;
+  const facade = window.snapsay as any;
   if (facade && typeof facade.openExternal === 'function') {
     void facade.openExternal(url);
   } else {
@@ -218,7 +218,7 @@ type SettingsState = {
 };
 
 function getFacade() {
-  return window.tailkall ?? {};
+  return window.snapsay ?? {};
 }
 
 export default function ModelsView(props: {

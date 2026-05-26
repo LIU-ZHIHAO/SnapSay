@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1440" height="960" viewBox="0 0 1440 960">
   <rect width="1440" height="960" fill="#f5f7f4"/>
   <rect x="0" y="0" width="1440" height="72" fill="#12382d"/>
-  <text x="36" y="46" fill="#ffffff" font-family="Segoe UI, Arial" font-size="24" font-weight="700">TailKall</text>
+  <text x="36" y="46" fill="#ffffff" font-family="Segoe UI, Arial" font-size="24" font-weight="700">SnapSay</text>
   <text x="156" y="46" fill="#bfe8d1" font-family="Segoe UI, Arial" font-size="15">设置</text>
 
   <rect x="0" y="72" width="248" height="888" fill="#ffffff"/>
@@ -34,7 +34,7 @@
   <text x="866" y="332" fill="#18251f" font-family="Segoe UI, Arial" font-size="15">本地 SenseVoice</text>
   <text x="844" y="390" fill="#60716a" font-family="Segoe UI, Arial" font-size="14">模型目录</text>
   <rect x="844" y="408" width="312" height="44" rx="6" fill="#f7faf8" stroke="#cfdcd5"/>
-  <text x="866" y="436" fill="#18251f" font-family="Segoe UI, Arial" font-size="15">D:\Antigravity\tailkall\models</text>
+  <text x="866" y="436" fill="#18251f" font-family="Segoe UI, Arial" font-size="15">D:\Antigravity\snapsay\models</text>
   <rect x="1172" y="408" width="100" height="44" rx="6" fill="#edf2ef"/>
   <text x="1202" y="436" fill="#294238" font-family="Segoe UI, Arial" font-size="15">选择</text>
 
@@ -56,7 +56,7 @@
   <text x="1050" y="649" fill="#ffffff" font-family="Segoe UI, Arial" font-size="14" font-weight="700">整理后输入</text>
   <text x="844" y="708" fill="#60716a" font-family="Segoe UI, Arial" font-size="14">数据目录</text>
   <rect x="844" y="726" width="312" height="44" rx="6" fill="#f7faf8" stroke="#cfdcd5"/>
-  <text x="866" y="754" fill="#18251f" font-family="Segoe UI, Arial" font-size="15">D:\Antigravity\tailkall\data</text>
+  <text x="866" y="754" fill="#18251f" font-family="Segoe UI, Arial" font-size="15">D:\Antigravity\snapsay\data</text>
   <rect x="1172" y="726" width="100" height="44" rx="6" fill="#edf2ef"/>
   <text x="1202" y="754" fill="#294238" font-family="Segoe UI, Arial" font-size="15">选择</text>
 </svg>

@@ -211,7 +211,7 @@ export async function createElectronStoreAdapter(options?: {
   const ElectronStore = (await import('electron-store')).default;
   const store = new ElectronStore({
     cwd: options?.cwd,
-    name: options?.name ?? 'tailkall-settings'
+    name: options?.name ?? 'snapsay-settings'
   });
 
   return {
@@ -319,7 +319,7 @@ function mergeInputSettings(settings?: Partial<AppSettings['input']>): AppSettin
   const activeProfile = asrProfiles.find((profile) => profile.id === activeAsrProfileId) ?? asrProfiles[0];
   return {
     ...defaultSettings.input,
-    ...migrateInputPaths(settings),
+    ...settings,
     trigger: {
       ...defaultSettings.input.trigger,
       ...settings?.trigger
@@ -327,21 +327,6 @@ function mergeInputSettings(settings?: Partial<AppSettings['input']>): AppSettin
     asrProfiles,
     activeAsrProfileId: activeProfile.id,
     asr: activeProfile.engine
-  };
-}
-
-function migrateInputPaths(settings?: Partial<AppSettings['input']>): Partial<AppSettings['input']> | undefined {
-  if (!settings) {
-    return settings;
-  }
-  const migrate = (value: string | undefined) =>
-    value?.replace(/^D:\\Antigravity\\tailkall(?=\\|$)/i, PROJECT_ROOT);
-  return {
-    ...settings,
-    localModelDir: migrate(settings.localModelDir),
-    senseVoiceModelPath: migrate(settings.senseVoiceModelPath),
-    pythonPath: migrate(settings.pythonPath),
-    dataDir: migrate(settings.dataDir)
   };
 }
 

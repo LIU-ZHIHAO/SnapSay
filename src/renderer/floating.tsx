@@ -12,7 +12,7 @@ type FloatingPayload = {
 
 declare global {
   interface Window {
-    tailkallFloating?: {
+    snapsayFloating?: {
       onState?: (callback: (state: FloatingPayload) => void) => () => void;
     };
   }
@@ -59,7 +59,7 @@ function FloatingRoot() {
   }, []);
 
   useEffect(() => {
-    return window.tailkallFloating?.onState?.((payload) => {
+    return window.snapsayFloating?.onState?.((payload) => {
       if (payload.status) {
         setState(payload.status);
         return;

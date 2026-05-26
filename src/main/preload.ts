@@ -1,60 +1,60 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-contextBridge.exposeInMainWorld('tailkall', {
-  getDashboard: () => ipcRenderer.invoke('tailkall:get-dashboard'),
-  saveSettings: (settings: unknown) => ipcRenderer.invoke('tailkall:save-settings', settings),
+contextBridge.exposeInMainWorld('snapsay', {
+  getDashboard: () => ipcRenderer.invoke('snapsay:get-dashboard'),
+  saveSettings: (settings: unknown) => ipcRenderer.invoke('snapsay:save-settings', settings),
   submitRecording: (audio: ArrayBuffer, durationMs: number) =>
-    ipcRenderer.invoke('tailkall:submit-recording', audio, durationMs),
-  copyText: (text: string) => ipcRenderer.invoke('tailkall:copy-text', text),
-  rewriteRecord: (id: string) => ipcRenderer.invoke('tailkall:rewrite-record', id),
-  pasteRecord: (id: string) => ipcRenderer.invoke('tailkall:paste-record', id),
-  deleteRecord: (id: string) => ipcRenderer.invoke('tailkall:delete-record', id),
-  clearAllRecords: () => ipcRenderer.invoke('tailkall:clear-all-records'),
-  clearDiagnosticLogs: () => ipcRenderer.invoke('tailkall:clear-diagnostic-logs'),
-  exportRecords: () => ipcRenderer.invoke('tailkall:export-records'),
-  importRecords: () => ipcRenderer.invoke('tailkall:import-records'),
-  testRewriteApi: (settings: unknown) => ipcRenderer.invoke('tailkall:test-rewrite-api', settings),
-  saveCorrection: (id: string, text: string) => ipcRenderer.invoke('tailkall:save-correction', id, text),
-  saveWordbook: (wordbook: unknown) => ipcRenderer.invoke('tailkall:save-wordbook', wordbook),
-  extractWordPairs: (id: string) => ipcRenderer.invoke('tailkall:extract-word-pairs', id),
+    ipcRenderer.invoke('snapsay:submit-recording', audio, durationMs),
+  copyText: (text: string) => ipcRenderer.invoke('snapsay:copy-text', text),
+  rewriteRecord: (id: string) => ipcRenderer.invoke('snapsay:rewrite-record', id),
+  pasteRecord: (id: string) => ipcRenderer.invoke('snapsay:paste-record', id),
+  deleteRecord: (id: string) => ipcRenderer.invoke('snapsay:delete-record', id),
+  clearAllRecords: () => ipcRenderer.invoke('snapsay:clear-all-records'),
+  clearDiagnosticLogs: () => ipcRenderer.invoke('snapsay:clear-diagnostic-logs'),
+  exportRecords: () => ipcRenderer.invoke('snapsay:export-records'),
+  importRecords: () => ipcRenderer.invoke('snapsay:import-records'),
+  testRewriteApi: (settings: unknown) => ipcRenderer.invoke('snapsay:test-rewrite-api', settings),
+  saveCorrection: (id: string, text: string) => ipcRenderer.invoke('snapsay:save-correction', id, text),
+  saveWordbook: (wordbook: unknown) => ipcRenderer.invoke('snapsay:save-wordbook', wordbook),
+  extractWordPairs: (id: string) => ipcRenderer.invoke('snapsay:extract-word-pairs', id),
   windowControl: (action: 'minimize' | 'toggle-maximize' | 'close') =>
-    ipcRenderer.invoke('tailkall:window-control', action),
-  openExternal: (url: string) => ipcRenderer.invoke('tailkall:open-external', url),
+    ipcRenderer.invoke('snapsay:window-control', action),
+  openExternal: (url: string) => ipcRenderer.invoke('snapsay:open-external', url),
   onRecordingStart: (callback: () => void) => {
-    ipcRenderer.on('tailkall:recording-start', callback);
-    return () => ipcRenderer.removeListener('tailkall:recording-start', callback);
+    ipcRenderer.on('snapsay:recording-start', callback);
+    return () => ipcRenderer.removeListener('snapsay:recording-start', callback);
   },
   onRecordingStop: (callback: () => void) => {
-    ipcRenderer.on('tailkall:recording-stop', callback);
-    return () => ipcRenderer.removeListener('tailkall:recording-stop', callback);
+    ipcRenderer.on('snapsay:recording-stop', callback);
+    return () => ipcRenderer.removeListener('snapsay:recording-stop', callback);
   },
   onRecordAdded: (callback: (record: unknown) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, record: unknown) => callback(record);
-    ipcRenderer.on('tailkall:record-added', listener);
-    return () => ipcRenderer.removeListener('tailkall:record-added', listener);
+    ipcRenderer.on('snapsay:record-added', listener);
+    return () => ipcRenderer.removeListener('snapsay:record-added', listener);
   },
   onRecordUpdated: (callback: (record: unknown) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, record: unknown) => callback(record);
-    ipcRenderer.on('tailkall:record-updated', listener);
-    return () => ipcRenderer.removeListener('tailkall:record-updated', listener);
+    ipcRenderer.on('snapsay:record-updated', listener);
+    return () => ipcRenderer.removeListener('snapsay:record-updated', listener);
   },
   onRecordDeleted: (callback: (id: string) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, id: string) => callback(id);
-    ipcRenderer.on('tailkall:record-deleted', listener);
-    return () => ipcRenderer.removeListener('tailkall:record-deleted', listener);
+    ipcRenderer.on('snapsay:record-deleted', listener);
+    return () => ipcRenderer.removeListener('snapsay:record-deleted', listener);
   },
   onRecordsCleared: (callback: () => void) => {
-    ipcRenderer.on('tailkall:records-cleared', callback);
-    return () => ipcRenderer.removeListener('tailkall:records-cleared', callback);
+    ipcRenderer.on('snapsay:records-cleared', callback);
+    return () => ipcRenderer.removeListener('snapsay:records-cleared', callback);
   },
   onRecordsSynced: (callback: (records: unknown) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, records: unknown) => callback(records);
-    ipcRenderer.on('tailkall:records-synced', listener);
-    return () => ipcRenderer.removeListener('tailkall:records-synced', listener);
+    ipcRenderer.on('snapsay:records-synced', listener);
+    return () => ipcRenderer.removeListener('snapsay:records-synced', listener);
   }
 });
 
-contextBridge.exposeInMainWorld('tailkallFloating', {
+contextBridge.exposeInMainWorld('snapsayFloating', {
   onState: (callback: (state: unknown) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, state: unknown) => callback(state);
     ipcRenderer.on('floating-state:update', listener);

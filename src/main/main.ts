@@ -380,7 +380,7 @@ function toRendererRecord(record: TranscriptionRecord) {
 }
 
 function installIpcHandlers(): void {
-  ipcMain.handle('tailkall:get-dashboard', () => {
+  ipcMain.handle('snapsay:get-dashboard', () => {
     const records = settingsStore?.listRecords().map(toRendererRecord);
 
     return {
@@ -389,7 +389,7 @@ function installIpcHandlers(): void {
     };
   });
 
-  ipcMain.handle('tailkall:save-settings', (_event, settings: RendererSettings) => {
+  ipcMain.handle('snapsay:save-settings', (_event, settings: RendererSettings) => {
     const saved = settingsStore?.saveSettings({
       cleanup: {
         enabled: settings.cleanupEnabled,
@@ -420,7 +420,7 @@ function installIpcHandlers(): void {
         longPressAction: settings.longPressAction,
         smartMouseMode: true,
         mouseTrigger: settings.mouseTrigger || 'Mouse Middle',
-        // BUG FIX: preserve wordbook; wordbook is saved independently via tailkall:save-wordbook
+        // BUG FIX: preserve wordbook; wordbook is saved independently via snapsay:save-wordbook
         wordbook: settingsStore?.getSettings().input.wordbook ?? [],
         asrProfiles: settings.asrProfiles,
         activeAsrProfileId: settings.activeAsrProfileId,
@@ -436,7 +436,7 @@ function installIpcHandlers(): void {
     return settings;
   });
 
-  ipcMain.handle('tailkall:submit-recording', async (_event, audio: ArrayBuffer, durationMs: number) => {
+  ipcMain.handle('snapsay:submit-recording', async (_event, audio: ArrayBuffer, durationMs: number) => {
     const submittedGeneration = recordingGeneration;
     updateProcessingFloatingState({ status: 'recognizing' }, submittedGeneration);
     const settings = settingsStore?.getSettings();
@@ -494,17 +494,17 @@ function installIpcHandlers(): void {
     } else {
       // Send full records list to avoid race condition with getDashboard
       const allRecords = settingsStore?.listRecords() ?? [];
-      mainWindow?.webContents.send('tailkall:records-synced', allRecords.map(toRendererRecord));
+      mainWindow?.webContents.send('snapsay:records-synced', allRecords.map(toRendererRecord));
     }
 
     return { ok: record.status === 'completed', record };
   });
 
-  ipcMain.handle('tailkall:copy-text', (_event, text: string) => {
+  ipcMain.handle('snapsay:copy-text', (_event, text: string) => {
     clipboard.writeText(text);
   });
 
-  ipcMain.handle('tailkall:paste-record', async (_event, id: string) => {
+  ipcMain.handle('snapsay:paste-record', async (_event, id: string) => {
     const record = settingsStore?.listRecords().find((item) => item.id === id);
     const text = record?.cleanedText || record?.transcript;
     if (!text) return { ok: false, message: '记录不存在' };
@@ -517,28 +517,28 @@ function installIpcHandlers(): void {
     return { ok: true };
   });
 
-  ipcMain.handle('tailkall:delete-record', (_event, id: string) => {
+  ipcMain.handle('snapsay:delete-record', (_event, id: string) => {
     const success = settingsStore?.deleteRecord(id) ?? false;
     if (success) {
-      mainWindow?.webContents.send('tailkall:record-deleted', id);
+      mainWindow?.webContents.send('snapsay:record-deleted', id);
     }
     return success;
   });
 
-  ipcMain.handle('tailkall:clear-all-records', () => {
+  ipcMain.handle('snapsay:clear-all-records', () => {
     settingsStore?.clearAllRecords();
-    mainWindow?.webContents.send('tailkall:records-cleared');
+    mainWindow?.webContents.send('snapsay:records-cleared');
     return { ok: true };
   });
 
-  ipcMain.handle('tailkall:clear-diagnostic-logs', () => {
+  ipcMain.handle('snapsay:clear-diagnostic-logs', () => {
     const cleared = settingsStore?.clearDiagnosticLogs() ?? 0;
     const records = settingsStore?.listRecords().map(toRendererRecord) ?? [];
-    mainWindow?.webContents.send('tailkall:records-synced', records);
+    mainWindow?.webContents.send('snapsay:records-synced', records);
     return { ok: true, cleared, records };
   });
 
-  ipcMain.handle('tailkall:export-records', async () => {
+  ipcMain.handle('snapsay:export-records', async () => {
     if (!mainWindow || !settingsStore) {
       return { ok: false, message: '窗口或记录存储不可用' };
     }
@@ -556,7 +556,7 @@ function installIpcHandlers(): void {
     return { ok: true, count: records.length, filePath: result.filePath };
   });
 
-  ipcMain.handle('tailkall:import-records', async () => {
+  ipcMain.handle('snapsay:import-records', async () => {
     if (!mainWindow || !settingsStore) {
       return { ok: false, message: '窗口或记录存储不可用' };
     }
@@ -572,7 +572,7 @@ function installIpcHandlers(): void {
       const records = readImportRecordsPayload(result.filePaths[0]);
       const imported = settingsStore.importRecords(records);
       const rendererRecords = imported.records.map(toRendererRecord);
-      mainWindow.webContents.send('tailkall:records-synced', rendererRecords);
+      mainWindow.webContents.send('snapsay:records-synced', rendererRecords);
       return {
         ok: true,
         imported: imported.imported,
@@ -588,7 +588,7 @@ function installIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle('tailkall:test-rewrite-api', async (_event, settings: RendererSettings) => {
+  ipcMain.handle('snapsay:test-rewrite-api', async (_event, settings: RendererSettings) => {
     const provider = {
       type: 'openai-compatible' as const,
       name: settings.provider || '文案整理模型',
@@ -605,7 +605,7 @@ function installIpcHandlers(): void {
       : { ok: false, message: result.error };
   });
 
-  ipcMain.handle('tailkall:rewrite-record', async (_event, id: string) => {
+  ipcMain.handle('snapsay:rewrite-record', async (_event, id: string) => {
     const record = settingsStore?.listRecords().find((item) => item.id === id);
     const settings = settingsStore?.getSettings();
     if (!record || !settings) {
@@ -623,18 +623,18 @@ function installIpcHandlers(): void {
     });
     const updated = settingsStore?.updateRecord(id, { cleanedText: cleaned.text, totalTokens: cleaned.totalTokens, status: 'completed' });
     if (updated) {
-      mainWindow?.webContents.send('tailkall:record-updated', updated);
+      mainWindow?.webContents.send('snapsay:record-updated', updated);
     }
     return { ok: true, text: cleaned.text };
   });
 
-  ipcMain.handle('tailkall:save-correction', (_event, id: string, correctionText: string) => {
+  ipcMain.handle('snapsay:save-correction', (_event, id: string, correctionText: string) => {
     settingsStore?.updateRecord(id, { userCorrection: correctionText });
     return { ok: true };
   });
 
   // Independently save wordbook without touching other settings
-  ipcMain.handle('tailkall:save-wordbook', (_event, wordbook: WordbookEntry[]) => {
+  ipcMain.handle('snapsay:save-wordbook', (_event, wordbook: WordbookEntry[]) => {
     if (!settingsStore) return { ok: false };
     const settings = settingsStore.getSettings();
     settingsStore.saveSettings({ input: { ...settings.input, wordbook } });
@@ -642,7 +642,7 @@ function installIpcHandlers(): void {
   });
 
   // Extract candidate word pairs from a correction record (for quick-add-to-wordbook)
-  ipcMain.handle('tailkall:extract-word-pairs', (_event, id: string) => {
+  ipcMain.handle('snapsay:extract-word-pairs', (_event, id: string) => {
     if (!settingsStore) return { ok: false, pairs: [] };
     const record = settingsStore.listRecords().find((r) => r.id === id);
     if (!record?.userCorrection) return { ok: false, pairs: [] };
@@ -650,7 +650,7 @@ function installIpcHandlers(): void {
     return { ok: true, pairs };
   });
 
-  ipcMain.handle('tailkall:window-control', (_event, action: 'minimize' | 'toggle-maximize' | 'close') => {
+  ipcMain.handle('snapsay:window-control', (_event, action: 'minimize' | 'toggle-maximize' | 'close') => {
     if (!mainWindow || mainWindow.isDestroyed()) {
       return false;
     }
@@ -673,7 +673,7 @@ function installIpcHandlers(): void {
     return false;
   });
 
-  ipcMain.handle('tailkall:open-external', async (_event, url: string) => {
+  ipcMain.handle('snapsay:open-external', async (_event, url: string) => {
     try {
       await shell.openExternal(url);
       return { ok: true };
@@ -692,10 +692,10 @@ function setRecording(next: boolean): void {
   if (isRecording) {
     recordingGeneration += 1;
     updateFloatingState({ visible: true, recording: true, status: 'recording' });
-    mainWindow?.webContents.send('tailkall:recording-start');
+    mainWindow?.webContents.send('snapsay:recording-start');
   } else {
     updateFloatingState({ visible: true, recording: false, status: 'recognizing' });
-    mainWindow?.webContents.send('tailkall:recording-stop');
+    mainWindow?.webContents.send('snapsay:recording-stop');
   }
 }
 

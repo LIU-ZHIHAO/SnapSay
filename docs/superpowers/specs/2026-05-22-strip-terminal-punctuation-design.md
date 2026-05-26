@@ -2,7 +2,7 @@
 
 ## Goal
 
-TailKall should remove trailing sentence punctuation from transcription text before it is pasted or saved, especially for short recordings that skip LLM cleanup.
+SnapSay should remove trailing sentence punctuation from transcription text before it is pasted or saved, especially for short recordings that skip LLM cleanup.
 
 ## Behavior
 

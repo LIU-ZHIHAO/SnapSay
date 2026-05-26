@@ -37,18 +37,18 @@ function demoDashboardSettings() {
   };
 }
 
-describe('TailKall main renderer', () => {
+describe('SnapSay main renderer', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     delete (navigator as { mediaDevices?: MediaDevices }).mediaDevices;
-    delete window.tailkall;
+    delete window.snapsay;
   });
 
   it('renders the dashboard with trigger, ASR, rewrite API, and recent records', async () => {
     render(<App />);
 
-    expect(screen.queryByRole('banner', { name: 'TailKall 窗口栏' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('banner', { name: 'SnapSay 窗口栏' })).not.toBeInTheDocument();
     expect(screen.getByRole('toolbar', { name: '窗口控制' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '最小化' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '最大化或还原' })).toBeInTheDocument();
@@ -76,7 +76,7 @@ describe('TailKall main renderer', () => {
   });
 
   it('renders a compact dashboard summary with shortened ASR and model labels', async () => {
-    window.tailkall = {
+    window.snapsay = {
       getDashboard: async () => ({
         settings: {
           ...demoDashboardSettings(),
@@ -112,7 +112,7 @@ describe('TailKall main renderer', () => {
 
   it('toggles cleanup from the dashboard style card action button without opening the style menu', async () => {
     const saveSettings = vi.fn().mockResolvedValue(undefined);
-    window.tailkall = { saveSettings };
+    window.snapsay = { saveSettings };
 
     render(<App />);
 
@@ -151,7 +151,7 @@ describe('TailKall main renderer', () => {
 
   it('captures mouse trigger buttons instead of showing a fixed dropdown', async () => {
     const saveSettings = vi.fn().mockResolvedValue(undefined);
-    window.tailkall = { saveSettings };
+    window.snapsay = { saveSettings };
 
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: '设置' }));
@@ -181,7 +181,7 @@ describe('TailKall main renderer', () => {
         ])
       }
     });
-    window.tailkall = { saveSettings };
+    window.snapsay = { saveSettings };
 
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: '设置' }));
@@ -256,7 +256,7 @@ describe('TailKall main renderer', () => {
       },
       records: []
     });
-    window.tailkall = {
+    window.snapsay = {
       getDashboard,
       onRecordingStart: (callback) => {
         startRecording = callback;
@@ -320,7 +320,7 @@ describe('TailKall main renderer', () => {
     }
     vi.stubGlobal('AudioContext', FakeAudioContext);
     const submitRecording = vi.fn().mockResolvedValue({ ok: true });
-    window.tailkall = {
+    window.snapsay = {
       getDashboard: vi.fn().mockResolvedValue({ settings: demoDashboardSettings(), records: [] }),
       onRecordingStart: (callback) => {
         startRecording = callback;
@@ -409,7 +409,7 @@ describe('TailKall main renderer', () => {
   });
 
   it('marks cleanup failures in recent records instead of showing cleanup duration as successful', async () => {
-    window.tailkall = {
+    window.snapsay = {
       getDashboard: async () => ({
         settings: demoDashboardSettings(),
         records: [
@@ -442,7 +442,7 @@ describe('TailKall main renderer', () => {
       pairs: [{ from: '报款逻辑', to: '爆款逻辑' }]
     });
     const saveWordbook = vi.fn().mockResolvedValue({ ok: true });
-    window.tailkall = { saveCorrection, extractWordPairs, saveWordbook };
+    window.snapsay = { saveCorrection, extractWordPairs, saveWordbook };
 
     render(<App />);
 
@@ -601,7 +601,7 @@ describe('TailKall main renderer', () => {
   });
 
   it('renders diagnostic logs at the bottom of settings for failed records', async () => {
-    window.tailkall = {
+    window.snapsay = {
       getDashboard: async () => ({
         settings: {
           triggerKey: 'Ctrl + Alt + Space',
@@ -678,7 +678,7 @@ describe('TailKall main renderer', () => {
     expect(within(logRegion).getByText('2026/05/20 22:46')).toBeInTheDocument();
     expect(within(logRegion).getAllByText('Cleanup provider DeepSeek failed with HTTP 402: insufficient balance')).toHaveLength(2);
 
-    delete (window as any).tailkall;
+    delete (window as any).snapsay;
   });
 
   it('clears diagnostic logs without clearing recent records', async () => {
@@ -695,7 +695,7 @@ describe('TailKall main renderer', () => {
       ]
     });
 
-    window.tailkall = {
+    window.snapsay = {
       clearDiagnosticLogs,
       getDashboard: async () => ({
         settings: {

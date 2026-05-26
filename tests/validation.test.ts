@@ -22,7 +22,7 @@ describe('shared validation helpers', () => {
   });
 
   it('rejects C drive storage paths and accepts D drive storage paths', () => {
-    expect(validateStoragePath('C:\\Users\\lzh\\AppData\\TailKall')).toEqual({
+    expect(validateStoragePath('C:\\Users\\lzh\\AppData\\SnapSay')).toEqual({
       valid: false,
       reason: 'Storage paths must not default to the C drive or user profile.'
     });

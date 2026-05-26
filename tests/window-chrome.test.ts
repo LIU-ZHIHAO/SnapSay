@@ -21,7 +21,7 @@ describe('custom window chrome', () => {
     const preloadSource = readFileSync(join(process.cwd(), 'src', 'main', 'preload.ts'), 'utf8');
 
     expect(preloadSource).toContain('windowControl');
-    expect(preloadSource).toContain('tailkall:window-control');
+    expect(preloadSource).toContain('snapsay:window-control');
   });
 
   it('integrates the draggable chrome into the app shell while keeping buttons interactive', () => {

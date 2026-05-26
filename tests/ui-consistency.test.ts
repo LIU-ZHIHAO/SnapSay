@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-describe('TailKall UI consistency', () => {
+describe('SnapSay UI consistency', () => {
   const css = readFileSync(join(process.cwd(), 'src', 'renderer', 'styles.css'), 'utf8');
   const appSource = readFileSync(join(process.cwd(), 'src', 'renderer', 'App.tsx'), 'utf8');
   const modelsSource = readFileSync(join(process.cwd(), 'src', 'renderer', 'ModelsView.tsx'), 'utf8');
@@ -12,7 +12,7 @@ describe('TailKall UI consistency', () => {
     expect(css).toMatch(/:root\s*\{[^}]*--surface-sidebar:\s*#f7f8fa/s);
     expect(css).toMatch(/:root\s*\{[^}]*--radius-panel:\s*18px/s);
     expect(appSource).not.toContain('ThemeSwitcher');
-    expect(appSource).not.toContain('tailkall-theme');
+    expect(appSource).not.toContain('snapsay-theme');
   });
 
   it('keeps four appearance styles on token overrides instead of duplicate component skins', () => {
@@ -23,7 +23,7 @@ describe('TailKall UI consistency', () => {
     expect(css).toMatch(/\[data-appearance="pink"\]\s*\{[^}]*--accent:/s);
     expect(css).toMatch(/\[data-appearance="green"\]\s*\{[^}]*--accent:/s);
     expect(appSource).toContain('AppearanceSelector');
-    expect(appSource).toContain('tailkall-appearance');
+    expect(appSource).toContain('snapsay-appearance');
   });
 
   it('does not contain legacy mixed-style hardcoded colors from the old UI', () => {

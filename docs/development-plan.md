@@ -1,4 +1,4 @@
-# TailKall 开发计划
+# SnapSay 开发计划
 
 ## 目标
 

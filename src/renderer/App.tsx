@@ -253,7 +253,7 @@ type SettingsState = {
   activeAsrProfileId: string;
 };
 
-type TailKallFacade = {
+type SnapSayFacade = {
   getDashboard?: () => Promise<{ settings: SettingsState; records: RecordItem[] }>;
   saveSettings?: (settings: SettingsState) => Promise<SettingsState>;
   submitRecording?: (audio: ArrayBuffer, durationMs: number) => Promise<{ ok: boolean }>;
@@ -289,7 +289,7 @@ type TailKallFacade = {
 
 declare global {
   interface Window {
-    tailkall?: TailKallFacade;
+    snapsay?: SnapSayFacade;
   }
 }
 
@@ -406,18 +406,18 @@ function dedupeMicrophoneDevices(devices: MicrophoneDevice[]): MicrophoneDevice[
   return Array.from(byKey.values()).filter((device) => !MICROPHONE_ALIAS_IDS.has(device.deviceId));
 }
 
-function getFacade(): TailKallFacade {
-  return window.tailkall ?? {};
+function getFacade(): SnapSayFacade {
+  return window.snapsay ?? {};
 }
 
 function useAppearance(): [Appearance, (appearance: Appearance) => void] {
   const [appearance, setAppearance] = useState<Appearance>(() => {
-    return (localStorage.getItem('tailkall-appearance') as Appearance | null) ?? 'light';
+    return (localStorage.getItem('snapsay-appearance') as Appearance | null) ?? 'light';
   });
 
   useEffect(() => {
     document.documentElement.setAttribute('data-appearance', appearance);
-    localStorage.setItem('tailkall-appearance', appearance);
+    localStorage.setItem('snapsay-appearance', appearance);
   }, [appearance]);
 
   return [appearance, setAppearance];
@@ -1038,7 +1038,7 @@ function FullRecordList(props: {
 
       // Extract word pairs from the correction record
       try {
-        const res = await window.tailkall?.extractWordPairs?.(record.id);
+        const res = await window.snapsay?.extractWordPairs?.(record.id);
         if (res && res.ok && res.pairs && res.pairs.length > 0) {
           setQuickAddPairs(res.pairs.map((p) => ({ ...p, selected: true })));
           setQuickAddRecordId(record.id);

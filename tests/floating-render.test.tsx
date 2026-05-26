@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { FloatingWindow } from '../src/renderer/floating';
 
-describe('TailKall floating renderer', () => {
+describe('SnapSay floating renderer', () => {
   it('renders a voice capsule with waveform animation', () => {
     render(<FloatingWindow />);
 
