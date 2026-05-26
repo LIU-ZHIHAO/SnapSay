@@ -11,6 +11,7 @@ import {
   formatProviderTestDuration,
   maskApiKey,
   resolveActiveCleanupProvider,
+  resolveConfiguredCleanupProvider,
   testCleanupProvider,
   createCloudStreamingAsrProvider
 } from '../src/main/providers';
@@ -169,6 +170,42 @@ describe('providers', () => {
     };
 
     expect(resolveActiveCleanupProvider(settings)).toEqual({
+      type: 'openai-compatible',
+      name: 'OpenAI',
+      baseUrl: 'https://api.openai.com/v1',
+      apiKey: 'sk-openai',
+      model: 'gpt-4.1-mini'
+    });
+  });
+
+  it('does not resolve a configured cleanup provider when no enabled model is complete', () => {
+    const settings = {
+      ...defaultSettings,
+      cleanup: {
+        ...defaultSettings.cleanup,
+        enabled: true
+      }
+    };
+
+    expect(resolveConfiguredCleanupProvider(settings)).toBeUndefined();
+  });
+
+  it('resolves a configured cleanup provider only when the active model is enabled and complete', () => {
+    const settings = {
+      ...defaultSettings,
+      cleanup: {
+        ...defaultSettings.cleanup,
+        enabled: true,
+        activeProviderKey: 'openai',
+        providers: defaultSettings.cleanup.providers.map((provider) =>
+          provider.key === 'openai'
+            ? { ...provider, enabled: true, apiKey: 'sk-openai', model: 'gpt-4.1-mini' }
+            : provider
+        )
+      }
+    };
+
+    expect(resolveConfiguredCleanupProvider(settings)).toEqual({
       type: 'openai-compatible',
       name: 'OpenAI',
       baseUrl: 'https://api.openai.com/v1',

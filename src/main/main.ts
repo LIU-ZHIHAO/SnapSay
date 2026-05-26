@@ -14,7 +14,7 @@ import {
   type MouseTrigger,
   type TriggerBinding
 } from './inputController.js';
-import { cleanupText, createAsrDaemonProvider, createCloudAsrProvider, createCloudStreamingAsrProvider, createPythonAsrProvider, formatProviderTestDuration, resolveActiveCleanupProvider, resolvePythonExecutable, testCleanupProvider, type FetchLike } from './providers.js';
+import { cleanupText, createAsrDaemonProvider, createCloudAsrProvider, createCloudStreamingAsrProvider, createPythonAsrProvider, formatProviderTestDuration, resolveConfiguredCleanupProvider, resolvePythonExecutable, testCleanupProvider, type FetchLike } from './providers.js';
 import { runRecordingPipeline } from './recorderCoordinator.js';
 import { createSqliteRecordStore, normalizeImportedRecord } from './recordStore.js';
 import { createElectronStoreAdapter, createSettingsStore, migrateLegacyRecordsToRecordStore, type SettingsStore, type TranscriptionRecord } from './settingsStore.js';
@@ -450,9 +450,9 @@ function installIpcHandlers(): void {
       durationMs,
       applyWordbook: (text) => applyWordbook(text, settings.input.wordbook ?? []),
       shouldCleanupText: (transcript) =>
-        Boolean(settings.cleanup.enabled && settings.cleanup.provider && shouldCleanupTranscript(transcript)),
+        Boolean(settings.cleanup.enabled && resolveConfiguredCleanupProvider(settings) && shouldCleanupTranscript(transcript)),
       cleanupText: async (transcript) => {
-        const provider = resolveActiveCleanupProvider(settings);
+        const provider = resolveConfiguredCleanupProvider(settings);
         if (!settings.cleanup.enabled || !provider) {
           return { text: transcript };
         }
@@ -608,11 +608,15 @@ function installIpcHandlers(): void {
   ipcMain.handle('tailkall:rewrite-record', async (_event, id: string) => {
     const record = settingsStore?.listRecords().find((item) => item.id === id);
     const settings = settingsStore?.getSettings();
-    if (!record || !settings?.cleanup.provider) {
+    if (!record || !settings) {
+      return { ok: false, message: '记录或整理 API 未配置' };
+    }
+    const provider = resolveConfiguredCleanupProvider(settings);
+    if (!provider) {
       return { ok: false, message: '记录或整理 API 未配置' };
     }
     const cleaned = await cleanupText({
-      provider: settings.cleanup.provider,
+      provider,
       transcript: record.transcript,
       prompt: resolvePromptText(settings.cleanup.prompt),
       fetch: fetch as FetchLike

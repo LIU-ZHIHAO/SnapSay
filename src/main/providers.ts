@@ -209,6 +209,29 @@ export function resolveActiveCleanupProvider(settings: AppSettings): CleanupProv
   };
 }
 
+export function resolveConfiguredCleanupProvider(settings: AppSettings): CleanupProviderConfig | undefined {
+  const active = settings.cleanup.providers.find((provider) => provider.key === settings.cleanup.activeProviderKey)
+    ?? settings.cleanup.providers.find((provider) => provider.isDefault)
+    ?? settings.cleanup.providers[0];
+
+  if (active?.enabled && active.baseUrl.trim() && active.apiKey.trim() && active.model.trim()) {
+    return {
+      type: 'openai-compatible',
+      name: active.displayName,
+      baseUrl: active.baseUrl,
+      apiKey: active.apiKey,
+      model: active.model
+    };
+  }
+
+  const legacy = settings.cleanup.provider;
+  if (!active && legacy?.baseUrl?.trim() && legacy.apiKey.trim() && legacy.model.trim()) {
+    return legacy;
+  }
+
+  return undefined;
+}
+
 export function createMockAsrProvider(text = ''): AsrProvider {
   return {
     name: 'mock',
