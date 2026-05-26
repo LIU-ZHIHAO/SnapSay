@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { access, readFile, writeFile } from 'node:fs/promises';
+import { access, readFile, rm, writeFile } from 'node:fs/promises';
 import { basename, isAbsolute, join } from 'node:path';
 import { createConnection, type Socket } from 'node:net';
 import { promisify } from 'node:util';
@@ -266,33 +266,39 @@ export function createPythonAsrProvider(options: PythonAsrProviderOptions): AsrP
       const reader = options.readTextFile ?? ((path: string) => readFile(path, 'utf8'));
       const runner = options.runCommand ?? runExecFile;
 
-      await writer(inputPath, Buffer.from(audio));
+      try {
+        await writer(inputPath, Buffer.from(audio));
 
-      const audioPath = !isWav && options.ffmpegPath ? wavPath : inputPath;
-      if (!isWav && options.ffmpegPath) {
-        await assertFileExists(options.ffmpegPath, options.fileExists, 'ffmpeg.exe 不存在，无法转换浏览器录音格式');
-        await runner(options.ffmpegPath, ['-y', '-i', inputPath, wavPath]);
+        const audioPath = !isWav && options.ffmpegPath ? wavPath : inputPath;
+        if (!isWav && options.ffmpegPath) {
+          await assertFileExists(options.ffmpegPath, options.fileExists, 'ffmpeg.exe 不存在，无法转换浏览器录音格式');
+          await runner(options.ffmpegPath, ['-y', '-i', inputPath, wavPath]);
+        }
+
+        await runner(options.pythonPath, [
+          options.scriptPath,
+          '--audio',
+          audioPath,
+          '--model',
+          options.modelPath,
+          '--out',
+          outputTextPath,
+          '--device',
+          options.acceleration === 'cpu' ? 'cpu' : 'auto',
+          '--language',
+          options.language ?? 'zh'
+        ]);
+
+        const text = (await reader(outputTextPath)).trim();
+        if (!text) {
+          throw new Error(`${options.engine} 没有返回识别文本`);
+        }
+        return { text, provider: options.engine };
+      } finally {
+        if (!options.writeFile) {
+          await Promise.allSettled([inputPath, wavPath, outputTextPath].map((path) => rm(path, { force: true })));
+        }
       }
-
-      await runner(options.pythonPath, [
-        options.scriptPath,
-        '--audio',
-        audioPath,
-        '--model',
-        options.modelPath,
-        '--out',
-        outputTextPath,
-        '--device',
-        options.acceleration === 'cpu' ? 'cpu' : 'auto',
-        '--language',
-        options.language ?? 'zh'
-      ]);
-
-      const text = (await reader(outputTextPath)).trim();
-      if (!text) {
-        throw new Error(`${options.engine} 没有返回识别文本`);
-      }
-      return { text, provider: options.engine };
     }
   };
 }

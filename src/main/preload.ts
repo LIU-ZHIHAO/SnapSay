@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('tailkall', {
   deleteRecord: (id: string) => ipcRenderer.invoke('tailkall:delete-record', id),
   clearAllRecords: () => ipcRenderer.invoke('tailkall:clear-all-records'),
   clearDiagnosticLogs: () => ipcRenderer.invoke('tailkall:clear-diagnostic-logs'),
+  exportRecords: () => ipcRenderer.invoke('tailkall:export-records'),
+  importRecords: () => ipcRenderer.invoke('tailkall:import-records'),
   testRewriteApi: (settings: unknown) => ipcRenderer.invoke('tailkall:test-rewrite-api', settings),
   saveCorrection: (id: string, text: string) => ipcRenderer.invoke('tailkall:save-correction', id, text),
   saveWordbook: (wordbook: unknown) => ipcRenderer.invoke('tailkall:save-wordbook', wordbook),

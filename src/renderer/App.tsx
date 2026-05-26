@@ -22,7 +22,9 @@ import {
   Bug,
   Clock,
   FileText,
-  AlertTriangle
+  AlertTriangle,
+  Download,
+  Upload
 } from 'lucide-react';
 import ModelsView from './ModelsView';
 import StylesView from './StylesView';
@@ -261,6 +263,16 @@ type TailKallFacade = {
   deleteRecord?: (id: string) => Promise<void>;
   clearAllRecords?: () => Promise<{ ok: boolean }>;
   clearDiagnosticLogs?: () => Promise<{ ok: boolean; records?: RecordItem[] }>;
+  exportRecords?: () => Promise<{ ok: boolean; count?: number; canceled?: boolean; message?: string }>;
+  importRecords?: () => Promise<{
+    ok: boolean;
+    imported?: number;
+    updated?: number;
+    skipped?: number;
+    canceled?: boolean;
+    message?: string;
+    records?: RecordItem[];
+  }>;
   testRewriteApi?: (settings: SettingsState) => Promise<{ ok: boolean; message: string; durationMs?: number }>;
   saveCorrection?: (id: string, text: string) => Promise<void>;
   saveWordbook?: (wordbook: WordbookEntry[]) => Promise<{ ok: boolean }>;
@@ -426,6 +438,7 @@ export default function App() {
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [testStatus, setTestStatus] = useState('未测试');
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [recordsTransferStatus, setRecordsTransferStatus] = useState('');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const pendingStopRef = useRef(false);
 
@@ -600,6 +613,29 @@ export default function App() {
     });
   };
 
+  const exportRecords = async () => {
+    const result = await getFacade().exportRecords?.();
+    if (!result || result.canceled) {
+      return;
+    }
+    setRecordsTransferStatus(result.ok ? `已导出 ${result.count ?? 0} 条记录` : (result.message ?? '导出失败'));
+  };
+
+  const importRecords = async () => {
+    const result = await getFacade().importRecords?.();
+    if (!result || result.canceled) {
+      return;
+    }
+    if (result.records) {
+      setRecords(result.records);
+    }
+    setRecordsTransferStatus(
+      result.ok
+        ? `已导入 ${result.imported ?? 0} 条，更新 ${result.updated ?? 0} 条，跳过 ${result.skipped ?? 0} 条`
+        : (result.message ?? '导入失败')
+    );
+  };
+
   const saveCorrection = async (id: string, text: string) => {
     await getFacade().saveCorrection?.(id, text);
     setRecords((current) =>
@@ -681,7 +717,10 @@ export default function App() {
                 microphoneDevices={microphoneDevices}
                 records={records}
                 onClearDiagnosticLogs={clearDiagnosticLogs}
+                onExportRecords={exportRecords}
+                onImportRecords={importRecords}
                 onAppearanceChange={setAppearance}
+                recordsTransferStatus={recordsTransferStatus}
                 onUpdate={updateSetting}
               />
             )}
@@ -1369,7 +1408,10 @@ function SettingsView(props: {
   microphoneDevices: MicrophoneDevice[];
   records: RecordItem[];
   onClearDiagnosticLogs: () => void;
+  onExportRecords: () => void;
+  onImportRecords: () => void;
   onAppearanceChange: (appearance: Appearance) => void;
+  recordsTransferStatus: string;
   onUpdate: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void;
 }) {
   const { settings, onUpdate } = props;
@@ -1710,6 +1752,29 @@ function SettingsView(props: {
             <input onChange={(event) => onUpdate('dataDir', event.target.value)} value={settings.dataDir} />
           </label>
         </div>
+      </section>
+
+      <section className="panel settings-card">
+        <div className="panel-header">
+          <h2>
+            <FileText size={18} />
+            记录数据
+          </h2>
+          <span className="record-count-label">{props.records.length} 条记录</span>
+        </div>
+        <div className="records-transfer-actions">
+          <button onClick={props.onExportRecords} type="button">
+            <Download size={16} />
+            导出记录
+          </button>
+          <button onClick={props.onImportRecords} type="button">
+            <Upload size={16} />
+            导入记录
+          </button>
+        </div>
+        {props.recordsTransferStatus && (
+          <p className="records-transfer-status">{props.recordsTransferStatus}</p>
+        )}
       </section>
 
       <section className="panel settings-card">

@@ -1,4 +1,20 @@
 import { DEFAULT_CLEANUP_PROMPT } from '../shared/cleanupPolicy.js';
+import {
+  createMemoryRecordStore,
+  type ImportRecordsResult,
+  type NewTranscriptionRecord,
+  type RecordStore,
+  type TranscriptionRecord,
+  type TranscriptionRecordStatus
+} from './recordStore.js';
+
+export type {
+  ImportRecordsResult,
+  NewTranscriptionRecord,
+  RecordStore,
+  TranscriptionRecord,
+  TranscriptionRecordStatus
+} from './recordStore.js';
 
 const PROJECT_ROOT = process.env.SNAPSAY_ROOT ?? process.cwd();
 
@@ -79,33 +95,6 @@ export type AppSettings = {
   };
 };
 
-export type TranscriptionRecordStatus = 'completed' | 'failed';
-
-export type TranscriptionRecord = {
-  id: string;
-  transcript: string;
-  cleanedText?: string;
-  userCorrection?: string;
-  status: TranscriptionRecordStatus;
-  error?: string;
-  asrProvider?: string;
-  asrModel?: string;
-  cleanupProvider?: string;
-  cleanupModel?: string;
-  durationMs?: number;
-  asrDurationMs?: number;
-  cleanupDurationMs?: number;
-  totalTokens?: number;
-  pasteSucceeded?: boolean;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type NewTranscriptionRecord = Omit<
-  TranscriptionRecord,
-  'id' | 'createdAt' | 'updatedAt'
->;
-
 export type KeyValueStore = {
   get<T>(key: string): T | undefined;
   set<T>(key: string, value: T): void;
@@ -124,6 +113,7 @@ export type SettingsStore = {
   deleteRecord(id: string): boolean;
   clearDiagnosticLogs(): number;
   clearAllRecords(): void;
+  importRecords(records: TranscriptionRecord[]): ImportRecordsResult;
 };
 
 export const defaultSettings: AppSettings = {
@@ -237,11 +227,19 @@ export async function createElectronStoreAdapter(options?: {
   };
 }
 
-export function createSettingsStore(options: { store: KeyValueStore }): SettingsStore {
-  const store = options.store;
+export function migrateLegacyRecordsToRecordStore(store: KeyValueStore, recordStore: RecordStore): ImportRecordsResult | undefined {
+  const legacyRecords = store.get<TranscriptionRecord[]>(RECORDS_KEY);
+  if (!Array.isArray(legacyRecords) || legacyRecords.length === 0) {
+    return undefined;
+  }
+  const result = recordStore.importRecords(legacyRecords);
+  store.delete?.(RECORDS_KEY);
+  return result;
+}
 
-  const readRecords = (): TranscriptionRecord[] => store.get<TranscriptionRecord[]>(RECORDS_KEY) ?? [];
-  const writeRecords = (records: TranscriptionRecord[]) => store.set(RECORDS_KEY, records);
+export function createSettingsStore(options: { store: KeyValueStore; recordStore?: RecordStore }): SettingsStore {
+  const store = options.store;
+  const recordStore = options.recordStore ?? createMemoryRecordStore(store.get<TranscriptionRecord[]>(RECORDS_KEY) ?? []);
 
   return {
     getSettings(): AppSettings {
@@ -264,67 +262,28 @@ export function createSettingsStore(options: { store: KeyValueStore }): Settings
       return next;
     },
     listRecords(): TranscriptionRecord[] {
-      return [...readRecords()].sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+      return recordStore.listRecords();
     },
     addRecord(record: NewTranscriptionRecord): TranscriptionRecord {
-      const now = new Date().toISOString();
-      const saved: TranscriptionRecord = {
-        ...record,
-        id: createRecordId(),
-        createdAt: now,
-        updatedAt: now
-      };
-      writeRecords([saved, ...readRecords()]);
-      return saved;
+      return recordStore.addRecord(record);
     },
     updateRecord(
       id: string,
       patch: Partial<Omit<TranscriptionRecord, 'id' | 'createdAt'>>
     ): TranscriptionRecord | undefined {
-      let updated: TranscriptionRecord | undefined;
-      const records = readRecords().map((record) => {
-        if (record.id !== id) {
-          return record;
-        }
-        updated = {
-          ...record,
-          ...patch,
-          id: record.id,
-          createdAt: record.createdAt,
-          updatedAt: new Date().toISOString()
-        };
-        return updated;
-      });
-      writeRecords(records);
-      return updated;
+      return recordStore.updateRecord(id, patch);
     },
     deleteRecord(id: string): boolean {
-      const records = readRecords();
-      const next = records.filter((record) => record.id !== id);
-      if (next.length === records.length) {
-        return false;
-      }
-      writeRecords(next);
-      return true;
+      return recordStore.deleteRecord(id);
     },
     clearDiagnosticLogs(): number {
-      let cleared = 0;
-      const records = readRecords().map((record) => {
-        if (!record.error) {
-          return record;
-        }
-        cleared += 1;
-        return {
-          ...record,
-          error: undefined,
-          updatedAt: new Date().toISOString()
-        };
-      });
-      writeRecords(records);
-      return cleared;
+      return recordStore.clearDiagnosticLogs();
     },
     clearAllRecords(): void {
-      writeRecords([]);
+      recordStore.clearAllRecords();
+    },
+    importRecords(records: TranscriptionRecord[]): ImportRecordsResult {
+      return recordStore.importRecords(records);
     }
   };
 }
@@ -460,6 +419,3 @@ function activeAsrProfileFromLegacy(asr: string | undefined): string | undefined
   return undefined;
 }
 
-function createRecordId(): string {
-  return `rec_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
-}

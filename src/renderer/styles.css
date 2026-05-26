@@ -1041,6 +1041,7 @@ h2 svg {
 
 .clear-all-btn,
 .field-action button,
+.records-transfer-actions button,
 .wordbook-add-row button,
 .wordbook-delete,
 .record-action-btn {
@@ -1062,6 +1063,7 @@ h2 svg {
 
 .clear-all-btn:hover,
 .field-action button:hover,
+.records-transfer-actions button:hover,
 .wordbook-add-row button:hover,
 .record-action-btn:hover {
   color: var(--accent-strong);
@@ -1377,6 +1379,24 @@ button:focus-visible {
   align-items: center;
   gap: 10px;
   min-width: 0;
+}
+
+.record-count-label {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.records-transfer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.records-transfer-status {
+  margin: 12px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
 }
 
 .provider-card-grid {

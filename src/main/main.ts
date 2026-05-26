@@ -1,6 +1,6 @@
-import { app, BrowserWindow, clipboard, globalShortcut, ipcMain, Menu, nativeImage, screen, shell } from 'electron';
+import { app, BrowserWindow, clipboard, dialog, globalShortcut, ipcMain, Menu, nativeImage, screen, shell } from 'electron';
 import { execFile, spawn } from 'node:child_process';
-import { mkdirSync, readFileSync, writeFileSync, unlinkSync, existsSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
@@ -16,7 +16,8 @@ import {
 } from './inputController.js';
 import { cleanupText, createAsrDaemonProvider, createCloudAsrProvider, createCloudStreamingAsrProvider, createPythonAsrProvider, formatProviderTestDuration, resolveActiveCleanupProvider, resolvePythonExecutable, testCleanupProvider, type FetchLike } from './providers.js';
 import { runRecordingPipeline } from './recorderCoordinator.js';
-import { createElectronStoreAdapter, createSettingsStore, type SettingsStore, type TranscriptionRecord } from './settingsStore.js';
+import { createSqliteRecordStore, normalizeImportedRecord } from './recordStore.js';
+import { createElectronStoreAdapter, createSettingsStore, migrateLegacyRecordsToRecordStore, type SettingsStore, type TranscriptionRecord } from './settingsStore.js';
 import type { AsrProfileConfig, LlmProviderConfig } from './settingsStore.js';
 import { applyWordbook, buildWordbookPrompt, extractWordPairCandidates } from './wordbook.js';
 import type { WordbookEntry } from './wordbook.js';
@@ -100,11 +101,13 @@ const execFileAsync = promisify(execFile);
 const LONG_PRESS_MS = 350;
 const ASR_PORT_FILE_SV = join(DATA_DIR, 'asr-daemon.port');
 const SYSTEM_FFMPEG_COMMAND = 'ffmpeg';
+const RECORDS_DB_FILE = join(DATA_DIR, 'snapsay.db');
 
 mkdirSync(DATA_DIR, { recursive: true });
 mkdirSync(LOGS_DIR, { recursive: true });
 mkdirSync(CACHE_DIR, { recursive: true });
 mkdirSync(TMP_DIR, { recursive: true });
+cleanupStaleTempFiles(TMP_DIR);
 
 app.setPath('userData', join(DATA_DIR, 'electron'));
 app.setPath('logs', LOGS_DIR);
@@ -124,6 +127,49 @@ function rendererUrl(page: 'index.html' | 'floating.html'): string {
 
 function defaultDataRoot(): string {
   return DATA_DIR;
+}
+
+function cleanupStaleTempFiles(tmpDir: string, maxAgeMs = 24 * 60 * 60 * 1000): number {
+  let removed = 0;
+  try {
+    const now = Date.now();
+    for (const name of readdirSync(tmpDir)) {
+      if (!/^(voice-|asr-).*\.(wav|webm|mp3|m4a|txt)$/i.test(name)) {
+        continue;
+      }
+      const path = join(tmpDir, name);
+      const stat = statSync(path);
+      if (!stat.isFile() || now - stat.mtimeMs < maxAgeMs) {
+        continue;
+      }
+      rmSync(path, { force: true });
+      removed += 1;
+    }
+  } catch (error) {
+    console.warn('Failed to clean stale temp files:', error);
+  }
+  return removed;
+}
+
+function exportPayload(records: TranscriptionRecord[]) {
+  return {
+    app: 'SnapSay',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    records
+  };
+}
+
+function readImportRecordsPayload(filePath: string): TranscriptionRecord[] {
+  const parsed = JSON.parse(readFileSync(filePath, 'utf-8')) as unknown;
+  const rawRecords = Array.isArray(parsed)
+    ? parsed
+    : parsed && typeof parsed === 'object' && Array.isArray((parsed as { records?: unknown }).records)
+      ? (parsed as { records: unknown[] }).records
+      : [];
+  return rawRecords
+    .map((record) => normalizeImportedRecord(record))
+    .filter((record): record is TranscriptionRecord => Boolean(record));
 }
 
 async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>): Promise<void> {
@@ -490,6 +536,56 @@ function installIpcHandlers(): void {
     const records = settingsStore?.listRecords().map(toRendererRecord) ?? [];
     mainWindow?.webContents.send('tailkall:records-synced', records);
     return { ok: true, cleared, records };
+  });
+
+  ipcMain.handle('tailkall:export-records', async () => {
+    if (!mainWindow || !settingsStore) {
+      return { ok: false, message: '窗口或记录存储不可用' };
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    const result = await dialog.showSaveDialog(mainWindow, {
+      title: '导出记录',
+      defaultPath: join(DATA_DIR, `snapsay-records-${today}.json`),
+      filters: [{ name: 'JSON', extensions: ['json'] }]
+    });
+    if (result.canceled || !result.filePath) {
+      return { ok: false, canceled: true };
+    }
+    const records = settingsStore.listRecords();
+    writeFileSync(result.filePath, JSON.stringify(exportPayload(records), null, 2), 'utf-8');
+    return { ok: true, count: records.length, filePath: result.filePath };
+  });
+
+  ipcMain.handle('tailkall:import-records', async () => {
+    if (!mainWindow || !settingsStore) {
+      return { ok: false, message: '窗口或记录存储不可用' };
+    }
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: '导入记录',
+      properties: ['openFile'],
+      filters: [{ name: 'JSON', extensions: ['json'] }]
+    });
+    if (result.canceled || result.filePaths.length === 0) {
+      return { ok: false, canceled: true };
+    }
+    try {
+      const records = readImportRecordsPayload(result.filePaths[0]);
+      const imported = settingsStore.importRecords(records);
+      const rendererRecords = imported.records.map(toRendererRecord);
+      mainWindow.webContents.send('tailkall:records-synced', rendererRecords);
+      return {
+        ok: true,
+        imported: imported.imported,
+        updated: imported.updated,
+        skipped: imported.skipped,
+        records: rendererRecords
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        message: error instanceof Error ? error.message : String(error)
+      };
+    }
   });
 
   ipcMain.handle('tailkall:test-rewrite-api', async (_event, settings: RendererSettings) => {
@@ -875,10 +971,14 @@ async function pressSystemPasteShortcut(): Promise<void> {
 
 app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
+  const settingsAdapter = await createElectronStoreAdapter({
+    cwd: defaultDataRoot()
+  });
+  const recordStore = createSqliteRecordStore({ dbPath: RECORDS_DB_FILE });
+  migrateLegacyRecordsToRecordStore(settingsAdapter, recordStore);
   settingsStore = createSettingsStore({
-    store: await createElectronStoreAdapter({
-      cwd: defaultDataRoot()
-    })
+    store: settingsAdapter,
+    recordStore
   });
 
   installIpcHandlers();

@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   createMemoryStore,
   createSettingsStore,
-  defaultSettings
+  defaultSettings,
+  migrateLegacyRecordsToRecordStore
 } from '../src/main/settingsStore';
+import { createMemoryRecordStore } from '../src/main/recordStore';
 import { DEFAULT_CLEANUP_PROMPT } from '../src/shared/cleanupPolicy';
 
 describe('settingsStore', () => {
@@ -171,5 +173,23 @@ describe('settingsStore', () => {
     expect(store.listRecords()).toHaveLength(2);
     expect(store.listRecords().map((record) => record.id).sort()).toEqual([first.id, second.id].sort());
     expect(store.listRecords().every((record) => record.error === undefined)).toBe(true);
+  });
+
+  it('migrates legacy JSON records into the separate record store', () => {
+    const legacyRecord = {
+      id: 'rec_legacy',
+      transcript: 'legacy text',
+      status: 'completed' as const,
+      createdAt: '2026-05-25T10:00:00.000Z',
+      updatedAt: '2026-05-25T10:00:00.000Z'
+    };
+    const keyValueStore = createMemoryStore({ records: [legacyRecord] });
+    const recordStore = createMemoryRecordStore();
+
+    const result = migrateLegacyRecordsToRecordStore(keyValueStore, recordStore);
+
+    expect(result?.imported).toBe(1);
+    expect(keyValueStore.get('records')).toBeUndefined();
+    expect(recordStore.listRecords()).toEqual([legacyRecord]);
   });
 });

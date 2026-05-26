@@ -1,4 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
+import { existsSync, mkdirSync, rmSync } from 'node:fs';
+import { writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import {
   buildChatCompletionPayload,
   cleanupText,
@@ -276,6 +279,36 @@ describe('providers', () => {
         'zh'
       ]
     });
+  });
+
+  it('removes local ASR temp audio and output files after transcription', async () => {
+    const tmpDir = join(process.cwd(), 'tmp', 'tests', `asr-cleanup-${Date.now()}`);
+    mkdirSync(tmpDir, { recursive: true });
+    const asr = createPythonAsrProvider({
+      engine: 'sensevoice-funasr',
+      pythonPath: 'D:\\Antigravity\\SnapSay\\.venv\\Scripts\\python.exe',
+      scriptPath: 'D:\\Antigravity\\SnapSay\\scripts\\asr-sensevoice.py',
+      modelPath: 'D:\\Antigravity\\SnapSay\\models\\sensevoice\\SenseVoiceSmall',
+      tmpDir,
+      acceleration: 'auto-gpu',
+      idFactory: () => 'cleanup',
+      fileExists: async () => true,
+      runCommand: async () => {
+        await writeFile(join(tmpDir, 'cleanup.sensevoice-funasr.txt'), 'cleaned text');
+      }
+    });
+
+    try {
+      const wav = new TextEncoder().encode('RIFF....WAVEfmt ');
+      await expect(asr.transcribe(wav.buffer)).resolves.toEqual({
+        text: 'cleaned text',
+        provider: 'sensevoice-funasr'
+      });
+      expect(existsSync(join(tmpDir, 'cleanup.wav'))).toBe(false);
+      expect(existsSync(join(tmpDir, 'cleanup.sensevoice-funasr.txt'))).toBe(false);
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 
   it('returns a clear placeholder for cloud streaming ASR profiles', async () => {
