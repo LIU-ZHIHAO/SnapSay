@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "SnapSay Windows voice input assistant",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "main": "dist-electron/main/main.js",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 14231",

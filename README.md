@@ -4,11 +4,16 @@ SnapSay is a Windows desktop voice input assistant. It records from your microph
 
 The project is built with Electron, React, TypeScript, Vite, SQLite, and Python-based local ASR.
 
-![Main window](mockups/01-main-window.svg)
+## Interface
 
-![Settings window](mockups/02-settings-window.svg)
+SnapSay includes four main views:
 
-![Floating recorder](mockups/03-floating-recorder.svg)
+- Home: current shortcut, ASR model, cleanup model, style, usage statistics, and recent records.
+- Models: local/cloud ASR profiles and OpenAI-compatible cleanup provider cards.
+- Styles: editable AI cleanup prompt presets.
+- Settings: appearance, keyboard and mouse triggers, output mode, data paths, record import/export, and diagnostic logs.
+
+Real UI screenshots should be stored under `docs/screenshots/` and referenced from this section. Do not use design mockups as product screenshots.
 
 ## Features
 
@@ -217,4 +222,6 @@ Set up SnapSay on Windows. Keep all runtime data, models, logs, and caches insid
 
 ## License
 
-No license file is currently included. Add a `LICENSE` file before treating this repository as reusable open-source software.
+SnapSay is licensed under the PolyForm Noncommercial License 1.0.0.
+
+Commercial use is prohibited unless you obtain a separate written commercial license from the copyright holder. See [LICENSE.md](LICENSE.md).

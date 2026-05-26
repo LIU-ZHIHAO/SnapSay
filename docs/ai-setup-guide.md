@@ -12,6 +12,8 @@ Set up SnapSay so it can run on Windows with:
 - Optional local SenseVoice ASR.
 - Optional OpenAI-compatible cleanup API.
 
+SnapSay is licensed under PolyForm Noncommercial License 1.0.0. Do not use it for commercial purposes unless the copyright holder grants a separate written commercial license.
+
 ## Non-Negotiable Project Rules
 
 - Do not put logs, databases, model files, caches, temporary audio, or downloaded assets in the Windows user profile or system drive by default.
