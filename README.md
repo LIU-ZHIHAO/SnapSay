@@ -13,7 +13,13 @@ SnapSay includes four main views:
 - Styles: editable AI cleanup prompt presets.
 - Settings: appearance, keyboard and mouse triggers, output mode, data paths, record import/export, and diagnostic logs.
 
-Real UI screenshots should be stored under `docs/screenshots/` and referenced from this section. Do not use design mockups as product screenshots.
+![SnapSay home view](docs/screenshots/home.png)
+
+![SnapSay model configuration view](docs/screenshots/models.png)
+
+![SnapSay style preset view](docs/screenshots/styles.png)
+
+![SnapSay settings view](docs/screenshots/settings.png)
 
 ## Features
 
