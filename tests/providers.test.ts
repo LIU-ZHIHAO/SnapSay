@@ -4,6 +4,7 @@ import {
   cleanupText,
   createMockAsrProvider,
   createPythonAsrProvider,
+  resolvePythonExecutable,
   formatProviderTestDuration,
   maskApiKey,
   resolveActiveCleanupProvider,
@@ -223,6 +224,18 @@ describe('providers', () => {
         'zh'
       ]
     });
+  });
+
+  it('falls back to a configured system Python when the project venv was removed', () => {
+    const existing = new Set(['D:\\SoftInstall\\Python\\Python310\\python.exe']);
+
+    expect(
+      resolvePythonExecutable({
+        configuredPath: 'D:\\Antigravity\\SnapSay\\.venv\\Scripts\\python.exe',
+        projectRoot: 'D:\\Antigravity\\SnapSay',
+        exists: (path) => existing.has(path)
+      })
+    ).toBe('D:\\SoftInstall\\Python\\Python310\\python.exe');
   });
 
   it('skips ffmpeg conversion when Python ASR receives WAV audio', async () => {

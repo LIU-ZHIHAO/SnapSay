@@ -14,7 +14,7 @@ import {
   type MouseTrigger,
   type TriggerBinding
 } from './inputController.js';
-import { cleanupText, createAsrDaemonProvider, createCloudAsrProvider, createCloudStreamingAsrProvider, createPythonAsrProvider, formatProviderTestDuration, resolveActiveCleanupProvider, testCleanupProvider, type FetchLike } from './providers.js';
+import { cleanupText, createAsrDaemonProvider, createCloudAsrProvider, createCloudStreamingAsrProvider, createPythonAsrProvider, formatProviderTestDuration, resolveActiveCleanupProvider, resolvePythonExecutable, testCleanupProvider, type FetchLike } from './providers.js';
 import { runRecordingPipeline } from './recorderCoordinator.js';
 import { createElectronStoreAdapter, createSettingsStore, type SettingsStore, type TranscriptionRecord } from './settingsStore.js';
 import type { AsrProfileConfig, LlmProviderConfig } from './settingsStore.js';
@@ -155,19 +155,14 @@ async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>
     // Dev: use Python script with venv
     const scriptPath = join(PROJECT_ROOT, 'scripts', 'asr-daemon.py');
     const device = settings.input.asrAcceleration === 'CPU' ? 'cpu' : 'cuda:0';
-    let pythonPath = settings.input.pythonPath;
-    if (!existsSync(pythonPath)) {
-      // Auto-detect .venv vs venv mismatch
-      const alt = pythonPath.replace(/[/\\]\.venv([/\\])/, '$1venv$1');
-      const alt2 = pythonPath.replace(/[/\\]venv([/\\])/, '$1.venv$1');
-      if (existsSync(alt)) {
-        pythonPath = alt;
-      } else if (existsSync(alt2)) {
-        pythonPath = alt2;
-      } else {
-        console.error(`[ASR daemon] Python not found at ${pythonPath}, skipping ASR daemon startup.`);
-        return;
-      }
+    const pythonPath = resolvePythonExecutable({
+      configuredPath: settings.input.pythonPath,
+      projectRoot: PROJECT_ROOT,
+      exists: existsSync
+    });
+    if (!pythonPath) {
+      console.error(`[ASR daemon] Python not found at ${settings.input.pythonPath}, skipping ASR daemon startup.`);
+      return;
     }
     daemon = spawn(pythonPath, [scriptPath], {
       cwd: PROJECT_ROOT,
@@ -807,7 +802,11 @@ function createConfiguredAsrProvider(settings: ReturnType<SettingsStore['getSett
   const activeProfile = settings.input.asrProfiles.find((profile) => profile.id === settings.input.activeAsrProfileId);
   const asrName = activeProfile?.kind === 'local' ? activeProfile.engine : settings.input.asr;
   const commonPythonOptions = {
-    pythonPath: settings.input.pythonPath,
+    pythonPath: resolvePythonExecutable({
+      configuredPath: settings.input.pythonPath,
+      projectRoot: PROJECT_ROOT,
+      exists: existsSync
+    }) ?? settings.input.pythonPath,
     tmpDir: TMP_DIR,
     ffmpegPath: SYSTEM_FFMPEG_COMMAND,
     acceleration: settings.input.asrAcceleration === 'CPU' ? ('cpu' as const) : ('auto-gpu' as const)

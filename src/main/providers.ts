@@ -47,6 +47,21 @@ export type AsrProvider = {
   transcribe(audio: ArrayBuffer): Promise<AsrResult>;
 };
 
+export function resolvePythonExecutable(options: {
+  configuredPath: string;
+  projectRoot: string;
+  exists: (path: string) => boolean;
+}): string | undefined {
+  const candidates = [
+    options.configuredPath,
+    join(options.projectRoot, '.venv', 'Scripts', 'python.exe'),
+    join(options.projectRoot, 'venv', 'Scripts', 'python.exe'),
+    'D:\\SoftInstall\\Python\\Python310\\python.exe',
+    'D:\\SoftInstall\\Python\\python.exe'
+  ];
+  return candidates.find((path) => options.exists(path));
+}
+
 export function buildChatCompletionPayload(options: {
   model: string;
   transcript: string;
