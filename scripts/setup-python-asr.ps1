@@ -23,7 +23,7 @@ if (-not (Test-Path -LiteralPath $python)) {
 }
 
 & $python -m pip install --upgrade pip
-& $python -m pip install huggingface_hub modelscope funasr
+& $python -m pip install huggingface_hub modelscope funasr av
 & $python -m pip install --upgrade --force-reinstall torch torchaudio --index-url https://download.pytorch.org/whl/cu124
 
 $download = @'
