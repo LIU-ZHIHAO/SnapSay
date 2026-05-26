@@ -13,6 +13,7 @@
     "rebuild:native": "electron-rebuild -f -o better-sqlite3 --types prod",
     "postinstall": "npm run rebuild:native",
     "electron": "npm run build && electron .",
+    "setup:windows": "powershell -ExecutionPolicy Bypass -File scripts/setup-windows.ps1",
     "watch-commit": "chokidar \"src/**/*\" -c \"git add . && git commit -m 'auto: code change detected' --allow-empty\""
   },
   "dependencies": {
