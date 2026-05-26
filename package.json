@@ -7,9 +7,11 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 14231",
     "build": "npm run typecheck && vite build && npx tsc -p tsconfig.electron.json",
-    "test": "vitest run",
+    "test": "node scripts/run-tests-with-native-rebuild.cjs",
     "test:watch": "vitest",
     "typecheck": "npx tsc --noEmit && npx tsc -p tsconfig.electron.json --noEmit",
+    "rebuild:native": "electron-rebuild -f -o better-sqlite3 --types prod",
+    "postinstall": "npm run rebuild:native",
     "electron": "npm run build && electron .",
     "watch-commit": "chokidar \"src/**/*\" -c \"git add . && git commit -m 'auto: code change detected' --allow-empty\""
   },
@@ -22,6 +24,7 @@
     "react-dom": "^19.2.3"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
     "@types/better-sqlite3": "^7.6.13",
