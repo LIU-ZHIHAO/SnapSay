@@ -97,21 +97,27 @@ export async function cleanupText(options: {
   timeoutMs?: number;
 }): Promise<CleanupResult> {
   const provider = normalizeProvider(options.provider);
-  const response = await options.fetch(`${provider.baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: buildBearerAuthorization(provider.apiKey)
-    },
-    body: JSON.stringify(
-      buildChatCompletionPayload({
-        model: provider.model,
-        transcript: options.transcript,
-        prompt: options.prompt
-      })
-    ),
-    signal: createTimeoutSignal(options.timeoutMs)
-  });
+  const url = `${provider.baseUrl}/chat/completions`;
+  let response;
+  try {
+    response = await options.fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: buildBearerAuthorization(provider.apiKey)
+      },
+      body: JSON.stringify(
+        buildChatCompletionPayload({
+          model: provider.model,
+          transcript: options.transcript,
+          prompt: options.prompt
+        })
+      ),
+      signal: createTimeoutSignal(options.timeoutMs)
+    });
+  } catch (error) {
+    throw createEnhancedFetchError(error, url, provider.name);
+  }
 
   if (!response.ok) {
     const body = response.text ? await response.text() : '';
@@ -376,15 +382,20 @@ export function createCloudAsrProvider(options: CloudAsrProviderOptions): AsrPro
 
       const url = `${baseUrl}/v1/audio/transcriptions`;
       const apiKey = normalizeApiKeyForAuthorization(p.apiKey);
-      const response = await options.fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': `multipart/form-data; boundary=${boundary}`,
-          Authorization: buildBearerAuthorization(apiKey)
-        },
-        body,
-        signal: createTimeoutSignal(options.timeoutMs)
-      });
+      let response;
+      try {
+        response = await options.fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': `multipart/form-data; boundary=${boundary}`,
+            Authorization: buildBearerAuthorization(apiKey)
+          },
+          body,
+          signal: createTimeoutSignal(options.timeoutMs)
+        });
+      } catch (error) {
+        throw createEnhancedFetchError(error, url, `cloud-asr ${p.model}`);
+      }
 
       if (!response.ok) {
         const errBody = response.text ? await response.text() : '';
@@ -509,6 +520,31 @@ function createTimeoutSignal(timeoutMs?: number): AbortSignal | undefined {
   const controller = new AbortController();
   setTimeout(() => controller.abort(), timeoutMs).unref?.();
   return controller.signal;
+}
+
+function createEnhancedFetchError(error: unknown, url: string, providerName: string): Error {
+  const originalMessage = error instanceof Error ? error.message : String(error);
+  const cause = error instanceof Error ? error.cause : undefined;
+  const causeMessage = cause instanceof Error ? cause.message : cause ? String(cause) : '';
+
+  let detail = `[${providerName}] 网络请求失败`;
+  detail += `\n请求地址：${url}`;
+  detail += `\n错误类型：${originalMessage}`;
+  if (causeMessage) {
+    detail += `\n详细原因：${causeMessage}`;
+  }
+
+  if (originalMessage.includes('fetch failed')) {
+    detail += '\n\n可能原因：网络连接不可用、DNS 解析失败、目标服务器拒绝连接、或防火墙拦截。';
+  } else if (originalMessage.includes('abort')) {
+    detail += '\n\n请求已超时，请检查网络连接或稍后重试。';
+  } else if (originalMessage.includes('ECONNREFUSED')) {
+    detail += '\n\n服务器拒绝连接，请检查 Base URL 是否正确。';
+  } else if (originalMessage.includes('ENOTFOUND')) {
+    detail += '\n\nDNS 解析失败，请检查 Base URL 域名是否正确。';
+  }
+
+  return new Error(detail);
 }
 
 function readAssistantContent(json: unknown): string | undefined {
