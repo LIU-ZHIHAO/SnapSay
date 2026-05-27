@@ -499,6 +499,182 @@ describe('SnapSay main renderer', () => {
     ]);
   });
 
+  it('prefills correction text from the currently displayed record text', async () => {
+    window.snapsay = {
+      getDashboard: async () => ({
+        settings: demoDashboardSettings(),
+        records: [
+          {
+            id: 'rec-user-correction',
+            time: '2026/05/21 10:00',
+            original: '原始提取文本 A',
+            refined: '整理后文本 A',
+            userCorrection: '我的修正文案 A',
+            status: '已输入'
+          },
+          {
+            id: 'rec-refined',
+            time: '2026/05/21 10:01',
+            original: '原始提取文本 B',
+            refined: '整理后文本 B',
+            status: '已输入'
+          },
+          {
+            id: 'rec-original',
+            time: '2026/05/21 10:02',
+            original: '原始提取文本 C',
+            refined: '',
+            status: '已输入'
+          }
+        ]
+      })
+    };
+
+    render(<App />);
+    const recent = await screen.findByRole('region', { name: '最近记录' });
+    const correctionButtons = within(recent).getAllByRole('button', { name: '纠错' });
+
+    fireEvent.click(correctionButtons[0]);
+    expect(screen.getByLabelText('修正文本')).toHaveValue('我的修正文案 A');
+
+    fireEvent.click(correctionButtons[1]);
+    expect(screen.getByLabelText('修正文本')).toHaveValue('整理后文本 B');
+
+    fireEvent.click(correctionButtons[2]);
+    expect(screen.getByLabelText('修正文本')).toHaveValue('原始提取文本 C');
+  });
+
+  it('shows learned pairs from saveCorrection and updates the local wordbook state', async () => {
+    const saveCorrection = vi.fn().mockResolvedValue({
+      ok: true,
+      pairs: [{ from: 'cloud code', to: 'Claude Code' }],
+      wordbook: [
+        {
+          id: 'wb-claude-code',
+          target: 'Claude Code',
+          variants: ['cloud code']
+        }
+      ]
+    });
+    window.snapsay = {
+      getDashboard: async () => ({
+        settings: demoDashboardSettings(),
+        records: [
+          {
+            id: 'rec-cloud-code',
+            time: '2026/05/21 10:03',
+            original: '我今天用 cloud code 改代码',
+            refined: '我今天用 cloud code 改代码',
+            status: '已输入'
+          }
+        ]
+      }),
+      saveCorrection
+    };
+
+    render(<App />);
+    const recent = await screen.findByRole('region', { name: '最近记录' });
+
+    fireEvent.click(within(recent).getByRole('button', { name: '纠错' }));
+    fireEvent.change(screen.getByLabelText('修正文本'), {
+      target: { value: '我今天用 Claude Code 改代码' }
+    });
+    fireEvent.click(screen.getByRole('button', { name: '提交并检测词库' }));
+
+    expect(await screen.findByText('已学习：cloud code -> Claude Code')).toBeInTheDocument();
+    expect(saveCorrection).toHaveBeenCalledWith('rec-cloud-code', '我今天用 Claude Code 改代码');
+
+    fireEvent.click(screen.getByRole('button', { name: '设置' }));
+    expect(screen.getByText('Claude Code')).toBeInTheDocument();
+    expect(screen.getByText('cloud code')).toBeInTheDocument();
+  });
+
+  it('expands a record to show original, refined, and user correction text', async () => {
+    window.snapsay = {
+      getDashboard: async () => ({
+        settings: demoDashboardSettings(),
+        records: [
+          {
+            id: 'rec-details',
+            time: '2026/05/21 10:04',
+            original: '原始提取：cloud code',
+            refined: '整理后文本：cloud code',
+            userCorrection: '我的修正文案：Claude Code',
+            status: '已输入'
+          }
+        ]
+      })
+    };
+
+    render(<App />);
+    const recent = await screen.findByRole('region', { name: '最近记录' });
+
+    fireEvent.click(within(recent).getByRole('button', { name: '展开记录' }));
+
+    const detail = within(recent).getByRole('group', { name: '记录详情' });
+    expect(within(detail).getByText('原始提取')).toBeInTheDocument();
+    expect(within(detail).getByText('原始提取：cloud code')).toBeInTheDocument();
+    expect(within(detail).getByText('整理后文本')).toBeInTheDocument();
+    expect(within(detail).getByText('整理后文本：cloud code')).toBeInTheDocument();
+    expect(within(detail).getByText('我的修正文案')).toBeInTheDocument();
+    expect(within(detail).getByText('我的修正文案：Claude Code')).toBeInTheDocument();
+  });
+
+  it('keeps the fallback quick-add path for appending a wrong spelling to an existing correct word', async () => {
+    const saveCorrection = vi.fn().mockResolvedValue(undefined);
+    const extractWordPairs = vi.fn().mockResolvedValue({
+      ok: true,
+      pairs: [{ from: 'cloud code', to: 'Claude Code' }]
+    });
+    const saveWordbook = vi.fn().mockResolvedValue({ ok: true });
+    window.snapsay = {
+      getDashboard: async () => ({
+        settings: {
+          ...demoDashboardSettings(),
+          wordbook: [
+            {
+              id: 'wb-existing',
+              target: 'Claude Code',
+              variants: ['克劳德 code']
+            }
+          ]
+        },
+        records: [
+          {
+            id: 'rec-existing-word',
+            time: '2026/05/21 10:05',
+            original: '今天用 cloud code',
+            refined: '今天用 cloud code',
+            status: '已输入'
+          }
+        ]
+      }),
+      saveCorrection,
+      extractWordPairs,
+      saveWordbook
+    };
+
+    render(<App />);
+    const recent = await screen.findByRole('region', { name: '最近记录' });
+
+    fireEvent.click(within(recent).getByRole('button', { name: '纠错' }));
+    fireEvent.change(screen.getByLabelText('修正文本'), {
+      target: { value: '今天用 Claude Code' }
+    });
+    fireEvent.click(screen.getByRole('button', { name: '提交并检测词库' }));
+    fireEvent.click(await screen.findByRole('button', { name: '确认加入' }));
+
+    await waitFor(() => {
+      expect(saveWordbook).toHaveBeenCalledWith([
+        expect.objectContaining({
+          id: 'wb-existing',
+          target: 'Claude Code',
+          variants: ['克劳德 code', 'cloud code']
+        })
+      ]);
+    });
+  });
+
   it('switches to styles and allows preset activation and customization', () => {
     render(<App />);
 

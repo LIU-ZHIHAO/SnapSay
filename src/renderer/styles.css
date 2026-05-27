@@ -1163,6 +1163,66 @@ h2 svg {
   -webkit-line-clamp: unset;
 }
 
+.record-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+}
+
+.record-detail-item {
+  min-width: 0;
+}
+
+.record-detail-item span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.record-detail-item p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 12px;
+  line-height: 1.55;
+  word-break: break-word;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.record-detail-item p:hover {
+  -webkit-line-clamp: unset;
+}
+
+.correction-learned-status {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  margin-top: 10px;
+  padding: 7px 10px;
+  color: var(--success);
+  background: rgb(22 132 95 / 10%);
+  border: 1px solid rgb(22 132 95 / 18%);
+  border-radius: var(--radius-control);
+  font-size: 12px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.correction-learned-status:hover {
+  white-space: normal;
+  word-break: break-word;
+}
+
 .record-actions {
   display: flex;
   align-items: center;
@@ -1195,6 +1255,14 @@ h2 svg {
 .record-action-btn.has-correction {
   color: var(--accent-strong);
   background: var(--accent-soft);
+}
+
+.record-expand-btn svg {
+  transition: transform 140ms ease;
+}
+
+.record-expand-btn.expanded svg {
+  transform: rotate(180deg);
 }
 
 .record-action-btn[data-tooltip] {
