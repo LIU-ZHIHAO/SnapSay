@@ -529,7 +529,15 @@ export default function App() {
     const offStop = facade.onRecordingStop?.(() => {
       const recorder = mediaRecorderRef.current;
       if (recorder) {
-        recorder.stop();
+        try {
+          if (recorder.state !== 'inactive') {
+            recorder.stop();
+          }
+        } catch (error) {
+          mediaRecorderRef.current = null;
+          setMediaRecorder(null);
+          void getFacade().reportRecordingError?.(recordingErrorMessage(error));
+        }
       } else {
         pendingStopRef.current = true;
       }
@@ -554,12 +562,16 @@ export default function App() {
       }
     };
     recorder.onstop = async () => {
-      stream.getTracks().forEach((track) => track.stop());
-      const blob = new Blob(chunks, { type: recorder.mimeType });
-      const audio = await encodeBlobToWav(blob).catch(() => blobToArrayBuffer(blob));
-      await getFacade().submitRecording?.(audio, Date.now() - startedAt);
       mediaRecorderRef.current = null;
       setMediaRecorder(null);
+      try {
+        stream.getTracks().forEach((track) => track.stop());
+        const blob = new Blob(chunks, { type: recorder.mimeType });
+        const audio = await encodeBlobToWav(blob).catch(() => blobToArrayBuffer(blob));
+        await getFacade().submitRecording?.(audio, Date.now() - startedAt);
+      } catch (error) {
+        void getFacade().reportRecordingError?.(recordingErrorMessage(error));
+      }
     };
     recorder.start();
     mediaRecorderRef.current = recorder;

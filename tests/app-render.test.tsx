@@ -376,6 +376,66 @@ describe('SnapSay main renderer', () => {
     expect(new TextDecoder().decode(audio.slice(8, 12))).toBe('WAVE');
   });
 
+  it('does not get stuck when stop is triggered repeatedly before recording cleanup finishes', async () => {
+    let startRecording: (() => void) | undefined;
+    let stopRecording: (() => void) | undefined;
+    const getUserMedia = vi.fn().mockResolvedValue({
+      getTracks: () => [{ stop: vi.fn() }]
+    });
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: {
+        enumerateDevices: vi.fn().mockResolvedValue([]),
+        getUserMedia
+      }
+    });
+    class FakeMediaRecorder {
+      mimeType = 'audio/webm';
+      state = 'inactive';
+      ondataavailable: ((event: { data: Blob }) => void) | null = null;
+      onstop: (() => void) | null = null;
+      constructor(public stream: unknown) {}
+      start() {
+        this.state = 'recording';
+        this.ondataavailable?.({ data: new Blob(['audio']) });
+      }
+      stop() {
+        if (this.state === 'inactive') {
+          throw new Error('recorder already stopped');
+        }
+        this.state = 'inactive';
+        this.onstop?.();
+      }
+    }
+    vi.stubGlobal('MediaRecorder', FakeMediaRecorder);
+    const submitRecording = vi.fn().mockImplementation(() => new Promise((resolve) => setTimeout(() => resolve({ ok: true }), 20)));
+    const reportRecordingError = vi.fn().mockResolvedValue({ ok: true });
+    window.snapsay = {
+      getDashboard: vi.fn().mockResolvedValue({ settings: demoDashboardSettings(), records: [] }),
+      onRecordingStart: (callback) => {
+        startRecording = callback;
+        return () => undefined;
+      },
+      onRecordingStop: (callback) => {
+        stopRecording = callback;
+        return () => undefined;
+      },
+      submitRecording,
+      reportRecordingError
+    };
+
+    render(<App />);
+    await waitFor(() => expect(startRecording).toBeDefined());
+
+    startRecording?.();
+    await waitFor(() => expect(getUserMedia).toHaveBeenCalled());
+    stopRecording?.();
+    stopRecording?.();
+
+    await waitFor(() => expect(submitRecording).toHaveBeenCalledTimes(1));
+    expect(reportRecordingError).not.toHaveBeenCalledWith('recorder already stopped');
+  });
+
   it('switches to models and shows ASR and LLM configuration', () => {
     render(<App />);
 
