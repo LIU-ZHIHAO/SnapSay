@@ -172,6 +172,50 @@ export type WordPairCandidate = {
   to: string;   // 用户修正的正确形式
 };
 
+export type MergeWordbookPairsResult = {
+  wordbook: WordbookEntry[];
+  addedPairs: WordPairCandidate[];
+};
+
+export function mergeWordbookPairs(
+  entries: WordbookEntry[],
+  pairs: WordPairCandidate[]
+): MergeWordbookPairsResult {
+  const wordbook = entries.map((entry) => ({
+    ...entry,
+    variants: [...entry.variants]
+  }));
+  const addedPairs: WordPairCandidate[] = [];
+
+  for (const pair of pairs) {
+    const from = pair.from.trim();
+    const to = pair.to.trim();
+    if (!from || !to || from.toLowerCase() === to.toLowerCase()) {
+      continue;
+    }
+
+    const existing = wordbook.find((entry) => entry.target.trim().toLowerCase() === to.toLowerCase());
+    if (existing) {
+      const hasVariant = existing.variants.some((variant) => variant.trim().toLowerCase() === from.toLowerCase());
+      if (hasVariant) {
+        continue;
+      }
+      existing.variants.push(from);
+      addedPairs.push({ from, to: existing.target });
+      continue;
+    }
+
+    wordbook.push({
+      id: generateId(),
+      target: to,
+      variants: [from]
+    });
+    addedPairs.push({ from, to });
+  }
+
+  return { wordbook, addedPairs };
+}
+
 /**
  * 从原始 ASR 文本和用户修正文本中提取候选词对。
  * 仅提取单词粒度的替换（不提取添加/删除）。
@@ -279,8 +323,9 @@ export function extractWordPairCandidates(
 
         pairs.push({ from: fromStr, to: toStr });
       } else {
-        const fromStr = mismatchOrig.join(' ');
-        const toStr = mismatchCorr.join(' ');
+        const rightContext = collectSharedEnglishRightContext(origTokens, corrTokens, oi, ci);
+        const fromStr = [...mismatchOrig, ...rightContext.original].join(' ');
+        const toStr = [...mismatchCorr, ...rightContext.corrected].join(' ');
         pairs.push({ from: fromStr, to: toStr });
       }
     }
@@ -289,6 +334,40 @@ export function extractWordPairCandidates(
   return pairs.filter(
     (p) => !isStopToken(p.from) && !isStopToken(p.to) && p.from !== p.to
   );
+}
+
+function collectSharedEnglishRightContext(
+  origTokens: string[],
+  corrTokens: string[],
+  origIndex: number,
+  corrIndex: number
+): { original: string[]; corrected: string[] } {
+  const original: string[] = [];
+  const corrected: string[] = [];
+  let oi = origIndex;
+  let ci = corrIndex;
+
+  while (original.length < 2 && oi < origTokens.length && ci < corrTokens.length) {
+    const originalToken = origTokens[oi];
+    const correctedToken = corrTokens[ci];
+    if (
+      !isEnglishPhraseToken(originalToken) ||
+      !isEnglishPhraseToken(correctedToken) ||
+      originalToken.toLowerCase() !== correctedToken.toLowerCase()
+    ) {
+      break;
+    }
+    original.push(originalToken);
+    corrected.push(correctedToken);
+    oi++;
+    ci++;
+  }
+
+  return { original, corrected };
+}
+
+function isEnglishPhraseToken(token: string): boolean {
+  return /^[A-Za-z0-9][A-Za-z0-9\-_']*$/.test(token) && !/^\d+$/.test(token);
 }
 
 function isStopToken(token: string): boolean {

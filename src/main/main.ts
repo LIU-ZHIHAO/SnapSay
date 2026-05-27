@@ -19,7 +19,7 @@ import { runRecordingPipeline } from './recorderCoordinator.js';
 import { createSqliteRecordStore, normalizeImportedRecord } from './recordStore.js';
 import { createElectronStoreAdapter, createSettingsStore, migrateLegacyRecordsToRecordStore, type SettingsStore, type TranscriptionRecord } from './settingsStore.js';
 import type { AsrProfileConfig, LlmProviderConfig } from './settingsStore.js';
-import { applyWordbook, buildWordbookPrompt, extractWordPairCandidates } from './wordbook.js';
+import { applyWordbook, buildWordbookPrompt, extractWordPairCandidates, mergeWordbookPairs } from './wordbook.js';
 import type { WordbookEntry } from './wordbook.js';
 import { DEFAULT_CLEANUP_PROMPT, shouldCleanupTranscript, resolvePromptText } from '../shared/cleanupPolicy.js';
 
@@ -635,7 +635,7 @@ function installIpcHandlers(): void {
     const cleaned = await cleanupText({
       provider,
       transcript: record.transcript,
-      prompt: resolvePromptText(settings.cleanup.prompt),
+      prompt: resolvePromptText(settings.cleanup.prompt) + buildWordbookPrompt(settings.input.wordbook ?? []),
       fetch: fetch as FetchLike
     });
     const updated = settingsStore?.updateRecord(id, { cleanedText: cleaned.text, totalTokens: cleaned.totalTokens, status: 'completed' });
@@ -646,8 +646,21 @@ function installIpcHandlers(): void {
   });
 
   ipcMain.handle('snapsay:save-correction', (_event, id: string, correctionText: string) => {
-    settingsStore?.updateRecord(id, { userCorrection: correctionText });
-    return { ok: true };
+    if (!settingsStore) return { ok: false, pairs: [], wordbook: [] };
+    const record = settingsStore.listRecords().find((item) => item.id === id);
+    if (!record) return { ok: false, pairs: [], wordbook: [] };
+
+    const updated = settingsStore.updateRecord(id, { userCorrection: correctionText });
+    if (updated) {
+      mainWindow?.webContents.send('snapsay:record-updated', updated);
+    }
+
+    const settings = settingsStore.getSettings();
+    const pairs = extractWordPairCandidates(record.cleanedText ?? record.transcript, correctionText);
+    const mergeResult = mergeWordbookPairs(settings.input.wordbook ?? [], pairs);
+    settingsStore.saveSettings({ input: { ...settings.input, wordbook: mergeResult.wordbook } });
+
+    return { ok: true, pairs: mergeResult.addedPairs, wordbook: mergeResult.wordbook };
   });
 
   // Independently save wordbook without touching other settings
@@ -663,7 +676,7 @@ function installIpcHandlers(): void {
     if (!settingsStore) return { ok: false, pairs: [] };
     const record = settingsStore.listRecords().find((r) => r.id === id);
     if (!record?.userCorrection) return { ok: false, pairs: [] };
-    const pairs = extractWordPairCandidates(record.transcript, record.userCorrection);
+    const pairs = extractWordPairCandidates(record.cleanedText ?? record.transcript, record.userCorrection);
     return { ok: true, pairs };
   });
 
