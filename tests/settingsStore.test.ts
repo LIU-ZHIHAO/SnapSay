@@ -120,6 +120,24 @@ describe('settingsStore', () => {
     expect(saved.input.asrProfiles.find((profile) => profile.id === 'cloud-streaming-custom')?.kind).toBe('cloud-streaming');
   });
 
+  it('persists wordbook entries in saved settings', () => {
+    const keyValueStore = createMemoryStore();
+    const store = createSettingsStore({ store: keyValueStore });
+
+    store.saveSettings({
+      input: {
+        wordbook: [
+          { id: 'wb_codex', target: 'Codex', variants: ['code x'] }
+        ]
+      }
+    });
+
+    const reloaded = createSettingsStore({ store: keyValueStore });
+    expect(reloaded.getSettings().input.wordbook).toEqual([
+      { id: 'wb_codex', target: 'Codex', variants: ['code x'] }
+    ]);
+  });
+
   it('adds, updates, lists, and deletes transcription records', () => {
     const store = createSettingsStore({ store: createMemoryStore() });
 

@@ -275,12 +275,14 @@ type SnapSayFacade = {
   deleteRecord?: (id: string) => Promise<void>;
   clearAllRecords?: () => Promise<{ ok: boolean }>;
   clearDiagnosticLogs?: () => Promise<{ ok: boolean; records?: RecordItem[] }>;
-  exportRecords?: () => Promise<{ ok: boolean; count?: number; canceled?: boolean; message?: string }>;
+  exportRecords?: () => Promise<{ ok: boolean; count?: number; wordbookCount?: number; canceled?: boolean; message?: string }>;
   importRecords?: () => Promise<{
     ok: boolean;
     imported?: number;
     updated?: number;
     skipped?: number;
+    wordbookImported?: number;
+    wordbook?: WordbookEntry[];
     canceled?: boolean;
     message?: string;
     records?: RecordItem[];
@@ -649,7 +651,9 @@ export default function App() {
     if (!result || result.canceled) {
       return;
     }
-    setRecordsTransferStatus(result.ok ? `已导出 ${result.count ?? 0} 条记录` : (result.message ?? '导出失败'));
+    setRecordsTransferStatus(result.ok
+      ? `已导出 ${result.count ?? 0} 条记录，${result.wordbookCount ?? 0} 个词库词`
+      : (result.message ?? '导出失败'));
   };
 
   const importRecords = async () => {
@@ -660,9 +664,12 @@ export default function App() {
     if (result.records) {
       setRecords(result.records);
     }
+    if (result.wordbook) {
+      setSettings((current) => ({ ...current, wordbook: result.wordbook ?? [] }));
+    }
     setRecordsTransferStatus(
       result.ok
-        ? `已导入 ${result.imported ?? 0} 条，更新 ${result.updated ?? 0} 条，跳过 ${result.skipped ?? 0} 条`
+        ? `已导入 ${result.imported ?? 0} 条，更新 ${result.updated ?? 0} 条，跳过 ${result.skipped ?? 0} 条，词库 ${result.wordbookImported ?? 0} 个`
         : (result.message ?? '导入失败')
     );
   };
