@@ -487,15 +487,10 @@ function installIpcHandlers(): void {
       }
     }, 1200);
 
-    // Auto-delete short accidental recordings (< 5 chars)
-    const transcript = record.transcript ?? '';
-    if (transcript.length < 5) {
-      settingsStore?.deleteRecord(record.id);
-    } else {
-      // Send full records list to avoid race condition with getDashboard
-      const allRecords = settingsStore?.listRecords() ?? [];
-      mainWindow?.webContents.send('snapsay:records-synced', allRecords.map(toRendererRecord));
-    }
+    // Send full records list to avoid race condition with getDashboard.
+    // Keep every completed recording, including single-word entries used to train the wordbook.
+    const allRecords = settingsStore?.listRecords() ?? [];
+    mainWindow?.webContents.send('snapsay:records-synced', allRecords.map(toRendererRecord));
 
     return { ok: record.status === 'completed', record };
   });
