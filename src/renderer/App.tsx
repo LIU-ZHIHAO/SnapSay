@@ -459,7 +459,7 @@ export default function App() {
       .getDashboard?.()
       .then((dashboard) => {
         setSettings(dashboard.settings);
-        setRecords(dashboard.records);
+        setRecords(dashboard.records.map(normalizeRecordItem));
       })
       .catch(() => undefined);
   }, []);
@@ -467,10 +467,11 @@ export default function App() {
   useEffect(() => {
     const facade = getFacade();
     const offRecordAdded = facade.onRecordAdded?.((record) => {
-      setRecords((current) => [record, ...current]);
+      setRecords((current) => [normalizeRecordItem(record), ...current]);
     });
     const offRecordUpdated = facade.onRecordUpdated?.((record) => {
-      setRecords((current) => current.map((item) => (item.id === record.id ? record : item)));
+      const normalized = normalizeRecordItem(record);
+      setRecords((current) => current.map((item) => (item.id === normalized.id ? normalized : item)));
     });
     const offRecordDeleted = facade.onRecordDeleted?.((id) => {
       setRecords((current) => current.filter((item) => item.id !== id));
@@ -479,7 +480,7 @@ export default function App() {
       setRecords([]);
     });
     const offRecordsSynced = facade.onRecordsSynced?.((records) => {
-      setRecords(records);
+      setRecords(records.map(normalizeRecordItem));
     });
     return () => {
       offRecordAdded?.();
@@ -1015,6 +1016,47 @@ function firstFilledText(...values: (string | undefined | null)[]): string {
 
 function getRecordDisplayText(record: RecordItem): string {
   return firstFilledText(record.userCorrection, record.refined, record.original);
+}
+
+function normalizeRecordItem(record: RecordItem | Record<string, unknown>): RecordItem {
+  const item = record as Partial<RecordItem> & {
+    cleanedText?: unknown;
+    transcript?: unknown;
+    createdAt?: unknown;
+    status?: unknown;
+  };
+  const original = typeof item.original === 'string'
+    ? item.original
+    : typeof item.transcript === 'string'
+      ? item.transcript
+      : '';
+  const refined = typeof item.refined === 'string'
+    ? item.refined
+    : typeof item.cleanedText === 'string'
+      ? item.cleanedText
+      : original;
+  const time = typeof item.time === 'string'
+    ? item.time
+    : typeof item.createdAt === 'string'
+      ? new Date(item.createdAt).toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      : '';
+  const rawStatus = (record as { status?: unknown }).status;
+  const status = rawStatus === 'completed' ? '已输入' : rawStatus === 'failed' ? '失败' : String(rawStatus ?? '已输入');
+
+  return {
+    ...item,
+    id: typeof item.id === 'string' ? item.id : `record-${Date.now()}`,
+    time,
+    original,
+    refined,
+    status
+  } as RecordItem;
 }
 
 /* ─── Full card list ──────────────────────────────────────────────────── */

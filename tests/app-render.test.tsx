@@ -589,6 +589,48 @@ describe('SnapSay main renderer', () => {
     expect(screen.getByText('cloud code')).toBeInTheDocument();
   });
 
+  it('keeps rendering when record updates arrive in stored record shape', async () => {
+    let updateRecord: ((record: unknown) => void) | undefined;
+    window.snapsay = {
+      getDashboard: async () => ({
+        settings: demoDashboardSettings(),
+        records: [
+          {
+            id: 'rec-cloud-cold',
+            time: '2026/05/27 21:48',
+            original: 'cloud cold',
+            refined: 'cloud cold',
+            status: '已输入'
+          }
+        ]
+      }),
+      onRecordUpdated: (callback) => {
+        updateRecord = callback as (record: unknown) => void;
+        return () => undefined;
+      }
+    };
+
+    render(<App />);
+    expect(await screen.findByText('cloud cold')).toBeInTheDocument();
+
+    updateRecord?.({
+      id: 'rec-cloud-cold',
+      createdAt: '2026-05-27T13:48:46.000Z',
+      transcript: 'cloud cold',
+      cleanedText: undefined,
+      userCorrection: 'Claude code',
+      status: 'completed',
+      asrDurationMs: 300,
+      cleanupDurationMs: 0,
+      pasteSucceeded: true
+    });
+
+    expect(await screen.findByText('Claude code')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '展开记录' }));
+    expect(await screen.findByText('原始提取')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '最近记录' })).toBeInTheDocument();
+  });
+
   it('expands a record to show original, refined, and user correction text', async () => {
     window.snapsay = {
       getDashboard: async () => ({

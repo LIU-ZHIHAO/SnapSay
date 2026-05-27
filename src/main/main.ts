@@ -640,7 +640,7 @@ function installIpcHandlers(): void {
     });
     const updated = settingsStore?.updateRecord(id, { cleanedText: cleaned.text, totalTokens: cleaned.totalTokens, status: 'completed' });
     if (updated) {
-      mainWindow?.webContents.send('snapsay:record-updated', updated);
+      mainWindow?.webContents.send('snapsay:record-updated', toRendererRecord(updated));
     }
     return { ok: true, text: cleaned.text };
   });
@@ -652,7 +652,7 @@ function installIpcHandlers(): void {
 
     const updated = settingsStore.updateRecord(id, { userCorrection: correctionText });
     if (updated) {
-      mainWindow?.webContents.send('snapsay:record-updated', updated);
+      mainWindow?.webContents.send('snapsay:record-updated', toRendererRecord(updated));
     }
 
     const settings = settingsStore.getSettings();
