@@ -500,6 +500,23 @@ function installIpcHandlers(): void {
     return { ok: record.status === 'completed', record };
   });
 
+  ipcMain.handle('snapsay:recording-error', (_event, message: string) => {
+    isRecording = false;
+    updateFloatingState({
+      visible: true,
+      recording: false,
+      status: 'failed',
+      error: message || '录音启动失败'
+    });
+    const failedGeneration = recordingGeneration;
+    setTimeout(() => {
+      if (!isRecording && recordingGeneration === failedGeneration) {
+        updateFloatingState({ visible: false, recording: false });
+      }
+    }, 1200);
+    return { ok: true };
+  });
+
   ipcMain.handle('snapsay:copy-text', (_event, text: string) => {
     clipboard.writeText(text);
   });

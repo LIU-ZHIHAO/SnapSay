@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('snapsay', {
   saveSettings: (settings: unknown) => ipcRenderer.invoke('snapsay:save-settings', settings),
   submitRecording: (audio: ArrayBuffer, durationMs: number) =>
     ipcRenderer.invoke('snapsay:submit-recording', audio, durationMs),
+  reportRecordingError: (message: string) => ipcRenderer.invoke('snapsay:recording-error', message),
   copyText: (text: string) => ipcRenderer.invoke('snapsay:copy-text', text),
   rewriteRecord: (id: string) => ipcRenderer.invoke('snapsay:rewrite-record', id),
   pasteRecord: (id: string) => ipcRenderer.invoke('snapsay:paste-record', id),

@@ -257,6 +257,7 @@ type SnapSayFacade = {
   getDashboard?: () => Promise<{ settings: SettingsState; records: RecordItem[] }>;
   saveSettings?: (settings: SettingsState) => Promise<SettingsState>;
   submitRecording?: (audio: ArrayBuffer, durationMs: number) => Promise<{ ok: boolean }>;
+  reportRecordingError?: (message: string) => Promise<{ ok: boolean }>;
   copyText?: (text: string) => Promise<void>;
   rewriteRecord?: (id: string) => Promise<void>;
   pasteRecord?: (id: string) => Promise<void>;
@@ -509,7 +510,9 @@ export default function App() {
   useEffect(() => {
     const facade = getFacade();
     const offStart = facade.onRecordingStart?.(() => {
-      void startBrowserRecording();
+      void startBrowserRecording().catch((error) => {
+        void getFacade().reportRecordingError?.(recordingErrorMessage(error));
+      });
     });
     const offStop = facade.onRecordingStop?.(() => {
       const recorder = mediaRecorderRef.current;
@@ -611,6 +614,10 @@ export default function App() {
         setRecords((current) => current.map((record) => ({ ...record, error: undefined })));
       }
     });
+  };
+
+  const recordingErrorMessage = (error: unknown): string => {
+    return error instanceof Error ? error.message : String(error);
   };
 
   const exportRecords = async () => {

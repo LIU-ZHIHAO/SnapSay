@@ -280,6 +280,37 @@ describe('SnapSay main renderer', () => {
     stopRecording?.();
   });
 
+  it('reports microphone startup failures so recording state can reset', async () => {
+    let startRecording: (() => void) | undefined;
+    const getUserMedia = vi.fn().mockRejectedValue(new Error('microphone denied'));
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: {
+        enumerateDevices: vi.fn().mockResolvedValue([]),
+        getUserMedia
+      }
+    });
+    const reportRecordingError = vi.fn().mockResolvedValue({ ok: true });
+    window.snapsay = {
+      getDashboard: vi.fn().mockResolvedValue({ settings: demoDashboardSettings(), records: [] }),
+      onRecordingStart: (callback) => {
+        startRecording = callback;
+        return () => undefined;
+      },
+      reportRecordingError,
+      submitRecording: vi.fn().mockResolvedValue({ ok: true })
+    };
+
+    render(<App />);
+    await waitFor(() => expect(startRecording).toBeDefined());
+
+    startRecording?.();
+
+    await waitFor(() => {
+      expect(reportRecordingError).toHaveBeenCalledWith('microphone denied');
+    });
+  });
+
   it('submits browser recordings as WAV audio for local ASR comparison', async () => {
     let startRecording: (() => void) | undefined;
     let stopRecording: (() => void) | undefined;
