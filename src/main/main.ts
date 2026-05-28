@@ -172,12 +172,15 @@ function readImportRecordsPayload(filePath: string): TranscriptionRecord[] {
     .filter((record): record is TranscriptionRecord => Boolean(record));
 }
 
+function isOnnxExperimentMode(): boolean {
+  return process.env.SNAPSAY_ASR_ENGINE === 'sensevoice-onnx';
+}
+
 async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>): Promise<void> {
   const asrName = settings.input.asr;
   const isSenseVoice = /sensevoice|funasr/i.test(asrName);
   if (!isSenseVoice) return;
-  const requestedEngine = process.env.SNAPSAY_ASR_ENGINE;
-  const useOnnxDaemon = requestedEngine === 'sensevoice-onnx';
+  const useOnnxDaemon = isOnnxExperimentMode();
 
   const portFile = ASR_PORT_FILE_SV;
   const modelPath = settings.input.senseVoiceModelPath;
@@ -952,6 +955,14 @@ function createConfiguredAsrProvider(settings: ReturnType<SettingsStore['getSett
     if (asrDaemonPort && (asrDaemonEngine === 'sensevoice' || asrDaemonEngine === 'sensevoice-onnx')) {
       return createAsrDaemonProvider(asrDaemonPort);
     }
+    if (isOnnxExperimentMode()) {
+      return {
+        name: 'sensevoice-onnx',
+        async transcribe(): Promise<{ text: string; provider: string }> {
+          throw new Error('SenseVoice ONNX daemon is not ready. Restart with npm run electron:onnx and wait for the ONNX port file.');
+        }
+      };
+    }
     return createPythonAsrProvider({
       ...commonPythonOptions,
       engine: 'sensevoice-funasr',
@@ -1027,8 +1038,12 @@ app.whenReady().then(async () => {
   await createFloating();
   updateFloatingState({ visible: false, recording: false });
   const startupSettings = settingsStore.getSettings();
-  // Start ASR daemon in background — don't await, it loads while user interacts with the app
-  void startAsrDaemon(startupSettings);
+  if (isOnnxExperimentMode()) {
+    await startAsrDaemon(startupSettings);
+  } else {
+    // Start ASR daemon in background — don't await, it loads while user interacts with the app
+    void startAsrDaemon(startupSettings);
+  }
   await registerConfiguredTrigger(startupSettings.input.triggerLabel, startupSettings.input.mouseTrigger);
 
   app.on('activate', () => {
