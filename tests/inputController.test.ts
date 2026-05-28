@@ -236,6 +236,7 @@ describe('recorderCoordinator', () => {
     expect(record.cleanupDurationMs).toBe(0);
     expect(cleanup).not.toHaveBeenCalled();
     expect(paste).toHaveBeenCalledWith('打开设置页');
+    expect(store.listRecords()[0]).toEqual(record);
   });
 
   it('strips trailing punctuation before pasting short transcripts that skip cleanup', async () => {
