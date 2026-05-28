@@ -16,10 +16,11 @@ import {
 } from './inputController.js';
 import { cleanupText, createAsrDaemonProvider, createCloudAsrProvider, createCloudStreamingAsrProvider, createPythonAsrProvider, formatProviderTestDuration, resolveConfiguredCleanupProvider, resolvePythonExecutable, testCleanupProvider, type FetchLike } from './providers.js';
 import { runRecordingPipeline } from './recorderCoordinator.js';
-import { createSqliteRecordStore, normalizeImportedRecord } from './recordStore.js';
+import { createSqliteRecordStore } from './recordStore.js';
 import { createElectronStoreAdapter, createSettingsStore, migrateLegacyRecordsToRecordStore, type SettingsStore, type TranscriptionRecord } from './settingsStore.js';
 import type { AsrProfileConfig, LlmProviderConfig } from './settingsStore.js';
-import { applyWordbook, buildWordbookPrompt, extractWordPairCandidates } from './wordbook.js';
+import { createTransferPayload, mergeWordbookEntries, parseTransferPayload } from './transfer.js';
+import { applyWordbook, buildWordbookPrompt, extractWordPairCandidates, mergeWordbookPairs } from './wordbook.js';
 import type { WordbookEntry } from './wordbook.js';
 import { DEFAULT_CLEANUP_PROMPT, shouldCleanupTranscript, resolvePromptText } from '../shared/cleanupPolicy.js';
 
@@ -59,6 +60,7 @@ type RendererSettings = {
   cloudAsrModel: string;
   asrProfiles: AsrProfileConfig[];
   activeAsrProfileId: string;
+  wordbook: WordbookEntry[];
 };
 
 const FLOATING_POS_FILE = join(DATA_DIR, 'floating-pos.json');
@@ -149,27 +151,6 @@ function cleanupStaleTempFiles(tmpDir: string, maxAgeMs = 24 * 60 * 60 * 1000): 
     console.warn('Failed to clean stale temp files:', error);
   }
   return removed;
-}
-
-function exportPayload(records: TranscriptionRecord[]) {
-  return {
-    app: 'SnapSay',
-    version: 1,
-    exportedAt: new Date().toISOString(),
-    records
-  };
-}
-
-function readImportRecordsPayload(filePath: string): TranscriptionRecord[] {
-  const parsed = JSON.parse(readFileSync(filePath, 'utf-8')) as unknown;
-  const rawRecords = Array.isArray(parsed)
-    ? parsed
-    : parsed && typeof parsed === 'object' && Array.isArray((parsed as { records?: unknown }).records)
-      ? (parsed as { records: unknown[] }).records
-      : [];
-  return rawRecords
-    .map((record) => normalizeImportedRecord(record))
-    .filter((record): record is TranscriptionRecord => Boolean(record));
 }
 
 async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>): Promise<void> {
@@ -349,7 +330,8 @@ function toRendererSettings(): RendererSettings {
     cloudAsrApiKey: settings?.input.cloudAsr?.apiKey ?? '',
     cloudAsrModel: settings?.input.cloudAsr?.model ?? 'whisper-1',
     asrProfiles: settings?.input.asrProfiles ?? [],
-    activeAsrProfileId: settings?.input.activeAsrProfileId ?? 'local-sensevoice'
+    activeAsrProfileId: settings?.input.activeAsrProfileId ?? 'local-sensevoice',
+    wordbook: settings?.input.wordbook ?? []
   };
 }
 
@@ -488,6 +470,7 @@ function installIpcHandlers(): void {
     }, 1200);
 
     // Send full records list to avoid race condition with getDashboard.
+    // Keep every completed recording, including single-word entries used to train the wordbook.
     const allRecords = settingsStore?.listRecords() ?? [];
     mainWindow?.webContents.send('snapsay:records-synced', allRecords.map(toRendererRecord));
 
@@ -563,8 +546,9 @@ function installIpcHandlers(): void {
       return { ok: false, canceled: true };
     }
     const records = settingsStore.listRecords();
-    writeFileSync(result.filePath, JSON.stringify(exportPayload(records), null, 2), 'utf-8');
-    return { ok: true, count: records.length, filePath: result.filePath };
+    const wordbook = settingsStore.getSettings().input.wordbook ?? [];
+    writeFileSync(result.filePath, JSON.stringify(createTransferPayload(records, wordbook), null, 2), 'utf-8');
+    return { ok: true, count: records.length, wordbookCount: wordbook.length, filePath: result.filePath };
   });
 
   ipcMain.handle('snapsay:import-records', async () => {
@@ -580,8 +564,13 @@ function installIpcHandlers(): void {
       return { ok: false, canceled: true };
     }
     try {
-      const records = readImportRecordsPayload(result.filePaths[0]);
-      const imported = settingsStore.importRecords(records);
+      const payload = parseTransferPayload(readFileSync(result.filePaths[0], 'utf-8'));
+      const imported = settingsStore.importRecords(payload.records);
+      const settings = settingsStore.getSettings();
+      const wordbook = mergeWordbookEntries(settings.input.wordbook ?? [], payload.wordbook);
+      if (payload.wordbook.length > 0) {
+        settingsStore.saveSettings({ input: { ...settings.input, wordbook } });
+      }
       const rendererRecords = imported.records.map(toRendererRecord);
       mainWindow.webContents.send('snapsay:records-synced', rendererRecords);
       return {
@@ -589,6 +578,8 @@ function installIpcHandlers(): void {
         imported: imported.imported,
         updated: imported.updated,
         skipped: imported.skipped,
+        wordbookImported: payload.wordbook.length,
+        wordbook,
         records: rendererRecords
       };
     } catch (error) {
@@ -629,19 +620,32 @@ function installIpcHandlers(): void {
     const cleaned = await cleanupText({
       provider,
       transcript: record.transcript,
-      prompt: resolvePromptText(settings.cleanup.prompt),
+      prompt: resolvePromptText(settings.cleanup.prompt) + buildWordbookPrompt(settings.input.wordbook ?? []),
       fetch: fetch as FetchLike
     });
     const updated = settingsStore?.updateRecord(id, { cleanedText: cleaned.text, totalTokens: cleaned.totalTokens, status: 'completed' });
     if (updated) {
-      mainWindow?.webContents.send('snapsay:record-updated', updated);
+      mainWindow?.webContents.send('snapsay:record-updated', toRendererRecord(updated));
     }
     return { ok: true, text: cleaned.text };
   });
 
   ipcMain.handle('snapsay:save-correction', (_event, id: string, correctionText: string) => {
-    settingsStore?.updateRecord(id, { userCorrection: correctionText });
-    return { ok: true };
+    if (!settingsStore) return { ok: false, pairs: [], wordbook: [] };
+    const record = settingsStore.listRecords().find((item) => item.id === id);
+    if (!record) return { ok: false, pairs: [], wordbook: [] };
+
+    const updated = settingsStore.updateRecord(id, { userCorrection: correctionText });
+    if (updated) {
+      mainWindow?.webContents.send('snapsay:record-updated', toRendererRecord(updated));
+    }
+
+    const settings = settingsStore.getSettings();
+    const pairs = extractWordPairCandidates(record.cleanedText ?? record.transcript, correctionText);
+    const mergeResult = mergeWordbookPairs(settings.input.wordbook ?? [], pairs);
+    settingsStore.saveSettings({ input: { ...settings.input, wordbook: mergeResult.wordbook } });
+
+    return { ok: true, pairs: mergeResult.addedPairs, wordbook: mergeResult.wordbook };
   });
 
   // Independently save wordbook without touching other settings
@@ -657,7 +661,7 @@ function installIpcHandlers(): void {
     if (!settingsStore) return { ok: false, pairs: [] };
     const record = settingsStore.listRecords().find((r) => r.id === id);
     if (!record?.userCorrection) return { ok: false, pairs: [] };
-    const pairs = extractWordPairCandidates(record.transcript, record.userCorrection);
+    const pairs = extractWordPairCandidates(record.cleanedText ?? record.transcript, record.userCorrection);
     return { ok: true, pairs };
   });
 

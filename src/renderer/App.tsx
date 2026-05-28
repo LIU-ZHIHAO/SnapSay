@@ -176,6 +176,17 @@ type WordbookEntry = {
   variants: string[];
 };
 
+type WordPair = {
+  from: string;
+  to: string;
+};
+
+type SaveCorrectionResult = void | {
+  ok?: boolean;
+  pairs?: WordPair[];
+  wordbook?: WordbookEntry[];
+};
+
 type LlmProviderConfig = {
   key: string;
   displayName: string;
@@ -264,20 +275,22 @@ type SnapSayFacade = {
   deleteRecord?: (id: string) => Promise<void>;
   clearAllRecords?: () => Promise<{ ok: boolean }>;
   clearDiagnosticLogs?: () => Promise<{ ok: boolean; records?: RecordItem[] }>;
-  exportRecords?: () => Promise<{ ok: boolean; count?: number; canceled?: boolean; message?: string }>;
+  exportRecords?: () => Promise<{ ok: boolean; count?: number; wordbookCount?: number; canceled?: boolean; message?: string }>;
   importRecords?: () => Promise<{
     ok: boolean;
     imported?: number;
     updated?: number;
     skipped?: number;
+    wordbookImported?: number;
+    wordbook?: WordbookEntry[];
     canceled?: boolean;
     message?: string;
     records?: RecordItem[];
   }>;
   testRewriteApi?: (settings: SettingsState) => Promise<{ ok: boolean; message: string; durationMs?: number }>;
-  saveCorrection?: (id: string, text: string) => Promise<void>;
+  saveCorrection?: (id: string, text: string) => Promise<SaveCorrectionResult>;
   saveWordbook?: (wordbook: WordbookEntry[]) => Promise<{ ok: boolean }>;
-  extractWordPairs?: (id: string) => Promise<{ ok: boolean; pairs: { from: string; to: string }[] }>;
+  extractWordPairs?: (id: string) => Promise<{ ok: boolean; pairs: WordPair[] }>;
   windowControl?: (action: 'minimize' | 'toggle-maximize' | 'close') => Promise<boolean>;
   onRecordingStart?: (callback: () => void) => () => void;
   onRecordingStop?: (callback: () => void) => () => void;
@@ -448,7 +461,7 @@ export default function App() {
       .getDashboard?.()
       .then((dashboard) => {
         setSettings(dashboard.settings);
-        setRecords(dashboard.records);
+        setRecords(dashboard.records.map(normalizeRecordItem));
       })
       .catch(() => undefined);
   }, []);
@@ -456,10 +469,11 @@ export default function App() {
   useEffect(() => {
     const facade = getFacade();
     const offRecordAdded = facade.onRecordAdded?.((record) => {
-      setRecords((current) => [record, ...current]);
+      setRecords((current) => [normalizeRecordItem(record), ...current]);
     });
     const offRecordUpdated = facade.onRecordUpdated?.((record) => {
-      setRecords((current) => current.map((item) => (item.id === record.id ? record : item)));
+      const normalized = normalizeRecordItem(record);
+      setRecords((current) => current.map((item) => (item.id === normalized.id ? normalized : item)));
     });
     const offRecordDeleted = facade.onRecordDeleted?.((id) => {
       setRecords((current) => current.filter((item) => item.id !== id));
@@ -468,7 +482,7 @@ export default function App() {
       setRecords([]);
     });
     const offRecordsSynced = facade.onRecordsSynced?.((records) => {
-      setRecords(records);
+      setRecords(records.map(normalizeRecordItem));
     });
     return () => {
       offRecordAdded?.();
@@ -517,7 +531,15 @@ export default function App() {
     const offStop = facade.onRecordingStop?.(() => {
       const recorder = mediaRecorderRef.current;
       if (recorder) {
-        recorder.stop();
+        try {
+          if (recorder.state !== 'inactive') {
+            recorder.stop();
+          }
+        } catch (error) {
+          mediaRecorderRef.current = null;
+          setMediaRecorder(null);
+          void getFacade().reportRecordingError?.(recordingErrorMessage(error));
+        }
       } else {
         pendingStopRef.current = true;
       }
@@ -542,12 +564,16 @@ export default function App() {
       }
     };
     recorder.onstop = async () => {
-      stream.getTracks().forEach((track) => track.stop());
-      const blob = new Blob(chunks, { type: recorder.mimeType });
-      const audio = await encodeBlobToWav(blob).catch(() => blobToArrayBuffer(blob));
-      await getFacade().submitRecording?.(audio, Date.now() - startedAt);
       mediaRecorderRef.current = null;
       setMediaRecorder(null);
+      try {
+        stream.getTracks().forEach((track) => track.stop());
+        const blob = new Blob(chunks, { type: recorder.mimeType });
+        const audio = await encodeBlobToWav(blob).catch(() => blobToArrayBuffer(blob));
+        await getFacade().submitRecording?.(audio, Date.now() - startedAt);
+      } catch (error) {
+        void getFacade().reportRecordingError?.(recordingErrorMessage(error));
+      }
     };
     recorder.start();
     mediaRecorderRef.current = recorder;
@@ -625,7 +651,9 @@ export default function App() {
     if (!result || result.canceled) {
       return;
     }
-    setRecordsTransferStatus(result.ok ? `已导出 ${result.count ?? 0} 条记录` : (result.message ?? '导出失败'));
+    setRecordsTransferStatus(result.ok
+      ? `已导出 ${result.count ?? 0} 条记录，${result.wordbookCount ?? 0} 个词库词`
+      : (result.message ?? '导出失败'));
   };
 
   const importRecords = async () => {
@@ -636,18 +664,22 @@ export default function App() {
     if (result.records) {
       setRecords(result.records);
     }
+    if (result.wordbook) {
+      setSettings((current) => ({ ...current, wordbook: result.wordbook ?? [] }));
+    }
     setRecordsTransferStatus(
       result.ok
-        ? `已导入 ${result.imported ?? 0} 条，更新 ${result.updated ?? 0} 条，跳过 ${result.skipped ?? 0} 条`
+        ? `已导入 ${result.imported ?? 0} 条，更新 ${result.updated ?? 0} 条，跳过 ${result.skipped ?? 0} 条，词库 ${result.wordbookImported ?? 0} 个`
         : (result.message ?? '导入失败')
     );
   };
 
-  const saveCorrection = async (id: string, text: string) => {
-    await getFacade().saveCorrection?.(id, text);
+  const saveCorrection = async (id: string, text: string): Promise<SaveCorrectionResult> => {
+    const result = await getFacade().saveCorrection?.(id, text);
     setRecords((current) =>
       current.map((item) => (item.id === id ? { ...item, userCorrection: text } : item))
     );
+    return result;
   };
 
 
@@ -996,6 +1028,56 @@ function shortenModelLabel(value: string): string {
     .trim();
 }
 
+function firstFilledText(...values: (string | undefined | null)[]): string {
+  const filled = values.find((value) => value != null && value.trim().length > 0);
+  return filled ?? values.find((value) => value != null) ?? '';
+}
+
+function getRecordDisplayText(record: RecordItem): string {
+  return firstFilledText(record.userCorrection, record.refined, record.original);
+}
+
+function normalizeRecordItem(record: RecordItem | Record<string, unknown>): RecordItem {
+  const item = record as Partial<RecordItem> & {
+    cleanedText?: unknown;
+    transcript?: unknown;
+    createdAt?: unknown;
+    status?: unknown;
+  };
+  const original = typeof item.original === 'string'
+    ? item.original
+    : typeof item.transcript === 'string'
+      ? item.transcript
+      : '';
+  const refined = typeof item.refined === 'string'
+    ? item.refined
+    : typeof item.cleanedText === 'string'
+      ? item.cleanedText
+      : original;
+  const time = typeof item.time === 'string'
+    ? item.time
+    : typeof item.createdAt === 'string'
+      ? new Date(item.createdAt).toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      : '';
+  const rawStatus = (record as { status?: unknown }).status;
+  const status = rawStatus === 'completed' ? '已输入' : rawStatus === 'failed' ? '失败' : String(rawStatus ?? '已输入');
+
+  return {
+    ...item,
+    id: typeof item.id === 'string' ? item.id : `record-${Date.now()}`,
+    time,
+    original,
+    refined,
+    status
+  } as RecordItem;
+}
+
 /* ─── Full card list ──────────────────────────────────────────────────── */
 function FullRecordList(props: {
   settings: SettingsState;
@@ -1005,16 +1087,18 @@ function FullRecordList(props: {
   onCopyOriginal?: (record: RecordItem) => void;
   onDelete?: (record: RecordItem) => void;
   onEdit?: (record: RecordItem) => void;
-  onSaveCorrection?: (id: string, text: string) => void;
+  onSaveCorrection?: (id: string, text: string) => SaveCorrectionResult | Promise<SaveCorrectionResult>;
   onUpdateOriginal?: (record: RecordItem, value: string) => void;
   onUpdateWordbook?: (wordbook: WordbookEntry[]) => void;
 }) {
   const [expandedCorrectionId, setExpandedCorrectionId] = useState<string | null>(null);
+  const [expandedRecordIds, setExpandedRecordIds] = useState<Set<string>>(() => new Set());
   const [correctionDraft, setCorrectionDraft] = useState('');
   const [correctionStatus, setCorrectionStatus] = useState('');
+  const [learnedMessages, setLearnedMessages] = useState<Record<string, string>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [quickAddRecordId, setQuickAddRecordId] = useState<string | null>(null);
-  const [quickAddPairs, setQuickAddPairs] = useState<{ from: string; to: string; selected: boolean }[]>([]);
+  const [quickAddPairs, setQuickAddPairs] = useState<(WordPair & { selected: boolean })[]>([]);
 
   useEffect(() => {
     if (!copiedId) return;
@@ -1034,14 +1118,65 @@ function FullRecordList(props: {
 
   const openCorrection = (record: RecordItem) => {
     setExpandedCorrectionId(record.id);
-    setCorrectionDraft(record.userCorrection ?? '');
+    setCorrectionDraft(getRecordDisplayText(record));
     setCorrectionStatus('');
+  };
+
+  const toggleRecordExpanded = (id: string) => {
+    setExpandedRecordIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const showLearnedPairs = (recordId: string, pairs: WordPair[]) => {
+    const readablePairs = pairs
+      .map((pair) => `${pair.from.trim()} -> ${pair.to.trim()}`)
+      .filter((pair) => pair !== ' -> ');
+    if (readablePairs.length === 0) {
+      return;
+    }
+    setLearnedMessages((current) => ({
+      ...current,
+      [recordId]: `已学习：${readablePairs.join('，')}`
+    }));
   };
 
   const commitCorrection = async (record: RecordItem) => {
     if (correctionDraft.trim()) {
       setCorrectionStatus('正在检测词库候选…');
-      await props.onSaveCorrection?.(record.id, correctionDraft.trim());
+      const saveResult = await props.onSaveCorrection?.(record.id, correctionDraft.trim());
+      const resultPairs = saveResult && typeof saveResult === 'object' && Array.isArray(saveResult.pairs)
+        ? saveResult.pairs
+        : [];
+      const returnedWordbook = saveResult && typeof saveResult === 'object' && Array.isArray(saveResult.wordbook)
+        ? saveResult.wordbook
+        : undefined;
+
+      if (returnedWordbook) {
+        props.onUpdateWordbook?.(returnedWordbook);
+        setQuickAddRecordId(null);
+        setQuickAddPairs([]);
+        if (resultPairs.length > 0) {
+          showLearnedPairs(record.id, resultPairs);
+          setCorrectionStatus('');
+        } else {
+          setCorrectionStatus('未检测到可加入词库的纠正词');
+        }
+        return;
+      }
+
+      if (resultPairs.length > 0) {
+        setQuickAddPairs(resultPairs.map((p) => ({ ...p, selected: true })));
+        setQuickAddRecordId(record.id);
+        setCorrectionStatus('');
+        return;
+      }
 
       // Extract word pairs from the correction record
       try {
@@ -1106,6 +1241,9 @@ function FullRecordList(props: {
     }
 
     props.onUpdateWordbook?.(currentWordbook);
+    if (quickAddRecordId) {
+      showLearnedPairs(quickAddRecordId, selected);
+    }
     setQuickAddRecordId(null);
     setQuickAddPairs([]);
   };
@@ -1116,6 +1254,8 @@ function FullRecordList(props: {
     <div className="record-list">
       {props.records.map((record) => {
         const cleanupDisplay = getCleanupDisplay(record);
+        const displayText = getRecordDisplayText(record);
+        const isRecordExpanded = expandedRecordIds.has(record.id);
 
         return (
           <div className={`record-card ${record.status === '失败' ? 'failed-card' : ''}`} key={record.id}>
@@ -1143,7 +1283,36 @@ function FullRecordList(props: {
                   value={record.original}
                 />
               ) : (
-                <div className="record-refined">{record.refined}</div>
+                <div className="record-refined" title={displayText}>{displayText}</div>
+              )}
+
+              {learnedMessages[record.id] && (
+                <div className="correction-learned-status" title={learnedMessages[record.id]}>
+                  {learnedMessages[record.id]}
+                </div>
+              )}
+
+              {isRecordExpanded && (
+                <div className="record-detail-grid" aria-label="记录详情" role="group">
+                  {record.original.trim() && (
+                    <div className="record-detail-item">
+                      <span>原始提取</span>
+                      <p title={record.original}>{record.original}</p>
+                    </div>
+                  )}
+                  {record.refined.trim() && (
+                    <div className="record-detail-item">
+                      <span>整理后文本</span>
+                      <p title={record.refined}>{record.refined}</p>
+                    </div>
+                  )}
+                  {record.userCorrection?.trim() && (
+                    <div className="record-detail-item">
+                      <span>我的修正文案</span>
+                      <p title={record.userCorrection}>{record.userCorrection}</p>
+                    </div>
+                  )}
+                </div>
               )}
 
               {expandedCorrectionId === record.id && (
@@ -1215,6 +1384,17 @@ function FullRecordList(props: {
             </div>
 
             <div className="record-actions">
+              <button
+                aria-expanded={isRecordExpanded}
+                aria-label={isRecordExpanded ? '收起记录' : '展开记录'}
+                className={`record-action-btn record-expand-btn${isRecordExpanded ? ' expanded' : ''}`}
+                data-tooltip={isRecordExpanded ? '收起详情' : '展开详情'}
+                onClick={() => toggleRecordExpanded(record.id)}
+                type="button"
+              >
+                <ChevronDown size={13} />
+              </button>
+
               {/* 复制整理后文本 */}
               <button
                 className={`record-action-btn${copiedId === record.id + '-refined' ? ' success' : ''}`}
