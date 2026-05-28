@@ -5,6 +5,7 @@ import {
   buildWordbookPrompt,
   extractWordPairCandidates,
   generateId,
+  mergeWordbookPairs,
   WordbookEntry
 } from '../src/main/wordbook';
 
@@ -116,6 +117,17 @@ describe('Wordbook Logic', () => {
   });
 
   describe('extractWordPairCandidates', () => {
+    it('extracts mixed Chinese and English phrase corrections without learning the whole sentence', () => {
+      const candidates = extractWordPairCandidates(
+        '我今天用 cloud code 改代码',
+        '我今天用 Claude Code 改代码'
+      );
+
+      expect(candidates).toEqual([
+        { from: 'cloud code', to: 'Claude Code' }
+      ]);
+    });
+
     it('extracts word differences between ASR and corrected text', () => {
       const original = '今天我用了一下 code x 进行开发。';
       const corrected = '今天我用了一下 codex 进行开发。';
@@ -144,6 +156,50 @@ describe('Wordbook Logic', () => {
       // Stopwords like '我的', '你的', '三个', '123' etc. should be filtered
       expect(candidates).toEqual([
         { from: '报款逻辑', to: '爆款逻辑' }
+      ]);
+    });
+  });
+
+  describe('mergeWordbookPairs', () => {
+    it('adds a wrong phrase to an existing target entry without duplicating variants', () => {
+      const entries: WordbookEntry[] = [
+        {
+          id: 'existing',
+          target: 'Claude Code',
+          variants: ['claude code']
+        }
+      ];
+
+      const result = mergeWordbookPairs(entries, [
+        { from: 'cloud code', to: 'Claude Code' },
+        { from: 'cloud code', to: 'Claude Code' }
+      ]);
+
+      expect(result.wordbook).toEqual([
+        {
+          id: 'existing',
+          target: 'Claude Code',
+          variants: ['claude code', 'cloud code']
+        }
+      ]);
+      expect(result.addedPairs).toEqual([
+        { from: 'cloud code', to: 'Claude Code' }
+      ]);
+    });
+
+    it('creates a new target entry when none exists', () => {
+      const result = mergeWordbookPairs([], [
+        { from: 'cloud code', to: 'Claude Code' }
+      ]);
+
+      expect(result.wordbook).toHaveLength(1);
+      expect(result.wordbook[0]).toEqual({
+        id: expect.stringMatching(/^wb_/),
+        target: 'Claude Code',
+        variants: ['cloud code']
+      });
+      expect(result.addedPairs).toEqual([
+        { from: 'cloud code', to: 'Claude Code' }
       ]);
     });
   });

@@ -239,6 +239,25 @@ describe('recorderCoordinator', () => {
     expect(store.listRecords()[0]).toEqual(record);
   });
 
+  it('keeps single-word recordings in history', async () => {
+    const store = createSettingsStore({ store: createMemoryStore() });
+    const paste = vi.fn().mockResolvedValue({ status: 'pasted' });
+
+    const record = await runRecordingPipeline({
+      audio: new ArrayBuffer(0),
+      durationMs: 500,
+      asrProvider: createMockAsrProvider('code'),
+      cleanupText: vi.fn(),
+      pasteText: paste,
+      settingsStore: store,
+      shouldCleanupText: shouldCleanupTranscript
+    });
+
+    expect(record.status).toBe('completed');
+    expect(record.transcript).toBe('code');
+    expect(store.listRecords()).toEqual([record]);
+  });
+
   it('strips trailing punctuation before pasting short transcripts that skip cleanup', async () => {
     const store = createSettingsStore({ store: createMemoryStore() });
     const cleanup = vi.fn().mockResolvedValue({ text: 'clean text', totalTokens: undefined });
