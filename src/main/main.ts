@@ -96,7 +96,7 @@ let recordingGeneration = 0;
 let activeTriggerAccelerator: string | undefined;
 let stopLowLevelTrigger: (() => void) | undefined;
 let asrDaemonPort: number | undefined;
-let asrDaemonEngine: 'sensevoice' | undefined;
+let asrDaemonEngine: 'sensevoice' | 'sensevoice-onnx' | undefined;
 const execFileAsync = promisify(execFile);
 const LONG_PRESS_MS = 350;
 const ASR_PORT_FILE_SV = join(DATA_DIR, 'asr-daemon.port');
@@ -176,6 +176,8 @@ async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>
   const asrName = settings.input.asr;
   const isSenseVoice = /sensevoice|funasr/i.test(asrName);
   if (!isSenseVoice) return;
+  const requestedEngine = process.env.SNAPSAY_ASR_ENGINE;
+  const useOnnxDaemon = requestedEngine === 'sensevoice-onnx';
 
   const portFile = ASR_PORT_FILE_SV;
   const modelPath = settings.input.senseVoiceModelPath;
@@ -192,6 +194,30 @@ async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>
         ...process.env,
         ASR_MODEL_PATH: modelPath,
         ASR_PORT_FILE: portFile
+      },
+      windowsHide: true,
+      stdio: 'ignore',
+      detached: false
+    });
+  } else if (useOnnxDaemon) {
+    const scriptPath = join(PROJECT_ROOT, 'scripts', 'asr-daemon-onnx.py');
+    const pythonPath = resolvePythonExecutable({
+      configuredPath: settings.input.pythonPath,
+      projectRoot: PROJECT_ROOT,
+      exists: existsSync
+    });
+    if (!pythonPath) {
+      console.error(`[ASR daemon] Python not found at ${settings.input.pythonPath}, skipping ONNX ASR daemon startup.`);
+      return;
+    }
+    console.log(`[ASR daemon] Starting SenseVoice ONNX daemon: ${scriptPath}`);
+    daemon = spawn(pythonPath, [scriptPath], {
+      cwd: PROJECT_ROOT,
+      env: {
+        ...process.env,
+        ASR_MODEL_PATH: modelPath,
+        ASR_PORT_FILE: portFile,
+        XDG_CACHE_HOME: CACHE_DIR
       },
       windowsHide: true,
       stdio: 'ignore',
@@ -245,7 +271,7 @@ async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>
         const port = parseInt(readFileSync(portFile, 'utf-8').trim(), 10);
         if (port > 0) {
           asrDaemonPort = port;
-          asrDaemonEngine = 'sensevoice';
+          asrDaemonEngine = useOnnxDaemon ? 'sensevoice-onnx' : 'sensevoice';
           clearInterval(poll);
           resolve();
         }
@@ -923,7 +949,7 @@ function createConfiguredAsrProvider(settings: ReturnType<SettingsStore['getSett
     acceleration: settings.input.asrAcceleration === 'CPU' ? ('cpu' as const) : ('auto-gpu' as const)
   };
   if (/sensevoice|funasr/i.test(asrName)) {
-    if (asrDaemonPort && asrDaemonEngine === 'sensevoice') {
+    if (asrDaemonPort && (asrDaemonEngine === 'sensevoice' || asrDaemonEngine === 'sensevoice-onnx')) {
       return createAsrDaemonProvider(asrDaemonPort);
     }
     return createPythonAsrProvider({

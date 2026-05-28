@@ -14,6 +14,7 @@
     "rebuild:native": "electron-rebuild -f -o better-sqlite3 --types prod",
     "postinstall": "npm run rebuild:native",
     "electron": "npm run build && electron .",
+    "electron:onnx": "powershell -ExecutionPolicy Bypass -File scripts/start-electron-onnx.ps1",
     "setup:windows": "powershell -ExecutionPolicy Bypass -File scripts/setup-windows.ps1",
     "watch-commit": "chokidar \"src/**/*\" -c \"git add . && git commit -m 'auto: code change detected' --allow-empty\""
   },
