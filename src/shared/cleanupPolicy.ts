@@ -1,9 +1,8 @@
-const DAILY_CHAT_CLEANUP_PROMPT = `任务：精修语音转写文本，输出可直接发送的干净文字
-1. 纠错与降噪：修复语音错字；删除语气词及重复词。精准识别改口，直接删除被推翻的前文，无缝拼接最终确认内容
-2. 忠于原意：保留第一人称，绝不擅自扩写、总结或改变原本语气
-3. 排版切分：按聊天阅读习惯拆分长句，用分号[、]隔开；按完整语义、转折、结论自然换行分段、
-4. 严格输出：禁止回答问句、禁止解释内容。仅输出最终结果，禁止回复原文本，禁止超出【文本整理优化】身份！
-5.除问句需要加[?]外，严禁在句末加任何结束标点如[。][，][！][；][‘] [“][:]）`;
+export const DEFAULT_CLEANUP_PROMPT = `任务：精修语音转写文本，输出可直接发送的干净文字。
+1. 纠错与降噪：修复语音错字；删除语气词及重复词。精准识别改口，直接删除被推翻的前文，无缝拼接最终确认内容。
+2. 忠于原意：保留第一人称，绝不擅自扩写、总结或改变原本语气。
+3. 排版切分：按聊天阅读习惯拆分长句。按完整语义、转折、结论自然换行分段。
+4. 严格输出：仅输出最终结果，禁止回复原文本内容！绝对禁止包含解释、标题、引号、Markdown格式，严禁在句末加任何结束标点（如。，）。`;
 
 export const CLEANUP_MIN_EFFECTIVE_CHARS = 30;
 
@@ -30,35 +29,6 @@ export const CHARM_CLEANUP_PROMPT = `你是一个中文语音输入整理器（�
 2. 【如沐春风】：使用温和、友善、具有极强共情力的表达方式，用词委婉贴心，能巧妙化解冲突，让听者感到备受尊重和极度舒服
 3. 保留用户的核心观点，但通过语言艺术重新包装成更好听的沟通语言
 4. 去掉口癖、语病，确保输出流畅自然，极度适合微信聊天、团队鼓励或商务沟通`;
-
-export const DEFAULT_CLEANUP_PROMPT = JSON.stringify({
-  activeStyle: 'default',
-  prompts: {
-    default: DAILY_CHAT_CLEANUP_PROMPT,
-    engineer: ENGINEER_CLEANUP_PROMPT,
-    charm: CHARM_CLEANUP_PROMPT
-  },
-  presets: [
-    {
-      id: 'default',
-      name: '日常聊天',
-      prompt: DAILY_CHAT_CLEANUP_PROMPT,
-      isBuiltIn: true
-    },
-    {
-      id: 'engineer',
-      name: '理智工科',
-      prompt: ENGINEER_CLEANUP_PROMPT,
-      isBuiltIn: true
-    },
-    {
-      id: 'charm',
-      name: '高情商夸夸',
-      prompt: CHARM_CLEANUP_PROMPT,
-      isBuiltIn: true
-    }
-  ]
-});
 
 export function resolvePromptText(promptField: string): string {
   if (!promptField) return DEFAULT_CLEANUP_PROMPT;
