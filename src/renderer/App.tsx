@@ -264,6 +264,13 @@ type SettingsState = {
   activeAsrProfileId: string;
 };
 
+type LocalModelStatus = {
+  installed: boolean;
+  modelDir: string;
+  requiredFiles: Array<{ name: string; path: string; exists: boolean; sizeBytes: number }>;
+  missingFiles: string[];
+};
+
 type SnapSayFacade = {
   getDashboard?: () => Promise<{ settings: SettingsState; records: RecordItem[] }>;
   saveSettings?: (settings: SettingsState) => Promise<SettingsState>;
@@ -291,6 +298,9 @@ type SnapSayFacade = {
   saveCorrection?: (id: string, text: string) => Promise<SaveCorrectionResult>;
   saveWordbook?: (wordbook: WordbookEntry[]) => Promise<{ ok: boolean }>;
   extractWordPairs?: (id: string) => Promise<{ ok: boolean; pairs: WordPair[] }>;
+  getLocalModelStatus?: () => Promise<LocalModelStatus>;
+  downloadLocalModel?: () => Promise<LocalModelStatus & { ok: boolean; message: string }>;
+  openLocalModelDir?: () => Promise<{ ok: boolean }>;
   windowControl?: (action: 'minimize' | 'toggle-maximize' | 'close') => Promise<boolean>;
   onRecordingStart?: (callback: () => void) => () => void;
   onRecordingStop?: (callback: () => void) => () => void;

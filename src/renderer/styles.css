@@ -1629,6 +1629,57 @@ button:focus-visible {
   color: var(--accent-strong);
 }
 
+.local-model-card {
+  gap: 12px;
+}
+
+.local-model-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.local-model-actions .provider-config-link {
+  align-items: center;
+  background: var(--accent-soft);
+  border-radius: var(--radius-control);
+  color: var(--accent-strong);
+  display: inline-flex;
+  gap: 6px;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 12px;
+  width: auto;
+}
+
+.local-model-actions .provider-config-link::after {
+  content: "";
+}
+
+.local-model-actions .provider-config-link.secondary {
+  background: var(--surface-hover);
+  color: var(--text-secondary);
+}
+
+.local-model-actions .provider-config-link:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.local-model-note {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.local-model-note.success {
+  color: var(--success);
+}
+
 .modal-backdrop {
   position: fixed !important;
   inset: 0 !important;

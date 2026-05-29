@@ -53,6 +53,23 @@ describe('ONNX Windows distribution packaging', () => {
     expect(settingsSource).toContain("'D:\\\\SoftInstall\\\\SnapSay'");
   });
 
+  it('exposes local model status and download IPC for the packaged ONNX flow', () => {
+    const mainSource = readFileSync(join(process.cwd(), 'src', 'main', 'main.ts'), 'utf8');
+    const preloadSource = readFileSync(join(process.cwd(), 'src', 'main', 'preload.ts'), 'utf8');
+    const modelManagerSource = readFileSync(join(process.cwd(), 'src', 'main', 'localModelManager.ts'), 'utf8');
+    const modelsViewSource = readFileSync(join(process.cwd(), 'src', 'renderer', 'ModelsView.tsx'), 'utf8');
+
+    expect(mainSource).toContain('snapsay:get-local-model-status');
+    expect(mainSource).toContain('snapsay:download-local-model');
+    expect(mainSource).toContain('snapsay:open-local-model-dir');
+    expect(preloadSource).toContain('getLocalModelStatus');
+    expect(preloadSource).toContain('downloadLocalModel');
+    expect(modelManagerSource).toContain('https://www.modelscope.cn/models/iic/SenseVoiceSmall-onnx/resolve/master/model_quant.onnx');
+    expect(modelManagerSource).toContain("targetName: 'model.onnx'");
+    expect(modelsViewSource).toContain('下载模型');
+    expect(modelsViewSource).toContain('打开目录');
+  });
+
   it('builds the daemon exe with PyInstaller from the ONNX script', () => {
     const script = readFileSync(join(process.cwd(), 'scripts', 'build-onnx-daemon.ps1'), 'utf8');
 

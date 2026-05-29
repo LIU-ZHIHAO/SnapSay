@@ -14,6 +14,7 @@ import {
   type MouseTrigger,
   type TriggerBinding
 } from './inputController.js';
+import { downloadSenseVoiceOnnxModel, getLocalModelStatus, openLocalModelDir } from './localModelManager.js';
 import { cleanupText, createAsrDaemonProvider, createCloudAsrProvider, createCloudStreamingAsrProvider, createPythonAsrProvider, formatProviderTestDuration, resolveConfiguredCleanupProvider, resolvePythonExecutable, testCleanupProvider, type FetchLike } from './providers.js';
 import { runRecordingPipeline } from './recorderCoordinator.js';
 import { createSqliteRecordStore, normalizeImportedRecord } from './recordStore.js';
@@ -101,6 +102,7 @@ let activeTriggerAccelerator: string | undefined;
 let stopLowLevelTrigger: (() => void) | undefined;
 let asrDaemonPort: number | undefined;
 let asrDaemonEngine: 'sensevoice' | 'sensevoice-onnx' | undefined;
+let localModelDownloadPromise: Promise<unknown> | undefined;
 const execFileAsync = promisify(execFile);
 const LONG_PRESS_MS = 350;
 const ASR_PORT_FILE_SV = join(DATA_DIR, 'asr-daemon.port');
@@ -756,6 +758,30 @@ function installIpcHandlers(): void {
       console.error('Failed to open external URL:', err);
       return { ok: false, error: String(err) };
     }
+  });
+
+  ipcMain.handle('snapsay:get-local-model-status', () => {
+    const settings = settingsStore?.getSettings();
+    const modelDir = settings?.input.senseVoiceModelPath ?? join(MODELS_DIR, 'sensevoice', 'SenseVoiceSmall');
+    return getLocalModelStatus(modelDir);
+  });
+
+  ipcMain.handle('snapsay:download-local-model', async () => {
+    const settings = settingsStore?.getSettings();
+    const modelDir = settings?.input.senseVoiceModelPath ?? join(MODELS_DIR, 'sensevoice', 'SenseVoiceSmall');
+    if (!localModelDownloadPromise) {
+      localModelDownloadPromise = downloadSenseVoiceOnnxModel(modelDir).finally(() => {
+        localModelDownloadPromise = undefined;
+      });
+    }
+    return localModelDownloadPromise;
+  });
+
+  ipcMain.handle('snapsay:open-local-model-dir', async () => {
+    const settings = settingsStore?.getSettings();
+    const modelDir = settings?.input.senseVoiceModelPath ?? join(MODELS_DIR, 'sensevoice', 'SenseVoiceSmall');
+    await openLocalModelDir(modelDir);
+    return { ok: true };
   });
 }
 

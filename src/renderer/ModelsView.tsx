@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from 'react';
-import { Brain, Server, PlugZap, X, Cpu, Globe, Zap, ExternalLink } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Brain, Server, PlugZap, X, Cpu, Globe, Zap, ExternalLink, Download, FolderOpen } from 'lucide-react';
 import { CustomSelect } from './App';
 
 import openaiLogo from './logos/openai.svg';
@@ -217,6 +217,13 @@ type SettingsState = {
   activeAsrProfileId: string;
 };
 
+type LocalModelStatus = {
+  installed: boolean;
+  modelDir: string;
+  requiredFiles: Array<{ name: string; path: string; exists: boolean; sizeBytes: number }>;
+  missingFiles: string[];
+};
+
 function getFacade() {
   return window.snapsay ?? {};
 }
@@ -235,9 +242,23 @@ export default function ModelsView(props: {
   const [providerTestStatus, setProviderTestStatus] = useState<Record<string, string>>({});
   const [configAsrProfileId, setConfigAsrProfileId] = useState<string | null>(null);
   const [configProviderKey, setConfigProviderKey] = useState<string | null>(null);
+  const [localModelStatus, setLocalModelStatus] = useState<LocalModelStatus | null>(null);
+  const [localModelMessage, setLocalModelMessage] = useState('');
+  const [isDownloadingModel, setIsDownloadingModel] = useState(false);
 
   const configAsrProfile = settings.asrProfiles.find((profile) => profile.id === configAsrProfileId);
   const configProvider = settings.llmProviders.find((provider) => provider.key === configProviderKey);
+
+  const refreshLocalModelStatus = async () => {
+    const status = await getFacade().getLocalModelStatus?.();
+    if (status) {
+      setLocalModelStatus(status);
+    }
+  };
+
+  useEffect(() => {
+    void refreshLocalModelStatus();
+  }, [settings.senseVoiceModelPath]);
 
   const updateAsrProfile = <K extends keyof AsrProfileConfig>(id: string, key: K, value: AsrProfileConfig[K]) => {
     onUpdate('asrProfiles', settings.asrProfiles.map((profile) => profile.id === id ? { ...profile, [key]: value } : profile));
@@ -307,6 +328,25 @@ export default function ModelsView(props: {
       setProviderTestStatus((current) => ({ ...current, [provider.key]: result?.message || '连接成功' }));
     } catch {
       setProviderTestStatus((current) => ({ ...current, [provider.key]: '连接失败' }));
+    }
+  };
+
+  const downloadLocalModel = async () => {
+    setIsDownloadingModel(true);
+    setLocalModelMessage('正在下载模型…');
+    try {
+      const result = await getFacade().downloadLocalModel?.();
+      if (result) {
+        setLocalModelStatus(result);
+        setLocalModelMessage(result.message || '模型下载完成');
+      } else {
+        setLocalModelMessage('当前环境不支持模型下载');
+      }
+    } catch (error) {
+      setLocalModelMessage(error instanceof Error ? error.message : '模型下载失败');
+      void refreshLocalModelStatus();
+    } finally {
+      setIsDownloadingModel(false);
     }
   };
 
@@ -404,6 +444,45 @@ export default function ModelsView(props: {
         />
 
         <div className="provider-card-grid asr-card-grid">
+          <article className={settings.activeAsrProfileId === 'local-sensevoice' ? 'provider-card active local-model-card' : 'provider-card local-model-card'}>
+            <div className="provider-card-header">
+              <div className="provider-icon-container">
+                <Cpu size={22} style={{ color: '#10b981' }} />
+              </div>
+              <div>
+                <h3>本地 SenseVoice ONNX</h3>
+                <span>{localModelStatus?.installed ? '模型已就绪' : '需要下载模型'}</span>
+                <small title={localModelStatus?.modelDir ?? settings.senseVoiceModelPath}>
+                  {localModelStatus?.modelDir ?? settings.senseVoiceModelPath}
+                </small>
+              </div>
+              <span aria-label={localModelStatus?.installed ? '模型已就绪' : '模型未安装'} className={localModelStatus?.installed ? 'provider-status active' : 'provider-status'} />
+            </div>
+            <div className="local-model-actions">
+              <button
+                className="provider-config-link"
+                disabled={isDownloadingModel}
+                onClick={() => void downloadLocalModel()}
+                type="button"
+              >
+                <Download size={14} />
+                {isDownloadingModel ? '下载中' : localModelStatus?.installed ? '重新下载' : '下载模型'}
+              </button>
+              <button
+                className="provider-config-link secondary"
+                onClick={() => void getFacade().openLocalModelDir?.()}
+                type="button"
+              >
+                <FolderOpen size={14} />
+                打开目录
+              </button>
+            </div>
+            {(localModelStatus?.missingFiles.length || localModelMessage) && (
+              <p className={localModelStatus?.installed ? 'local-model-note success' : 'local-model-note'}>
+                {localModelMessage || `缺少文件：${localModelStatus?.missingFiles.join('、')}`}
+              </p>
+            )}
+          </article>
           {settings.asrProfiles.filter((profile) => profile.kind !== 'local').map((profile) => (
             <article className={profile.id === settings.activeAsrProfileId ? 'provider-card active' : 'provider-card'} key={profile.id}>
               <div className="provider-card-header">
