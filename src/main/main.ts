@@ -198,7 +198,8 @@ async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>
       env: {
         ...process.env,
         ASR_MODEL_PATH: modelPath,
-        ASR_PORT_FILE: portFile
+        ASR_PORT_FILE: portFile,
+        ASR_ONNX_PROVIDER: 'auto'
       },
       windowsHide: true,
       stdio: 'ignore',
@@ -222,6 +223,7 @@ async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>
         ...process.env,
         ASR_MODEL_PATH: modelPath,
         ASR_PORT_FILE: portFile,
+        ASR_ONNX_PROVIDER: 'auto',
         XDG_CACHE_HOME: CACHE_DIR
       },
       windowsHide: true,
@@ -978,7 +980,10 @@ function createConfiguredAsrProvider(settings: ReturnType<SettingsStore['getSett
   };
   if (/sensevoice|funasr/i.test(asrName)) {
     if (asrDaemonPort && (asrDaemonEngine === 'sensevoice' || asrDaemonEngine === 'sensevoice-onnx')) {
-      return createAsrDaemonProvider(asrDaemonPort);
+      return createAsrDaemonProvider(
+        asrDaemonPort,
+        asrDaemonEngine === 'sensevoice-onnx' ? 'sensevoice-onnx-daemon' : 'sensevoice-daemon'
+      );
     }
     if (isOnnxExperimentMode()) {
       return {

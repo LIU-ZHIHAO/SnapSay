@@ -15,6 +15,7 @@
     "postinstall": "npm run rebuild:native",
     "electron": "npm run build && electron .",
     "electron:onnx": "powershell -ExecutionPolicy Bypass -File scripts/start-electron-onnx.ps1",
+    "setup:onnx": "powershell -ExecutionPolicy Bypass -File scripts/setup-onnx-asr.ps1",
     "setup:windows": "powershell -ExecutionPolicy Bypass -File scripts/setup-windows.ps1",
     "watch-commit": "chokidar \"src/**/*\" -c \"git add . && git commit -m 'auto: code change detected' --allow-empty\""
   },

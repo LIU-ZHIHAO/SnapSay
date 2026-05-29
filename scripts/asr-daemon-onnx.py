@@ -16,6 +16,7 @@ else:
     PROJECT_ROOT = Path(__file__).resolve().parents[1]
 MODEL_DIR = os.environ.get("ASR_MODEL_PATH", str(PROJECT_ROOT / "models" / "sensevoice" / "SenseVoiceSmall"))
 PORT_FILE = os.environ.get("ASR_PORT_FILE", str(PROJECT_ROOT / "data" / "asr-daemon.port"))
+PREFERRED_PROVIDER = os.environ.get("ASR_ONNX_PROVIDER", "auto").lower()
 
 # ── Audio helpers ──────────────────────────────────────────────────
 
@@ -136,7 +137,8 @@ class SenseVoiceONNX:
     def __init__(self, model_dir: str):
         import onnxruntime as ort
         onnx_path = os.path.join(model_dir, "model.onnx")
-        self.session = ort.InferenceSession(onnx_path)
+        self.session = self._create_session(ort, onnx_path)
+        self.execution_providers = self.session.get_providers()
         self.tokens = self._load_tokens(model_dir)
         shift, scale = parse_cmvn(os.path.join(model_dir, "am.mvn"))
         self.cmvn_shift = shift
@@ -144,6 +146,32 @@ class SenseVoiceONNX:
         # Embedding indices (from SenseVoice config)
         self.lid_dict = {"zh": 3, "en": 4, "ja": 5, "ko": 6, "yue": 7}
         self.textnorm_dict = {"withitn": 12, "woitn": 13}
+
+    def _create_session(self, ort, onnx_path: str):
+        available = set(ort.get_available_providers())
+        provider_candidates = []
+        if PREFERRED_PROVIDER in ("auto", "gpu", "directml", "dml"):
+            if "DmlExecutionProvider" in available:
+                provider_candidates.append(["DmlExecutionProvider", "CPUExecutionProvider"])
+        if PREFERRED_PROVIDER in ("cpu",):
+            provider_candidates.append(["CPUExecutionProvider"])
+        elif not provider_candidates:
+            provider_candidates.append(["CPUExecutionProvider"])
+
+        errors = []
+        for providers in provider_candidates:
+            try:
+                return ort.InferenceSession(onnx_path, providers=providers)
+            except Exception as exc:
+                errors.append(f"{providers}: {exc}")
+
+        if PREFERRED_PROVIDER != "cpu":
+            try:
+                return ort.InferenceSession(onnx_path, providers=["CPUExecutionProvider"])
+            except Exception as exc:
+                errors.append(f"['CPUExecutionProvider']: {exc}")
+
+        raise RuntimeError("Unable to create ONNX Runtime session: " + " | ".join(errors))
 
     def _load_tokens(self, model_dir: str) -> list:
         with open(os.path.join(model_dir, "tokens.json"), encoding="utf-8") as f:
@@ -257,6 +285,7 @@ def main():
     print(f"[ASR-ONNX] Loading model from {MODEL_DIR} ...", flush=True)
     model = SenseVoiceONNX(MODEL_DIR)
     print(f"[ASR-ONNX] Model loaded. Tokens: {len(model.tokens)}", flush=True)
+    print(f"[ASR-ONNX] Execution providers: {', '.join(model.execution_providers)}", flush=True)
 
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

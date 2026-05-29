@@ -580,7 +580,7 @@ export type AsrDaemonClient = {
   close(): void;
 };
 
-export function createAsrDaemonProvider(port: number): AsrProvider {
+export function createAsrDaemonProvider(port: number, providerName = 'sensevoice-daemon'): AsrProvider {
   let socket: Socket | undefined;
 
   function getSocket(): Promise<Socket> {
@@ -595,7 +595,7 @@ export function createAsrDaemonProvider(port: number): AsrProvider {
   }
 
   return {
-    name: 'sensevoice-daemon',
+    name: providerName,
     async transcribe(audio: ArrayBuffer): Promise<AsrResult> {
       const s = await getSocket();
       const buf = Buffer.from(audio);
@@ -629,7 +629,7 @@ export function createAsrDaemonProvider(port: number): AsrProvider {
         s.on('error', onError);
       });
 
-      return { text, provider: 'sensevoice-daemon' };
+      return { text, provider: providerName };
     }
   };
 }

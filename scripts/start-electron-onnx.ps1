@@ -22,6 +22,7 @@ function Stop-ExistingExperimentProcesses {
 Stop-ExistingExperimentProcesses
 
 $env:SNAPSAY_ASR_ENGINE = "sensevoice-onnx"
+$env:ASR_ONNX_PROVIDER = "auto"
 $env:SNAPSAY_ROOT = $Root
 $env:PIP_CACHE_DIR = Join-Path $Root "cache\pip"
 $env:HF_HOME = Join-Path $Root "cache\huggingface"
