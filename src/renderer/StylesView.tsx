@@ -14,7 +14,7 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 import { parseMultiPrompt, type StylePreset, type MultiPromptData, type ConfirmConfig } from './App';
-import { DEFAULT_CLEANUP_PROMPT, ENGINEER_CLEANUP_PROMPT, CHARM_CLEANUP_PROMPT } from '../shared/cleanupPolicy';
+import { DAILY_CHAT_CLEANUP_PROMPT, ENGINEER_CLEANUP_PROMPT, CHARM_CLEANUP_PROMPT } from '../shared/cleanupPolicy';
 
 type SettingsState = {
   triggerKey: string;
@@ -139,7 +139,7 @@ export default function StylesView(props: {
 
     const performReset = () => {
       let originalPrompt = '';
-      if (id === 'default') originalPrompt = DEFAULT_CLEANUP_PROMPT;
+      if (id === 'default') originalPrompt = DAILY_CHAT_CLEANUP_PROMPT;
       else if (id === 'engineer') originalPrompt = ENGINEER_CLEANUP_PROMPT;
       else if (id === 'charm') originalPrompt = CHARM_CLEANUP_PROMPT;
       else return;

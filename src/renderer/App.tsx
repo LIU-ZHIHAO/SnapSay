@@ -31,7 +31,7 @@ import StylesView from './StylesView';
 import { blobToArrayBuffer, encodeBlobToWav } from './audioEncoding';
 import './styles.css';
 import logoUrl from './logo.png';
-import { DEFAULT_CLEANUP_PROMPT, ENGINEER_CLEANUP_PROMPT, CHARM_CLEANUP_PROMPT } from '../shared/cleanupPolicy';
+import { DEFAULT_CLEANUP_PROMPT, DAILY_CHAT_CLEANUP_PROMPT, ENGINEER_CLEANUP_PROMPT, CHARM_CLEANUP_PROMPT } from '../shared/cleanupPolicy';
 
 export interface ConfirmConfig {
   title: string;
@@ -57,7 +57,7 @@ export interface MultiPromptData {
 
 export function parseMultiPrompt(promptStr: string): MultiPromptData {
   const defaultPresets: StylePreset[] = [
-    { id: 'default', name: '日常聊天', prompt: DEFAULT_CLEANUP_PROMPT, isBuiltIn: true },
+    { id: 'default', name: '日常聊天', prompt: DAILY_CHAT_CLEANUP_PROMPT, isBuiltIn: true },
     { id: 'engineer', name: '理智工科', prompt: ENGINEER_CLEANUP_PROMPT, isBuiltIn: true },
     { id: 'charm', name: '高情商夸夸', prompt: CHARM_CLEANUP_PROMPT, isBuiltIn: true }
   ];
@@ -116,7 +116,7 @@ export function parseMultiPrompt(promptStr: string): MultiPromptData {
         if (parsed.prompts && typeof parsed.prompts === 'object') {
           const oldPrompts = parsed.prompts;
           const presets: StylePreset[] = [
-            { id: 'default', name: '日常聊天', prompt: typeof oldPrompts.default === 'string' ? oldPrompts.default : DEFAULT_CLEANUP_PROMPT, isBuiltIn: true },
+            { id: 'default', name: '日常聊天', prompt: typeof oldPrompts.default === 'string' ? oldPrompts.default : DAILY_CHAT_CLEANUP_PROMPT, isBuiltIn: true },
             { id: 'engineer', name: '理智工科', prompt: typeof oldPrompts.engineer === 'string' ? oldPrompts.engineer : ENGINEER_CLEANUP_PROMPT, isBuiltIn: true },
             { id: 'charm', name: '高情商夸夸', prompt: typeof oldPrompts.charm === 'string' ? oldPrompts.charm : CHARM_CLEANUP_PROMPT, isBuiltIn: true }
           ];
