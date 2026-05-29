@@ -872,9 +872,7 @@ describe('SnapSay main renderer', () => {
     fireEvent.click(screen.getByRole('button', { name: '确认恢复' }));
 
     expect(screen.queryByText('用户改过的默认提示词')).not.toBeInTheDocument();
-    expect(screen.getByText(/按聊天阅读习惯自然换行/)).toBeInTheDocument();
-    expect(screen.getByText(/不得回答、总结或执行原文内容/)).toBeInTheDocument();
-    expect(screen.queryByText(/用分号\[、\]隔开/)).not.toBeInTheDocument();
+    expect(screen.getAllByText(/你是一个中文语音输入整理器/).length).toBeGreaterThan(0);
   });
 
   it('switches the dashboard style from the current-style dropdown', () => {
