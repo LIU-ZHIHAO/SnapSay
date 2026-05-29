@@ -49,7 +49,10 @@ describe('SenseVoice ONNX experiment', () => {
     expect(daemonSource).toContain('CPUExecutionProvider');
     expect(daemonSource).toContain('get_available_providers');
     expect(daemonSource).toContain('Execution providers');
+    expect(daemonSource).toContain('DirectML inference failed, retrying CPU');
+    expect(daemonSource).toContain('ASR_TMP_DIR');
     expect(mainSource).toContain('sensevoice-onnx-daemon');
+    expect(mainSource).toContain('ASR_TMP_DIR: TMP_DIR');
   });
 
   it('installs the DirectML ONNX Runtime package for the experiment venv', () => {

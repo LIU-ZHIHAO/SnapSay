@@ -204,6 +204,7 @@ async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>
         SNAPSAY_ROOT: RUNTIME_ROOT,
         ASR_MODEL_PATH: modelPath,
         ASR_PORT_FILE: portFile,
+        ASR_TMP_DIR: TMP_DIR,
         ASR_ONNX_PROVIDER: 'auto',
         XDG_CACHE_HOME: CACHE_DIR,
         PIP_CACHE_DIR: join(CACHE_DIR, 'pip'),
@@ -233,6 +234,7 @@ async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>
         ...process.env,
         ASR_MODEL_PATH: modelPath,
         ASR_PORT_FILE: portFile,
+        ASR_TMP_DIR: TMP_DIR,
         ASR_ONNX_PROVIDER: 'auto',
         XDG_CACHE_HOME: CACHE_DIR
       },

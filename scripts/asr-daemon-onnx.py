@@ -16,6 +16,7 @@ else:
     PROJECT_ROOT = Path(__file__).resolve().parents[1]
 MODEL_DIR = os.environ.get("ASR_MODEL_PATH", str(PROJECT_ROOT / "models" / "sensevoice" / "SenseVoiceSmall"))
 PORT_FILE = os.environ.get("ASR_PORT_FILE", str(PROJECT_ROOT / "data" / "asr-daemon.port"))
+TMP_DIR = Path(os.environ.get("ASR_TMP_DIR", str(PROJECT_ROOT / "tmp")))
 PREFERRED_PROVIDER = os.environ.get("ASR_ONNX_PROVIDER", "auto").lower()
 
 # ── Audio helpers ──────────────────────────────────────────────────
@@ -137,6 +138,9 @@ class SenseVoiceONNX:
     def __init__(self, model_dir: str):
         import onnxruntime as ort
         onnx_path = os.path.join(model_dir, "model.onnx")
+        self.ort = ort
+        self.onnx_path = onnx_path
+        self.cpu_session = None
         self.session = self._create_session(ort, onnx_path)
         self.execution_providers = self.session.get_providers()
         self.tokens = self._load_tokens(model_dir)
@@ -172,6 +176,12 @@ class SenseVoiceONNX:
                 errors.append(f"['CPUExecutionProvider']: {exc}")
 
         raise RuntimeError("Unable to create ONNX Runtime session: " + " | ".join(errors))
+
+    def _get_cpu_session(self):
+        if self.cpu_session is None:
+            print("[ASR-ONNX] Creating CPU fallback session after runtime failure.", flush=True)
+            self.cpu_session = self.ort.InferenceSession(self.onnx_path, providers=["CPUExecutionProvider"])
+        return self.cpu_session
 
     def _load_tokens(self, model_dir: str) -> list:
         with open(os.path.join(model_dir, "tokens.json"), encoding="utf-8") as f:
@@ -209,12 +219,19 @@ class SenseVoiceONNX:
         textnorm = np.array([textnorm_id], dtype=np.int32)
 
         # 6. Run ONNX inference
-        ctc_logits, encoder_out_lens = self.session.run(None, {
+        inputs = {
             "speech": speech,
             "speech_lengths": speech_lengths,
             "language": language,
             "textnorm": textnorm,
-        })
+        }
+        try:
+            ctc_logits, encoder_out_lens = self.session.run(None, inputs)
+        except Exception as exc:
+            if "DmlExecutionProvider" not in self.execution_providers:
+                raise
+            print(f"[ASR-ONNX] DirectML inference failed, retrying CPU: {exc}", flush=True)
+            ctc_logits, encoder_out_lens = self._get_cpu_session().run(None, inputs)
 
         # 7. CTC greedy decode
         logits = ctc_logits[0]  # (T, vocab)
@@ -260,7 +277,8 @@ def handle_client(conn: socket.socket, model: SenseVoiceONNX):
 
         # Write audio to temp file
         import tempfile
-        tmp = tempfile.NamedTemporaryFile(suffix=".webm", delete=False)
+        TMP_DIR.mkdir(parents=True, exist_ok=True)
+        tmp = tempfile.NamedTemporaryFile(suffix=".webm", delete=False, dir=str(TMP_DIR))
         tmp.write(audio_data)
         tmp.close()
 
