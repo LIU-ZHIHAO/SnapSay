@@ -40,6 +40,19 @@ describe('ONNX Windows distribution packaging', () => {
     expect(JSON.stringify(packageJson.build?.win)).toContain('portable');
   });
 
+  it('uses ONNX and non-C runtime paths by default in packaged builds', () => {
+    const mainSource = readFileSync(join(process.cwd(), 'src', 'main', 'main.ts'), 'utf8');
+    const settingsSource = readFileSync(join(process.cwd(), 'src', 'main', 'settingsStore.ts'), 'utf8');
+
+    expect(mainSource).toContain("app.isPackaged ? 'D:\\\\SoftInstall\\\\SnapSay' : APP_ROOT");
+    expect(mainSource).toContain('return app.isPackaged || process.env.SNAPSAY_ASR_ENGINE');
+    expect(mainSource).toContain("join(process.resourcesPath, 'asr-daemon-onnx', 'asr-daemon-onnx.exe')");
+    expect(mainSource).toContain('SNAPSAY_ROOT: RUNTIME_ROOT');
+    expect(mainSource).toContain('MODELSCOPE_CACHE');
+    expect(mainSource).toContain('PIP_CACHE_DIR');
+    expect(settingsSource).toContain("'D:\\\\SoftInstall\\\\SnapSay'");
+  });
+
   it('builds the daemon exe with PyInstaller from the ONNX script', () => {
     const script = readFileSync(join(process.cwd(), 'scripts', 'build-onnx-daemon.ps1'), 'utf8');
 

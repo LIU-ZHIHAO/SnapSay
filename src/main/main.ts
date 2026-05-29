@@ -24,12 +24,14 @@ import { applyWordbook, buildWordbookPrompt, extractWordPairCandidates, mergeWor
 import type { WordbookEntry } from './wordbook.js';
 import { DEFAULT_CLEANUP_PROMPT, shouldCleanupTranscript, resolvePromptText } from '../shared/cleanupPolicy.js';
 
-const PROJECT_ROOT = process.env.SNAPSAY_ROOT ?? app.getAppPath();
-const DATA_DIR = join(PROJECT_ROOT, 'data');
-const LOGS_DIR = join(PROJECT_ROOT, 'logs');
-const CACHE_DIR = join(PROJECT_ROOT, 'cache');
-const MODELS_DIR = join(PROJECT_ROOT, 'models');
-const TMP_DIR = join(PROJECT_ROOT, 'tmp');
+const APP_ROOT = app.getAppPath();
+const RUNTIME_ROOT = process.env.SNAPSAY_ROOT ?? (app.isPackaged ? 'D:\\SoftInstall\\SnapSay' : APP_ROOT);
+const PROJECT_ROOT = APP_ROOT;
+const DATA_DIR = join(RUNTIME_ROOT, 'data');
+const LOGS_DIR = join(RUNTIME_ROOT, 'logs');
+const CACHE_DIR = join(RUNTIME_ROOT, 'cache');
+const MODELS_DIR = join(RUNTIME_ROOT, 'models');
+const TMP_DIR = join(RUNTIME_ROOT, 'tmp');
 
 type RendererSettings = {
   triggerKey: string;
@@ -175,7 +177,7 @@ function readImportRecordsPayload(filePath: string): TranscriptionRecord[] {
 }
 
 function isOnnxExperimentMode(): boolean {
-  return process.env.SNAPSAY_ASR_ENGINE === 'sensevoice-onnx';
+  return app.isPackaged || process.env.SNAPSAY_ASR_ENGINE === 'sensevoice-onnx';
 }
 
 async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>): Promise<void> {
@@ -192,14 +194,20 @@ async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>
   let daemon;
   if (app.isPackaged) {
     // Packaged: use ONNX daemon EXE from extraResources
-    const daemonExe = join(process.resourcesPath, 'asr-daemon-onnx.exe');
+    const daemonExe = join(process.resourcesPath, 'asr-daemon-onnx', 'asr-daemon-onnx.exe');
     daemon = spawn(daemonExe, [], {
-      cwd: PROJECT_ROOT,
+      cwd: RUNTIME_ROOT,
       env: {
         ...process.env,
+        SNAPSAY_ROOT: RUNTIME_ROOT,
         ASR_MODEL_PATH: modelPath,
         ASR_PORT_FILE: portFile,
-        ASR_ONNX_PROVIDER: 'auto'
+        ASR_ONNX_PROVIDER: 'auto',
+        XDG_CACHE_HOME: CACHE_DIR,
+        PIP_CACHE_DIR: join(CACHE_DIR, 'pip'),
+        HF_HOME: join(CACHE_DIR, 'huggingface'),
+        HUGGINGFACE_HUB_CACHE: join(CACHE_DIR, 'huggingface', 'hub'),
+        MODELSCOPE_CACHE: join(CACHE_DIR, 'modelscope')
       },
       windowsHide: true,
       stdio: 'ignore',

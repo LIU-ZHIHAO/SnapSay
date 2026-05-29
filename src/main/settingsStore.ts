@@ -16,7 +16,18 @@ export type {
   TranscriptionRecordStatus
 } from './recordStore.js';
 
-const PROJECT_ROOT = process.env.SNAPSAY_ROOT ?? process.cwd();
+function defaultProjectRoot(): string {
+  const electronProcess = process as NodeJS.Process & { defaultApp?: boolean };
+  if (process.env.SNAPSAY_ROOT) {
+    return process.env.SNAPSAY_ROOT;
+  }
+  if (process.versions.electron && !electronProcess.defaultApp) {
+    return 'D:\\SoftInstall\\SnapSay';
+  }
+  return process.cwd();
+}
+
+const PROJECT_ROOT = defaultProjectRoot();
 
 export type CleanupProviderConfig = {
   type: 'openai-compatible';
