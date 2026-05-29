@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "SnapSay Windows voice input assistant",
+  "author": "SnapSay",
   "license": "PolyForm-Noncommercial-1.0.0",
   "main": "dist-electron/main/main.js",
   "scripts": {
@@ -38,11 +39,12 @@
         "from": "release/asr-daemon-onnx",
         "to": "asr-daemon-onnx",
         "filter": [
-          "asr-daemon-onnx.exe"
+          "**/*"
         ]
       }
     ],
     "asar": true,
+    "npmRebuild": false,
     "win": {
       "target": [
         "nsis",

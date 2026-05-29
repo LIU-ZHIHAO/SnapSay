@@ -22,6 +22,7 @@ $env:PIP_CACHE_DIR = Join-Path $cacheRoot "pip"
 $env:HF_HOME = Join-Path $cacheRoot "huggingface"
 $env:HUGGINGFACE_HUB_CACHE = Join-Path $cacheRoot "huggingface\hub"
 $env:MODELSCOPE_CACHE = Join-Path $cacheRoot "modelscope"
+$env:PYINSTALLER_CONFIG_DIR = Join-Path $cacheRoot "pyinstaller"
 
 $python = Join-Path $Root ".venv\Scripts\python.exe"
 if (-not (Test-Path -LiteralPath $python)) {
@@ -38,9 +39,9 @@ New-Item -ItemType Directory -Force -Path $daemonDist | Out-Null
 & $python -m PyInstaller `
   --noconfirm `
   --clean `
-  --onefile `
+  --onedir `
   --name asr-daemon-onnx `
-  --distpath $daemonDist `
+  --distpath $releaseRoot `
   --workpath $buildRoot `
   --specpath $buildRoot `
   --collect-all av `

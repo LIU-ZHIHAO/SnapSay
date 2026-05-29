@@ -22,6 +22,7 @@ describe('ONNX Windows distribution packaging', () => {
     const packageJson = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8')) as {
       build?: {
         extraResources?: Array<{ from?: string; to?: string; filter?: string[] }>;
+        npmRebuild?: boolean;
         nsis?: Record<string, unknown>;
         win?: Record<string, unknown>;
       };
@@ -32,11 +33,12 @@ describe('ONNX Windows distribution packaging', () => {
         expect.objectContaining({
           from: 'release/asr-daemon-onnx',
           to: 'asr-daemon-onnx',
-          filter: ['asr-daemon-onnx.exe']
+          filter: ['**/*']
         })
       ])
     );
     expect(packageJson.build?.nsis?.allowToChangeInstallationDirectory).toBe(true);
+    expect(packageJson.build?.npmRebuild).toBe(false);
     expect(JSON.stringify(packageJson.build?.win)).toContain('portable');
   });
 
@@ -62,6 +64,8 @@ describe('ONNX Windows distribution packaging', () => {
     expect(mainSource).toContain('snapsay:get-local-model-status');
     expect(mainSource).toContain('snapsay:download-local-model');
     expect(mainSource).toContain('snapsay:open-local-model-dir');
+    expect(mainSource).toContain('SenseVoice ONNX model is not installed');
+    expect(mainSource).toContain('await startAsrDaemon(settingsAfterDownload)');
     expect(preloadSource).toContain('getLocalModelStatus');
     expect(preloadSource).toContain('downloadLocalModel');
     expect(modelManagerSource).toContain('https://www.modelscope.cn/models/iic/SenseVoiceSmall-onnx/resolve/master/model_quant.onnx');
@@ -75,6 +79,8 @@ describe('ONNX Windows distribution packaging', () => {
 
     expect(script).toContain('asr-daemon-onnx.py');
     expect(script).toContain('PyInstaller');
+    expect(script).toContain('--onedir');
+    expect(script).not.toContain('--onefile');
     expect(script).toContain('onnxruntime-directml');
     expect(script).toContain('release');
     expect(script).toContain('asr-daemon-onnx.exe');

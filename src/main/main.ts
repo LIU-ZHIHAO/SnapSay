@@ -190,6 +190,10 @@ async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>
 
   const portFile = ASR_PORT_FILE_SV;
   const modelPath = settings.input.senseVoiceModelPath;
+  if (useOnnxDaemon && !getLocalModelStatus(modelPath).installed) {
+    console.warn(`[ASR daemon] SenseVoice ONNX model is not installed at ${modelPath}.`);
+    return;
+  }
 
   try { unlinkSync(portFile); } catch { /* ignore */ }
 
@@ -772,7 +776,13 @@ function installIpcHandlers(): void {
     const settings = settingsStore?.getSettings();
     const modelDir = settings?.input.senseVoiceModelPath ?? join(MODELS_DIR, 'sensevoice', 'SenseVoiceSmall');
     if (!localModelDownloadPromise) {
-      localModelDownloadPromise = downloadSenseVoiceOnnxModel(modelDir).finally(() => {
+      localModelDownloadPromise = downloadSenseVoiceOnnxModel(modelDir).then(async (result) => {
+        const settingsAfterDownload = settingsStore?.getSettings();
+        if (settingsAfterDownload && isOnnxExperimentMode() && !asrDaemonPort) {
+          await startAsrDaemon(settingsAfterDownload);
+        }
+        return result;
+      }).finally(() => {
         localModelDownloadPromise = undefined;
       });
     }
