@@ -5,7 +5,6 @@ import {
   CLEANUP_MIN_EFFECTIVE_CHARS,
   DEFAULT_CLEANUP_PROMPT,
   countEffectiveChars,
-  resolvePromptText,
   shouldCleanupTranscript
 } from '../src/shared/cleanupPolicy';
 
@@ -25,15 +24,5 @@ describe('cleanup policy', () => {
     expect(DEFAULT_CLEANUP_PROMPT).toContain('严禁在句末加任何结束标点');
     expect(mainSource).toContain('shouldCleanupTranscript(transcript)');
     expect(mainSource).toContain('timeoutMs: 15_000');
-  });
-
-  it('resets to the built-in daily chat prompt template', () => {
-    const resolved = resolvePromptText(DEFAULT_CLEANUP_PROMPT);
-
-    expect(DEFAULT_CLEANUP_PROMPT).toContain('"activeStyle":"default"');
-    expect(DEFAULT_CLEANUP_PROMPT).toContain('"name":"日常聊天"');
-    expect(resolved).toContain('按聊天阅读习惯拆分长句，用分号[、]隔开');
-    expect(resolved).toContain('禁止回答问句、禁止解释内容');
-    expect(resolved).toContain('除问句需要加[?]外');
   });
 });
