@@ -65,6 +65,8 @@ describe('ONNX Windows distribution packaging', () => {
     expect(mainSource).toContain('snapsay:download-local-model');
     expect(mainSource).toContain('snapsay:open-local-model-dir');
     expect(mainSource).toContain('SenseVoice ONNX model is not installed');
+    expect(mainSource).toContain('本地语音模型未安装');
+    expect(mainSource).toContain('点击「下载模型」后再录音');
     expect(mainSource).toContain('await startAsrDaemon(settingsAfterDownload)');
     expect(preloadSource).toContain('getLocalModelStatus');
     expect(preloadSource).toContain('downloadLocalModel');

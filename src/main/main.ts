@@ -1035,7 +1035,7 @@ function createConfiguredAsrProvider(settings: ReturnType<SettingsStore['getSett
       return {
         name: 'sensevoice-onnx',
         async transcribe(): Promise<{ text: string; provider: string }> {
-          throw new Error('SenseVoice ONNX daemon is not ready. Restart with npm run electron:onnx and wait for the ONNX port file.');
+          throw new Error(resolveOnnxDaemonNotReadyMessage(settings));
         }
       };
     }
@@ -1080,6 +1080,17 @@ function createConfiguredAsrProvider(settings: ReturnType<SettingsStore['getSett
       };
     }
   };
+}
+
+function resolveOnnxDaemonNotReadyMessage(settings: ReturnType<SettingsStore['getSettings']>): string {
+  const modelStatus = getLocalModelStatus(settings.input.senseVoiceModelPath);
+  if (!modelStatus.installed) {
+    return `本地语音模型未安装。请打开「模型」页面，点击「下载模型」后再录音。缺少文件：${modelStatus.missingFiles.join('、')}`;
+  }
+  if (app.isPackaged) {
+    return '本地语音识别服务还没有启动成功。请重启 SnapSay；如果仍失败，请在「模型」页面重新下载模型。';
+  }
+  return 'SenseVoice ONNX daemon is not ready. Restart with npm run electron:onnx and wait for the ONNX port file.';
 }
 
 async function pressSystemPasteShortcut(): Promise<void> {
