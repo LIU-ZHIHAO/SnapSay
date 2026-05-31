@@ -37,7 +37,8 @@ describe('SenseVoice ONNX experiment', () => {
     const mainSource = readFileSync(join(process.cwd(), 'src', 'main', 'main.ts'), 'utf8');
 
     expect(mainSource).toContain('isOnnxExperimentMode()');
-    expect(mainSource).toContain('await startAsrDaemon(startupSettings)');
+    expect(mainSource).toContain('void warmupLocalAsr(startupSettings)');
+    expect(mainSource).toContain('localAsrReadiness(settings)');
     expect(mainSource).toContain('SenseVoice ONNX daemon is not ready');
   });
 

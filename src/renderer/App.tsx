@@ -309,6 +309,7 @@ type SnapSayFacade = {
   onRecordDeleted?: (callback: (id: string) => void) => () => void;
   onRecordsCleared?: (callback: () => void) => () => void;
   onRecordsSynced?: (callback: (records: RecordItem[]) => void) => () => void;
+  onLocalAsrRequired?: (callback: (payload: { message?: string }) => void) => () => void;
 };
 
 declare global {
@@ -494,12 +495,16 @@ export default function App() {
     const offRecordsSynced = facade.onRecordsSynced?.((records) => {
       setRecords(records.map(normalizeRecordItem));
     });
+    const offLocalAsrRequired = facade.onLocalAsrRequired?.(() => {
+      setView('models');
+    });
     return () => {
       offRecordAdded?.();
       offRecordUpdated?.();
       offRecordDeleted?.();
       offRecordsCleared?.();
       offRecordsSynced?.();
+      offLocalAsrRequired?.();
     };
   }, []);
 

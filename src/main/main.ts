@@ -103,6 +103,7 @@ let activeTriggerAccelerator: string | undefined;
 let stopLowLevelTrigger: (() => void) | undefined;
 let asrDaemonPort: number | undefined;
 let asrDaemonEngine: 'sensevoice' | 'sensevoice-onnx' | undefined;
+let asrDaemonStartupPromise: Promise<void> | undefined;
 let localModelDownloadPromise: Promise<unknown> | undefined;
 const execFileAsync = promisify(execFile);
 const LONG_PRESS_MS = 350;
@@ -183,10 +184,80 @@ function isOnnxExperimentMode(): boolean {
   return app.isPackaged || process.env.SNAPSAY_ASR_ENGINE === 'sensevoice-onnx';
 }
 
+function activeAsrProfile(settings: ReturnType<SettingsStore['getSettings']>): AsrProfileConfig | undefined {
+  return settings.input.asrProfiles.find((profile) => profile.id === settings.input.activeAsrProfileId);
+}
+
+function isLocalSenseVoiceAsr(settings: ReturnType<SettingsStore['getSettings']>): boolean {
+  const profile = activeAsrProfile(settings);
+  const asrName = profile?.kind === 'local' ? profile.engine : settings.input.asr;
+  return profile?.kind !== 'cloud-upload' &&
+    profile?.kind !== 'cloud-streaming' &&
+    /sensevoice|funasr/i.test(asrName);
+}
+
+function localAsrReadiness(settings: ReturnType<SettingsStore['getSettings']>): { ok: boolean; loading?: boolean; message?: string } {
+  if (!isLocalSenseVoiceAsr(settings)) {
+    return { ok: true };
+  }
+
+  const modelPath = settings.input.senseVoiceModelPath;
+  if (isOnnxExperimentMode()) {
+    const modelStatus = getLocalModelStatus(modelPath);
+    if (!modelStatus.installed) {
+      return {
+        ok: false,
+        message: `本地语音模型未安装。请打开「模型」页面，点击「下载模型」后再录音。缺少文件：${modelStatus.missingFiles.join('、')}`
+      };
+    }
+    if (!asrDaemonPort) {
+      void warmupLocalAsr(settings);
+      return {
+        ok: false,
+        loading: true,
+        message: '本地语音识别模型正在加载，请稍等几秒后再录音'
+      };
+    }
+  } else if (!existsSync(modelPath)) {
+    return {
+      ok: false,
+      message: `本地语音模型目录不存在。请打开「模型」页面配置 SenseVoice 模型路径：${modelPath}`
+    };
+  }
+
+  return { ok: true };
+}
+
+function notifyLocalAsrRequired(message: string): void {
+  mainWindow?.webContents.send('snapsay:local-asr-required', { message });
+  updateFloatingState({
+    visible: true,
+    recording: false,
+    status: 'failed',
+    error: message
+  });
+}
+
+function warmupLocalAsr(settings: ReturnType<SettingsStore['getSettings']>): Promise<void> | undefined {
+  if (!isLocalSenseVoiceAsr(settings)) {
+    return undefined;
+  }
+  const readiness = isOnnxExperimentMode()
+    ? getLocalModelStatus(settings.input.senseVoiceModelPath).installed
+    : existsSync(settings.input.senseVoiceModelPath);
+  if (!readiness) {
+    return undefined;
+  }
+  if (!asrDaemonStartupPromise) {
+    asrDaemonStartupPromise = startAsrDaemon(settings).finally(() => {
+      asrDaemonStartupPromise = undefined;
+    });
+  }
+  return asrDaemonStartupPromise;
+}
+
 async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>): Promise<void> {
-  const asrName = settings.input.asr;
-  const isSenseVoice = /sensevoice|funasr/i.test(asrName);
-  if (!isSenseVoice) return;
+  if (!isLocalSenseVoiceAsr(settings)) return;
   const useOnnxDaemon = isOnnxExperimentMode();
 
   const portFile = ASR_PORT_FILE_SV;
@@ -494,6 +565,14 @@ function installIpcHandlers(): void {
     if (!settingsStore || !settings) {
       return { ok: false, message: '设置存储不可用' };
     }
+    const readiness = localAsrReadiness(settings);
+    if (!readiness.ok) {
+      updateProcessingFloatingState({ status: 'failed', error: readiness.message }, submittedGeneration);
+      if (readiness.message) {
+        mainWindow?.webContents.send('snapsay:local-asr-required', { message: readiness.message });
+      }
+      return { ok: false, message: readiness.message };
+    }
 
     const record = await runRecordingPipeline({
       audio,
@@ -781,7 +860,7 @@ function installIpcHandlers(): void {
         .then(async (result) => {
           const settingsAfterDownload = settingsStore?.getSettings();
           if (settingsAfterDownload && isOnnxExperimentMode() && !asrDaemonPort) {
-            await startAsrDaemon(settingsAfterDownload);
+            await warmupLocalAsr(settingsAfterDownload);
           }
           return result;
         })
@@ -812,6 +891,18 @@ function installIpcHandlers(): void {
 function setRecording(next: boolean): void {
   if (isRecording === next) {
     return;
+  }
+  if (next) {
+    const settings = settingsStore?.getSettings();
+    if (settings) {
+      const readiness = localAsrReadiness(settings);
+      if (!readiness.ok) {
+        if (readiness.message) {
+          notifyLocalAsrRequired(readiness.message);
+        }
+        return;
+      }
+    }
   }
   isRecording = next;
   if (isRecording) {
@@ -1137,11 +1228,12 @@ app.whenReady().then(async () => {
   await createFloating();
   updateFloatingState({ visible: false, recording: false });
   const startupSettings = settingsStore.getSettings();
-  if (isOnnxExperimentMode()) {
-    await startAsrDaemon(startupSettings);
+  const startupReadiness = localAsrReadiness(startupSettings);
+  if (!startupReadiness.ok && startupReadiness.message && !startupReadiness.loading) {
+    notifyLocalAsrRequired(startupReadiness.message);
   } else {
-    // Start ASR daemon in background — don't await, it loads while user interacts with the app
-    void startAsrDaemon(startupSettings);
+    // Start ASR daemon in background so the first recording does not pay cold-start cost.
+    void warmupLocalAsr(startupSettings);
   }
   await registerConfiguredTrigger(startupSettings.input.triggerLabel, startupSettings.input.mouseTrigger);
 

@@ -86,9 +86,13 @@ describe('ONNX Windows distribution packaging', () => {
     expect(mainSource).toContain('SenseVoice ONNX model is not installed');
     expect(mainSource).toContain('本地语音模型未安装');
     expect(mainSource).toContain('点击「下载模型」后再录音');
-    expect(mainSource).toContain('await startAsrDaemon(settingsAfterDownload)');
+    expect(mainSource).toContain('warmupLocalAsr');
+    expect(mainSource).toContain('localAsrReadiness');
+    expect(mainSource).toContain('snapsay:local-asr-required');
+    expect(mainSource).toContain('本地语音识别模型正在加载');
     expect(preloadSource).toContain('getLocalModelStatus');
     expect(preloadSource).toContain('downloadLocalModel');
+    expect(preloadSource).toContain('onLocalAsrRequired');
     expect(modelManagerSource).toContain('https://www.modelscope.cn/models/iic/SenseVoiceSmall-onnx/resolve/master/model_quant.onnx');
     expect(modelManagerSource).toContain("targetName: 'model.onnx'");
     expect(modelsViewSource).toContain('下载模型');

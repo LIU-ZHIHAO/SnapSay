@@ -55,6 +55,11 @@ contextBridge.exposeInMainWorld('snapsay', {
     const listener = (_event: Electron.IpcRendererEvent, records: unknown) => callback(records);
     ipcRenderer.on('snapsay:records-synced', listener);
     return () => ipcRenderer.removeListener('snapsay:records-synced', listener);
+  },
+  onLocalAsrRequired: (callback: (payload: unknown) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, payload: unknown) => callback(payload);
+    ipcRenderer.on('snapsay:local-asr-required', listener);
+    return () => ipcRenderer.removeListener('snapsay:local-asr-required', listener);
   }
 });
 
