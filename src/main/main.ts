@@ -99,6 +99,7 @@ let activeTriggerAccelerator: string | undefined;
 let stopLowLevelTrigger: (() => void) | undefined;
 let asrDaemonPort: number | undefined;
 let asrDaemonEngine: 'sensevoice' | undefined;
+let asrDaemonStartupPromise: Promise<void> | undefined;
 const execFileAsync = promisify(execFile);
 const LONG_PRESS_MS = 350;
 const ASR_PORT_FILE_SV = join(DATA_DIR, 'asr-daemon.port');
@@ -153,10 +154,56 @@ function cleanupStaleTempFiles(tmpDir: string, maxAgeMs = 24 * 60 * 60 * 1000): 
   return removed;
 }
 
+function activeAsrProfile(settings: ReturnType<SettingsStore['getSettings']>): AsrProfileConfig | undefined {
+  return settings.input.asrProfiles.find((profile) => profile.id === settings.input.activeAsrProfileId);
+}
+
+function isLocalSenseVoiceAsr(settings: ReturnType<SettingsStore['getSettings']>): boolean {
+  const profile = activeAsrProfile(settings);
+  const asrName = profile?.kind === 'local' ? profile.engine : settings.input.asr;
+  return profile?.kind !== 'cloud-upload' &&
+    profile?.kind !== 'cloud-streaming' &&
+    /sensevoice|funasr/i.test(asrName);
+}
+
+function localAsrReadiness(settings: ReturnType<SettingsStore['getSettings']>): { ok: boolean; message?: string } {
+  if (!isLocalSenseVoiceAsr(settings)) {
+    return { ok: true };
+  }
+  const modelPath = settings.input.senseVoiceModelPath;
+  if (!existsSync(modelPath)) {
+    return {
+      ok: false,
+      message: `本地语音模型目录不存在。请打开「模型」页面配置 SenseVoice 模型路径：${modelPath}`
+    };
+  }
+  return { ok: true };
+}
+
+function notifyLocalAsrRequired(message: string): void {
+  mainWindow?.webContents.send('snapsay:local-asr-required', { message });
+  updateFloatingState({
+    visible: true,
+    recording: false,
+    status: 'failed',
+    error: message
+  });
+}
+
+function warmupLocalAsr(settings: ReturnType<SettingsStore['getSettings']>): Promise<void> | undefined {
+  if (!isLocalSenseVoiceAsr(settings) || !existsSync(settings.input.senseVoiceModelPath)) {
+    return undefined;
+  }
+  if (!asrDaemonStartupPromise) {
+    asrDaemonStartupPromise = startAsrDaemon(settings).finally(() => {
+      asrDaemonStartupPromise = undefined;
+    });
+  }
+  return asrDaemonStartupPromise;
+}
+
 async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>): Promise<void> {
-  const asrName = settings.input.asr;
-  const isSenseVoice = /sensevoice|funasr/i.test(asrName);
-  if (!isSenseVoice) return;
+  if (!isLocalSenseVoiceAsr(settings)) return;
 
   const portFile = ASR_PORT_FILE_SV;
   const modelPath = settings.input.senseVoiceModelPath;
@@ -424,6 +471,14 @@ function installIpcHandlers(): void {
     const settings = settingsStore?.getSettings();
     if (!settingsStore || !settings) {
       return { ok: false, message: '设置存储不可用' };
+    }
+    const readiness = localAsrReadiness(settings);
+    if (!readiness.ok) {
+      updateProcessingFloatingState({ status: 'failed', error: readiness.message }, submittedGeneration);
+      if (readiness.message) {
+        mainWindow?.webContents.send('snapsay:local-asr-required', { message: readiness.message });
+      }
+      return { ok: false, message: readiness.message };
     }
 
     const record = await runRecordingPipeline({
@@ -702,6 +757,19 @@ function installIpcHandlers(): void {
 function setRecording(next: boolean): void {
   if (isRecording === next) {
     return;
+  }
+  if (next) {
+    const settings = settingsStore?.getSettings();
+    if (settings) {
+      const readiness = localAsrReadiness(settings);
+      if (!readiness.ok) {
+        if (readiness.message) {
+          notifyLocalAsrRequired(readiness.message);
+        }
+        return;
+      }
+      void warmupLocalAsr(settings);
+    }
   }
   isRecording = next;
   if (isRecording) {
@@ -1005,8 +1073,13 @@ app.whenReady().then(async () => {
   await createFloating();
   updateFloatingState({ visible: false, recording: false });
   const startupSettings = settingsStore.getSettings();
-  // Start ASR daemon in background — don't await, it loads while user interacts with the app
-  void startAsrDaemon(startupSettings);
+  const startupReadiness = localAsrReadiness(startupSettings);
+  if (!startupReadiness.ok && startupReadiness.message) {
+    notifyLocalAsrRequired(startupReadiness.message);
+  } else {
+    // Start ASR daemon in background so the first recording does not pay cold-start cost.
+    void warmupLocalAsr(startupSettings);
+  }
   await registerConfiguredTrigger(startupSettings.input.triggerLabel, startupSettings.input.mouseTrigger);
 
   app.on('activate', () => {
