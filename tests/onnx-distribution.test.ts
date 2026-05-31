@@ -12,7 +12,9 @@ describe('ONNX Windows distribution packaging', () => {
       devDependencies?: Record<string, string>;
     };
 
+    expect(packageJson.scripts?.['patch:nsis-install-dir']).toContain('patch-nsis-install-dir.ps1');
     expect(packageJson.scripts?.['dist:onnx-daemon']).toContain('build-onnx-daemon.ps1');
+    expect(packageJson.scripts?.['dist:win']).toContain('patch:nsis-install-dir');
     expect(packageJson.scripts?.['dist:win']).toContain('electron-builder');
     expect(packageJson.scripts?.['dist:onnx']).toContain('prepare-dist.ps1');
     expect(packageJson.devDependencies?.['electron-builder']).toBeTruthy();
@@ -44,10 +46,17 @@ describe('ONNX Windows distribution packaging', () => {
 
   it('forces assisted installer selections into a SnapSay subdirectory', () => {
     const installerInclude = readFileSync(join(process.cwd(), 'build', 'installer.nsh'), 'utf8');
+    const patchScript = readFileSync(join(process.cwd(), 'scripts', 'patch-nsis-install-dir.ps1'), 'utf8');
 
     expect(installerInclude).toContain('!macro preInit');
     expect(installerInclude).toContain('${StdUtils.GetFileNamePart}');
     expect(installerInclude).toContain('StrCpy $INSTDIR "$INSTDIR\\${APP_FILENAME}"');
+    expect(patchScript).toContain('assistedInstaller.nsh');
+    expect(patchScript).toContain('installSection.nsh');
+    expect(patchScript).toContain('Silent installs with /D= skip the directory page');
+    expect(patchScript).toContain('${StdUtils.GetFileNamePart}');
+    expect(patchScript).toContain('${If} $0 != "${APP_FILENAME}"');
+    expect(patchScript).toContain('StrCpy $INSTDIR "$INSTDIR\\${APP_FILENAME}"');
   });
 
   it('uses ONNX and install-relative runtime paths in packaged builds', () => {
@@ -104,6 +113,7 @@ describe('ONNX Windows distribution packaging', () => {
 
     expect(script).toContain('npm run build');
     expect(script).toContain('npm run dist:onnx-daemon');
+    expect(script).toContain('npm run patch:nsis-install-dir');
     expect(script).toContain('electron-builder --win nsis portable');
   });
 });
