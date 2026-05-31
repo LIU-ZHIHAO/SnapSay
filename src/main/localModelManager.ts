@@ -48,6 +48,14 @@ const SENSEVOICE_ONNX_FILES: DownloadFile[] = [
 
 const REQUIRED_FILE_NAMES = SENSEVOICE_ONNX_FILES.map((file) => file.targetName);
 
+export function getModelDownloadHeaders(): Record<string, string> {
+  return {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36 SnapSay/0.1.0',
+    Accept: 'application/octet-stream,*/*',
+    Referer: 'https://www.modelscope.cn/models/iic/SenseVoiceSmall-onnx/files'
+  };
+}
+
 export function getLocalModelStatus(modelDir: string): LocalModelStatus {
   const requiredFiles = REQUIRED_FILE_NAMES.map((name) => {
     const path = join(modelDir, name);
@@ -105,7 +113,7 @@ function downloadToFile(url: string, targetPath: string, redirectCount = 0): Pro
   mkdirSync(dirname(targetPath), { recursive: true });
 
   return new Promise((resolve, reject) => {
-    const request = get(url, (response) => {
+    const request = get(url, { headers: getModelDownloadHeaders() }, (response) => {
       const statusCode = response.statusCode ?? 0;
       if (statusCode >= 300 && statusCode < 400 && response.headers.location) {
         response.resume();

@@ -5,7 +5,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { getLocalModelStatus } from '../src/main/localModelManager';
+import { getLocalModelStatus, getModelDownloadHeaders } from '../src/main/localModelManager';
 
 let tempDirs: string[] = [];
 
@@ -39,5 +39,13 @@ describe('local ONNX model manager', () => {
     expect(status.installed).toBe(true);
     expect(status.missingFiles).toEqual([]);
     expect(status.requiredFiles.map((file) => file.name)).toEqual(['model.onnx', 'tokens.json', 'am.mvn']);
+  });
+
+  it('uses browser-like headers for ModelScope CDN downloads', () => {
+    const headers = getModelDownloadHeaders();
+
+    expect(headers['User-Agent']).toContain('Mozilla/5.0');
+    expect(headers.Accept).toContain('application/octet-stream');
+    expect(headers.Referer).toContain('modelscope.cn');
   });
 });

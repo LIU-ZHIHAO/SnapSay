@@ -777,15 +777,26 @@ function installIpcHandlers(): void {
     const settings = settingsStore?.getSettings();
     const modelDir = settings?.input.senseVoiceModelPath ?? join(MODELS_DIR, 'sensevoice', 'SenseVoiceSmall');
     if (!localModelDownloadPromise) {
-      localModelDownloadPromise = downloadSenseVoiceOnnxModel(modelDir).then(async (result) => {
-        const settingsAfterDownload = settingsStore?.getSettings();
-        if (settingsAfterDownload && isOnnxExperimentMode() && !asrDaemonPort) {
-          await startAsrDaemon(settingsAfterDownload);
-        }
-        return result;
-      }).finally(() => {
-        localModelDownloadPromise = undefined;
-      });
+      localModelDownloadPromise = downloadSenseVoiceOnnxModel(modelDir)
+        .then(async (result) => {
+          const settingsAfterDownload = settingsStore?.getSettings();
+          if (settingsAfterDownload && isOnnxExperimentMode() && !asrDaemonPort) {
+            await startAsrDaemon(settingsAfterDownload);
+          }
+          return result;
+        })
+        .catch((error) => {
+          const message = error instanceof Error ? error.message : String(error);
+          console.error('[Local model] Download failed:', error);
+          return {
+            ...getLocalModelStatus(modelDir),
+            ok: false,
+            message: `模型下载失败：${message}`
+          };
+        })
+        .finally(() => {
+          localModelDownloadPromise = undefined;
+        });
     }
     return localModelDownloadPromise;
   });
