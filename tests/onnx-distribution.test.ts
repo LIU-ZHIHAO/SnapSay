@@ -42,6 +42,14 @@ describe('ONNX Windows distribution packaging', () => {
     expect(JSON.stringify(packageJson.build?.win)).toContain('portable');
   });
 
+  it('forces assisted installer selections into a SnapSay subdirectory', () => {
+    const installerInclude = readFileSync(join(process.cwd(), 'build', 'installer.nsh'), 'utf8');
+
+    expect(installerInclude).toContain('!macro preInit');
+    expect(installerInclude).toContain('${StdUtils.GetFileNamePart}');
+    expect(installerInclude).toContain('StrCpy $INSTDIR "$INSTDIR\\${APP_FILENAME}"');
+  });
+
   it('uses ONNX and install-relative runtime paths in packaged builds', () => {
     const mainSource = readFileSync(join(process.cwd(), 'src', 'main', 'main.ts'), 'utf8');
     const settingsSource = readFileSync(join(process.cwd(), 'src', 'main', 'settingsStore.ts'), 'utf8');
