@@ -1,7 +1,7 @@
 import { app, BrowserWindow, clipboard, dialog, globalShortcut, ipcMain, Menu, nativeImage, screen, shell } from 'electron';
 import { execFile, spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { createFloatingWindow, updateFloatingState } from './floatingWindow.js';
@@ -26,7 +26,8 @@ import type { WordbookEntry } from './wordbook.js';
 import { DEFAULT_CLEANUP_PROMPT, shouldCleanupTranscript, resolvePromptText } from '../shared/cleanupPolicy.js';
 
 const APP_ROOT = app.getAppPath();
-const RUNTIME_ROOT = process.env.SNAPSAY_ROOT ?? (app.isPackaged ? 'D:\\SoftInstall\\SnapSay' : APP_ROOT);
+const RUNTIME_ROOT = process.env.SNAPSAY_ROOT ?? (app.isPackaged ? dirname(process.execPath) : APP_ROOT);
+process.env.SNAPSAY_ROOT = RUNTIME_ROOT;
 const PROJECT_ROOT = APP_ROOT;
 const DATA_DIR = join(RUNTIME_ROOT, 'data');
 const LOGS_DIR = join(RUNTIME_ROOT, 'logs');

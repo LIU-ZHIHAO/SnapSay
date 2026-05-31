@@ -1,4 +1,5 @@
 import { DEFAULT_CLEANUP_PROMPT } from '../shared/cleanupPolicy.js';
+import { dirname } from 'node:path';
 import {
   createMemoryRecordStore,
   type ImportRecordsResult,
@@ -22,7 +23,7 @@ function defaultProjectRoot(): string {
     return process.env.SNAPSAY_ROOT;
   }
   if (process.versions.electron && !electronProcess.defaultApp) {
-    return 'D:\\SoftInstall\\SnapSay';
+    return dirname(process.execPath);
   }
   return process.cwd();
 }
