@@ -87,15 +87,7 @@ if ($sectionContent.Contains($forcedInstallDirectory)) {
   Write-Host "Removed NSIS install section directory guard."
 }
 
-$beforeUninstallOld = @'
-# must be called before uninstallOldVersion
-!insertmacro setLinkVars
-
-!ifdef ONE_CLICK
-'@
-
 $beforeUninstallNew = @'
-# must be called before uninstallOldVersion
 !insertmacro setLinkVars
 
 !ifmacrodef customBeforeUninstallOldVersion
@@ -105,10 +97,15 @@ $beforeUninstallNew = @'
 !ifdef ONE_CLICK
 '@
 
-if ($sectionContent.Contains($beforeUninstallNew)) {
+if ($sectionContent.Contains("!ifmacrodef customBeforeUninstallOldVersion")) {
   Write-Host "NSIS install section pre-uninstall hook already patched."
-} elseif ($sectionContent.Contains($beforeUninstallOld)) {
-  $sectionContent = $sectionContent.Replace($beforeUninstallOld, $beforeUninstallNew)
+} elseif ($sectionContent -match '(?m)^!insertmacro setLinkVars\r?\n\r?\n!ifdef ONE_CLICK') {
+  $sectionContent = [regex]::Replace(
+    $sectionContent,
+    '(?m)^!insertmacro setLinkVars\r?\n\r?\n!ifdef ONE_CLICK',
+    $beforeUninstallNew,
+    1
+  )
   Write-Host "Patched NSIS install section pre-uninstall hook."
 } else {
   throw "NSIS install section did not contain the expected setLinkVars block."

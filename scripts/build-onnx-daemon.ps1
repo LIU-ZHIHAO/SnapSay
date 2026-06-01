@@ -47,6 +47,17 @@ New-Item -ItemType Directory -Force -Path $daemonDist | Out-Null
   --collect-all av `
   --collect-all onnxruntime `
   --hidden-import numpy `
+  --exclude-module funasr `
+  --exclude-module modelscope `
+  --exclude-module torch `
+  --exclude-module torchaudio `
+  --exclude-module torchvision `
+  --exclude-module scipy `
+  --exclude-module numba `
+  --exclude-module llvmlite `
+  --exclude-module sklearn `
+  --exclude-module tensorboard `
+  --exclude-module transformers `
   $daemonScript
 
 $daemonExe = Join-Path $daemonDist "asr-daemon-onnx.exe"
