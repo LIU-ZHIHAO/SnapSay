@@ -13,8 +13,14 @@ describe('local ASR readiness guard', () => {
     expect(mainSource).toContain('localAsrReadiness(settings)');
     expect(mainSource).toContain('本地语音模型目录不存在');
     expect(mainSource).toContain('snapsay:local-asr-required');
+    expect(mainSource).toContain('pendingLocalAsrNotice');
+    expect(mainSource).toContain('snapsay:get-local-asr-notice');
+    expect(mainSource).toContain('snapsay:clear-local-asr-notice');
     expect(mainSource).toContain('void warmupLocalAsr(startupSettings)');
     expect(preloadSource).toContain('onLocalAsrRequired');
+    expect(preloadSource).toContain('getLocalAsrNotice');
+    expect(preloadSource).toContain('clearLocalAsrNotice');
     expect(appSource).toContain("setView('models')");
+    expect(appSource).toContain('需要配置语音模型');
   });
 });

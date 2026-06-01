@@ -18,6 +18,8 @@ contextBridge.exposeInMainWorld('snapsay', {
   saveCorrection: (id: string, text: string) => ipcRenderer.invoke('snapsay:save-correction', id, text),
   saveWordbook: (wordbook: unknown) => ipcRenderer.invoke('snapsay:save-wordbook', wordbook),
   extractWordPairs: (id: string) => ipcRenderer.invoke('snapsay:extract-word-pairs', id),
+  getLocalAsrNotice: () => ipcRenderer.invoke('snapsay:get-local-asr-notice'),
+  clearLocalAsrNotice: () => ipcRenderer.invoke('snapsay:clear-local-asr-notice'),
   windowControl: (action: 'minimize' | 'toggle-maximize' | 'close') =>
     ipcRenderer.invoke('snapsay:window-control', action),
   openExternal: (url: string) => ipcRenderer.invoke('snapsay:open-external', url),

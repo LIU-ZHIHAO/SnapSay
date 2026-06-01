@@ -100,6 +100,7 @@ let stopLowLevelTrigger: (() => void) | undefined;
 let asrDaemonPort: number | undefined;
 let asrDaemonEngine: 'sensevoice' | undefined;
 let asrDaemonStartupPromise: Promise<void> | undefined;
+let pendingLocalAsrNotice: { message: string; createdAt: number } | undefined;
 const execFileAsync = promisify(execFile);
 const LONG_PRESS_MS = 350;
 const ASR_PORT_FILE_SV = join(DATA_DIR, 'asr-daemon.port');
@@ -181,6 +182,8 @@ function localAsrReadiness(settings: ReturnType<SettingsStore['getSettings']>): 
 }
 
 function notifyLocalAsrRequired(message: string): void {
+  isRecording = false;
+  pendingLocalAsrNotice = { message, createdAt: Date.now() };
   mainWindow?.webContents.send('snapsay:local-asr-required', { message });
   updateFloatingState({
     visible: true,
@@ -188,6 +191,12 @@ function notifyLocalAsrRequired(message: string): void {
     status: 'failed',
     error: message
   });
+  const generation = recordingGeneration;
+  setTimeout(() => {
+    if (!isRecording && recordingGeneration === generation) {
+      updateFloatingState({ visible: false, recording: false });
+    }
+  }, 1800);
 }
 
 function warmupLocalAsr(settings: ReturnType<SettingsStore['getSettings']>): Promise<void> | undefined {
@@ -476,7 +485,7 @@ function installIpcHandlers(): void {
     if (!readiness.ok) {
       updateProcessingFloatingState({ status: 'failed', error: readiness.message }, submittedGeneration);
       if (readiness.message) {
-        mainWindow?.webContents.send('snapsay:local-asr-required', { message: readiness.message });
+        notifyLocalAsrRequired(readiness.message);
       }
       return { ok: false, message: readiness.message };
     }
@@ -751,6 +760,13 @@ function installIpcHandlers(): void {
       console.error('Failed to open external URL:', err);
       return { ok: false, error: String(err) };
     }
+  });
+
+  ipcMain.handle('snapsay:get-local-asr-notice', () => pendingLocalAsrNotice);
+
+  ipcMain.handle('snapsay:clear-local-asr-notice', () => {
+    pendingLocalAsrNotice = undefined;
+    return { ok: true };
   });
 }
 
