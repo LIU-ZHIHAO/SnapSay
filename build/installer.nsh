@@ -1,16 +1,24 @@
-!macro preInit
+!macro moveRuntimeDir dirName
+  ${If} ${FileExists} "$INSTDIR\${dirName}\*.*"
+    ${IfNot} ${FileExists} "$1\${dirName}\*.*"
+      Rename "$INSTDIR\${dirName}" "$1\${dirName}"
+    ${EndIf}
+  ${EndIf}
+!macroend
+
+!macro customBeforeUninstallOldVersion
   Push $0
   Push $1
 
-  StrCpy $0 "$INSTDIR" "" -1
-  ${If} $0 == "\"
-    StrCpy $INSTDIR "$INSTDIR" -1
-  ${EndIf}
+  ${StdUtils.GetParentPath} $0 "$INSTDIR"
+  StrCpy $1 "$0\${APP_FILENAME}Data"
+  CreateDirectory "$1"
 
-  ${StdUtils.GetFileNamePart} $1 "$INSTDIR"
-  ${If} $1 != "${APP_FILENAME}"
-    StrCpy $INSTDIR "$INSTDIR\${APP_FILENAME}"
-  ${EndIf}
+  !insertmacro moveRuntimeDir "data"
+  !insertmacro moveRuntimeDir "models"
+  !insertmacro moveRuntimeDir "logs"
+  !insertmacro moveRuntimeDir "cache"
+  !insertmacro moveRuntimeDir "tmp"
 
   Pop $1
   Pop $0

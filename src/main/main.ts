@@ -1,7 +1,7 @@
 import { app, BrowserWindow, clipboard, dialog, globalShortcut, ipcMain, Menu, nativeImage, screen, shell } from 'electron';
 import { execFile, spawn } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { basename, dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { createFloatingWindow, updateFloatingState } from './floatingWindow.js';
@@ -26,7 +26,10 @@ import type { WordbookEntry } from './wordbook.js';
 import { DEFAULT_CLEANUP_PROMPT, shouldCleanupTranscript, resolvePromptText } from '../shared/cleanupPolicy.js';
 
 const APP_ROOT = app.getAppPath();
-const RUNTIME_ROOT = process.env.SNAPSAY_ROOT ?? (app.isPackaged ? dirname(process.execPath) : APP_ROOT);
+const INSTALL_ROOT = app.isPackaged ? dirname(process.execPath) : APP_ROOT;
+const RUNTIME_ROOT = process.env.SNAPSAY_ROOT ?? (
+  app.isPackaged ? join(dirname(INSTALL_ROOT), `${basename(INSTALL_ROOT)}Data`) : APP_ROOT
+);
 process.env.SNAPSAY_ROOT = RUNTIME_ROOT;
 const PROJECT_ROOT = APP_ROOT;
 const DATA_DIR = join(RUNTIME_ROOT, 'data');
@@ -34,6 +37,30 @@ const LOGS_DIR = join(RUNTIME_ROOT, 'logs');
 const CACHE_DIR = join(RUNTIME_ROOT, 'cache');
 const MODELS_DIR = join(RUNTIME_ROOT, 'models');
 const TMP_DIR = join(RUNTIME_ROOT, 'tmp');
+
+function migrateInstallLocalRuntimeData(): void {
+  if (!app.isPackaged || process.env.SNAPSAY_ROOT) {
+    return;
+  }
+  for (const name of ['data', 'models', 'logs', 'cache', 'tmp']) {
+    const oldPath = join(INSTALL_ROOT, name);
+    const newPath = join(RUNTIME_ROOT, name);
+    if (!existsSync(oldPath)) {
+      continue;
+    }
+    try {
+      mkdirSync(dirname(newPath), { recursive: true });
+      if (!existsSync(newPath)) {
+        renameSync(oldPath, newPath);
+      } else {
+        cpSync(oldPath, newPath, { recursive: true, force: false, errorOnExist: false });
+        rmSync(oldPath, { recursive: true, force: true });
+      }
+    } catch (error) {
+      console.warn(`Failed to migrate runtime directory ${oldPath} to ${newPath}:`, error);
+    }
+  }
+}
 
 type RendererSettings = {
   triggerKey: string;
@@ -112,6 +139,7 @@ const ASR_PORT_FILE_SV = join(DATA_DIR, 'asr-daemon.port');
 const SYSTEM_FFMPEG_COMMAND = 'ffmpeg';
 const RECORDS_DB_FILE = join(DATA_DIR, 'snapsay.db');
 
+migrateInstallLocalRuntimeData();
 mkdirSync(DATA_DIR, { recursive: true });
 mkdirSync(LOGS_DIR, { recursive: true });
 mkdirSync(CACHE_DIR, { recursive: true });

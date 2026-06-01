@@ -44,33 +44,36 @@ describe('ONNX Windows distribution packaging', () => {
     expect(JSON.stringify(packageJson.build?.win)).toContain('portable');
   });
 
-  it('forces assisted installer selections into a SnapSay subdirectory', () => {
+  it('preserves packaged runtime data before replacing an old install', () => {
     const installerInclude = readFileSync(join(process.cwd(), 'build', 'installer.nsh'), 'utf8');
     const patchScript = readFileSync(join(process.cwd(), 'scripts', 'patch-nsis-install-dir.ps1'), 'utf8');
 
-    expect(installerInclude).toContain('!macro preInit');
-    expect(installerInclude).toContain('${StdUtils.GetFileNamePart}');
-    expect(installerInclude).toContain('StrCpy $INSTDIR "$INSTDIR\\${APP_FILENAME}"');
-    expect(patchScript).toContain('assistedInstaller.nsh');
+    expect(installerInclude).toContain('!macro customBeforeUninstallOldVersion');
+    expect(installerInclude).toContain('!insertmacro moveRuntimeDir "data"');
+    expect(installerInclude).toContain('!insertmacro moveRuntimeDir "models"');
+    expect(installerInclude).toContain('!insertmacro moveRuntimeDir "logs"');
+    expect(installerInclude).toContain('!insertmacro moveRuntimeDir "cache"');
+    expect(installerInclude).toContain('!insertmacro moveRuntimeDir "tmp"');
     expect(patchScript).toContain('installSection.nsh');
-    expect(patchScript).toContain('Silent installs with /D= skip the directory page');
-    expect(patchScript).toContain('${StdUtils.GetFileNamePart}');
-    expect(patchScript).toContain('${If} $0 != "${APP_FILENAME}"');
-    expect(patchScript).toContain('StrCpy $INSTDIR "$INSTDIR\\${APP_FILENAME}"');
+    expect(patchScript).toContain('customBeforeUninstallOldVersion');
+    expect(patchScript).toContain('Restored NSIS assisted installer directory behavior.');
+    expect(patchScript).toContain('Removed NSIS install section directory guard.');
   });
 
   it('uses ONNX and install-relative runtime paths in packaged builds', () => {
     const mainSource = readFileSync(join(process.cwd(), 'src', 'main', 'main.ts'), 'utf8');
     const settingsSource = readFileSync(join(process.cwd(), 'src', 'main', 'settingsStore.ts'), 'utf8');
 
-    expect(mainSource).toContain('dirname(process.execPath)');
+    expect(mainSource).toContain('const INSTALL_ROOT = app.isPackaged ? dirname(process.execPath) : APP_ROOT');
+    expect(mainSource).toContain('join(dirname(INSTALL_ROOT), `${basename(INSTALL_ROOT)}Data`)');
+    expect(mainSource).toContain('migrateInstallLocalRuntimeData');
     expect(mainSource).toContain('process.env.SNAPSAY_ROOT = RUNTIME_ROOT');
     expect(mainSource).toContain('return app.isPackaged || process.env.SNAPSAY_ASR_ENGINE');
     expect(mainSource).toContain("join(process.resourcesPath, 'asr-daemon-onnx', 'asr-daemon-onnx.exe')");
     expect(mainSource).toContain('SNAPSAY_ROOT: RUNTIME_ROOT');
     expect(mainSource).toContain('MODELSCOPE_CACHE');
     expect(mainSource).toContain('PIP_CACHE_DIR');
-    expect(settingsSource).toContain('dirname(process.execPath)');
+    expect(settingsSource).toContain('join(dirname(installRoot), `${basename(installRoot)}Data`)');
     expect(settingsSource).not.toContain("'D:\\\\SoftInstall\\\\SnapSay'");
   });
 
