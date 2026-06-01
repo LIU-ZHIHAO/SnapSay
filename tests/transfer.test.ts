@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { createTransferPayload, mergeWordbookEntries, parseTransferPayload } from '../src/main/transfer';
+import {
+  createTransferPayload,
+  createWordbookTransferPayload,
+  mergeWordbookEntries,
+  parseTransferPayload,
+  parseWordbookTransferPayload
+} from '../src/main/transfer';
 
 const record = {
   id: 'rec_1',
@@ -44,6 +50,33 @@ describe('SnapSay transfer payload', () => {
     expect(merged).toEqual([
       { id: 'wb_existing', target: 'Codex', variants: ['code x', 'codec'] },
       { id: 'wb_claude', target: 'Claude Code', variants: ['cloud cold'] }
+    ]);
+  });
+
+  it('exports and imports standalone wordbook files', () => {
+    const payload = createWordbookTransferPayload([
+      { id: 'wb_1', target: '爆款', variants: ['报款', '暴款'] }
+    ]);
+
+    expect(payload).toMatchObject({
+      app: 'SnapSay',
+      type: 'wordbook',
+      version: 1,
+      wordbook: [{ id: 'wb_1', target: '爆款', variants: ['报款', '暴款'] }]
+    });
+    expect(parseWordbookTransferPayload(JSON.stringify(payload))).toEqual([
+      { id: 'wb_1', target: '爆款', variants: ['报款', '暴款'] }
+    ]);
+  });
+
+  it('imports standalone wordbook arrays for easy sharing', () => {
+    const parsed = parseWordbookTransferPayload(JSON.stringify([
+      { target: 'Codex', variants: ['code x', 'codec', 'code x'] },
+      { target: ' ', variants: ['ignored'] }
+    ]));
+
+    expect(parsed).toEqual([
+      { id: 'wordbook_codex', target: 'Codex', variants: ['code x', 'codec'] }
     ]);
   });
 });

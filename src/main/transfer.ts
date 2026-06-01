@@ -9,6 +9,14 @@ export type SnapSayTransferPayload = {
   wordbook: WordbookEntry[];
 };
 
+export type SnapSayWordbookPayload = {
+  app: 'SnapSay';
+  type: 'wordbook';
+  version: 1;
+  exportedAt: string;
+  wordbook: WordbookEntry[];
+};
+
 export type ParsedTransferPayload = {
   records: TranscriptionRecord[];
   wordbook: WordbookEntry[];
@@ -20,6 +28,16 @@ export function createTransferPayload(records: TranscriptionRecord[], wordbook: 
     version: 2,
     exportedAt: new Date().toISOString(),
     records,
+    wordbook: normalizeWordbookEntries(wordbook)
+  };
+}
+
+export function createWordbookTransferPayload(wordbook: WordbookEntry[]): SnapSayWordbookPayload {
+  return {
+    app: 'SnapSay',
+    type: 'wordbook',
+    version: 1,
+    exportedAt: new Date().toISOString(),
     wordbook: normalizeWordbookEntries(wordbook)
   };
 }
@@ -41,6 +59,16 @@ export function parseTransferPayload(text: string): ParsedTransferPayload {
       .filter((record): record is TranscriptionRecord => Boolean(record)),
     wordbook: normalizeWordbookEntries(rawWordbook)
   };
+}
+
+export function parseWordbookTransferPayload(text: string): WordbookEntry[] {
+  const parsed = JSON.parse(text) as unknown;
+  const rawWordbook = Array.isArray(parsed)
+    ? parsed
+    : parsed && typeof parsed === 'object' && Array.isArray((parsed as { wordbook?: unknown }).wordbook)
+      ? (parsed as { wordbook: unknown[] }).wordbook
+      : [];
+  return normalizeWordbookEntries(rawWordbook);
 }
 
 export function mergeWordbookEntries(existing: WordbookEntry[], imported: WordbookEntry[]): WordbookEntry[] {

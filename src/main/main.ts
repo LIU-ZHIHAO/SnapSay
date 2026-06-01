@@ -19,7 +19,7 @@ import { runRecordingPipeline } from './recorderCoordinator.js';
 import { createSqliteRecordStore } from './recordStore.js';
 import { createElectronStoreAdapter, createSettingsStore, migrateLegacyRecordsToRecordStore, type SettingsStore, type TranscriptionRecord } from './settingsStore.js';
 import type { AsrProfileConfig, LlmProviderConfig } from './settingsStore.js';
-import { createTransferPayload, mergeWordbookEntries, parseTransferPayload } from './transfer.js';
+import { createTransferPayload, createWordbookTransferPayload, mergeWordbookEntries, parseTransferPayload, parseWordbookTransferPayload } from './transfer.js';
 import { applyWordbook, buildWordbookPrompt, extractWordPairCandidates, mergeWordbookPairs } from './wordbook.js';
 import type { WordbookEntry } from './wordbook.js';
 import { DEFAULT_CLEANUP_PROMPT, shouldCleanupTranscript, resolvePromptText } from '../shared/cleanupPolicy.js';
@@ -645,6 +645,55 @@ function installIpcHandlers(): void {
         wordbookImported: payload.wordbook.length,
         wordbook,
         records: rendererRecords
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        message: error instanceof Error ? error.message : String(error)
+      };
+    }
+  });
+
+  ipcMain.handle('snapsay:export-wordbook', async () => {
+    if (!mainWindow || !settingsStore) {
+      return { ok: false, message: '窗口或词库存储不可用' };
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    const result = await dialog.showSaveDialog(mainWindow, {
+      title: '导出词库',
+      defaultPath: join(DATA_DIR, `snapsay-wordbook-${today}.json`),
+      filters: [{ name: 'JSON', extensions: ['json'] }]
+    });
+    if (result.canceled || !result.filePath) {
+      return { ok: false, canceled: true };
+    }
+    const wordbook = settingsStore.getSettings().input.wordbook ?? [];
+    writeFileSync(result.filePath, JSON.stringify(createWordbookTransferPayload(wordbook), null, 2), 'utf-8');
+    return { ok: true, count: wordbook.length, filePath: result.filePath };
+  });
+
+  ipcMain.handle('snapsay:import-wordbook', async () => {
+    if (!mainWindow || !settingsStore) {
+      return { ok: false, message: '窗口或词库存储不可用' };
+    }
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: '导入词库',
+      properties: ['openFile'],
+      filters: [{ name: 'JSON', extensions: ['json'] }]
+    });
+    if (result.canceled || result.filePaths.length === 0) {
+      return { ok: false, canceled: true };
+    }
+    try {
+      const importedWordbook = parseWordbookTransferPayload(readFileSync(result.filePaths[0], 'utf-8'));
+      const settings = settingsStore.getSettings();
+      const wordbook = mergeWordbookEntries(settings.input.wordbook ?? [], importedWordbook);
+      settingsStore.saveSettings({ input: { ...settings.input, wordbook } });
+      return {
+        ok: true,
+        imported: importedWordbook.length,
+        total: wordbook.length,
+        wordbook
       };
     } catch (error) {
       return {

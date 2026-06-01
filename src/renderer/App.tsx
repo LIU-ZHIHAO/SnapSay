@@ -288,6 +288,15 @@ type SnapSayFacade = {
     message?: string;
     records?: RecordItem[];
   }>;
+  exportWordbook?: () => Promise<{ ok: boolean; count?: number; canceled?: boolean; message?: string }>;
+  importWordbook?: () => Promise<{
+    ok: boolean;
+    imported?: number;
+    total?: number;
+    wordbook?: WordbookEntry[];
+    canceled?: boolean;
+    message?: string;
+  }>;
   testRewriteApi?: (settings: SettingsState) => Promise<{ ok: boolean; message: string; durationMs?: number }>;
   saveCorrection?: (id: string, text: string) => Promise<SaveCorrectionResult>;
   saveWordbook?: (wordbook: WordbookEntry[]) => Promise<{ ok: boolean }>;
@@ -475,6 +484,7 @@ export default function App() {
   const [testStatus, setTestStatus] = useState('未测试');
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [recordsTransferStatus, setRecordsTransferStatus] = useState('');
+  const [wordbookTransferStatus, setWordbookTransferStatus] = useState('');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const pendingStopRef = useRef(false);
 
@@ -721,6 +731,29 @@ export default function App() {
     );
   };
 
+  const exportWordbook = async () => {
+    const result = await getFacade().exportWordbook?.();
+    if (!result || result.canceled) {
+      return;
+    }
+    setWordbookTransferStatus(result.ok
+      ? `已导出 ${result.count ?? 0} 个词库词`
+      : (result.message ?? '词库导出失败'));
+  };
+
+  const importWordbook = async () => {
+    const result = await getFacade().importWordbook?.();
+    if (!result || result.canceled) {
+      return;
+    }
+    if (result.wordbook) {
+      setSettings((current) => ({ ...current, wordbook: result.wordbook ?? [] }));
+    }
+    setWordbookTransferStatus(result.ok
+      ? `已导入 ${result.imported ?? 0} 个词库词，当前共 ${result.total ?? result.wordbook?.length ?? 0} 个`
+      : (result.message ?? '词库导入失败'));
+  };
+
   const saveCorrection = async (id: string, text: string): Promise<SaveCorrectionResult> => {
     const result = await getFacade().saveCorrection?.(id, text);
     setRecords((current) =>
@@ -841,8 +874,11 @@ export default function App() {
                 onClearDiagnosticLogs={clearDiagnosticLogs}
                 onExportRecords={exportRecords}
                 onImportRecords={importRecords}
+                onExportWordbook={exportWordbook}
+                onImportWordbook={importWordbook}
                 onAppearanceChange={setAppearance}
                 recordsTransferStatus={recordsTransferStatus}
+                wordbookTransferStatus={wordbookTransferStatus}
                 onUpdate={updateSetting}
               />
             )}
@@ -1680,8 +1716,11 @@ function SettingsView(props: {
   onClearDiagnosticLogs: () => void;
   onExportRecords: () => void;
   onImportRecords: () => void;
+  onExportWordbook: () => void;
+  onImportWordbook: () => void;
   onAppearanceChange: (appearance: Appearance) => void;
   recordsTransferStatus: string;
+  wordbookTransferStatus: string;
   onUpdate: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void;
 }) {
   const { settings, onUpdate } = props;
@@ -2048,13 +2087,29 @@ function SettingsView(props: {
       </section>
 
       <section className="panel settings-card">
-        <h2>
-          <BookOpen size={18} />
-          自定义词库
-        </h2>
+        <div className="panel-header">
+          <h2>
+            <BookOpen size={18} />
+            自定义词库
+          </h2>
+          <span className="record-count-label">{(settings.wordbook ?? []).length} 个词</span>
+        </div>
         <p className="wordbook-desc">
           词库用于纠正 ASR 识别出的错误读音或相近词汇。在下方添加您的专有名词或高频词汇（如英文词、电商词），系统将在 ASR 识别后自动替换，或提供给 AI 整理。支持点击目标词就地修改，通过标签查看、添加或删除错误变体。
         </p>
+        <div className="records-transfer-actions">
+          <button onClick={props.onExportWordbook} type="button">
+            <Download size={16} />
+            导出词库
+          </button>
+          <button onClick={props.onImportWordbook} type="button">
+            <Upload size={16} />
+            导入词库
+          </button>
+        </div>
+        {props.wordbookTransferStatus && (
+          <p className="records-transfer-status">{props.wordbookTransferStatus}</p>
+        )}
         {(settings.wordbook ?? []).length > 0 && (
           <div className="wordbook-list">
             {(settings.wordbook ?? []).map((entry) => (
