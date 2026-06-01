@@ -103,6 +103,29 @@ Launch the production-built Electron app:
 npm run electron
 ```
 
+For local daily use on the main development version, you can also double-click:
+
+```text
+SnapSay-Dev-Start.cmd
+```
+
+The launcher runs from the repository root, installs npm dependencies if `node_modules` is missing, builds the app, and starts Electron.
+
+## Branch Maintenance
+
+SnapSay currently maintains two practical lines:
+
+- `master`: main development version. Keep the original local SenseVoice/FunASR development workflow here. This line is used for daily development and should preserve the best current product experience.
+- `codex/sensevoice-onnx-experiment`: ONNX packaging and distribution version. Keep user-facing code and UI behavior aligned with `master` as much as possible, but use the lightweight ONNX runtime chain for packaged Windows distribution.
+
+Maintenance rules:
+
+- User-facing fixes and UI changes should land in `master` first.
+- After `master` changes, merge or cherry-pick them into `codex/sensevoice-onnx-experiment`.
+- Rebuild the ONNX installer after syncing `master` into the packaging branch.
+- Packaging-specific scripts, bundled daemon logic, model download flow, and installer data-preservation logic should stay on the ONNX branch unless they are also needed by the main development version.
+- Do not store runtime data, logs, caches, databases, downloaded models, or temporary files under the Windows user profile by default.
+
 ## Local ASR Setup
 
 Install Python dependencies and download SenseVoiceSmall:
