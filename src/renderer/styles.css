@@ -4088,3 +4088,226 @@ tr:last-child td {
   border-bottom: 1px solid rgba(226, 232, 240, 0.8) !important;
 }
 
+/* ─── Developer Author Card Styles (Low-Profile Feedback Button with In-Place Hover Popover) ─── */
+.author-sidebar-wrapper {
+  margin-top: auto;
+  margin-bottom: 4px;
+  position: relative;
+  width: 100%;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.author-avatar-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+  user-select: none;
+}
+
+.author-avatar-trigger:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.author-trigger-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #13cef0 0%, #f70fba 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(19, 206, 240, 0.15);
+  transition: transform 0.3s ease;
+}
+
+.author-avatar-trigger:hover .author-trigger-avatar {
+  transform: rotate(360deg) scale(1.05);
+}
+
+.author-trigger-text {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+
+/* Floating Card positioned directly over the trigger, completely covering it on hover */
+.author-floating-card {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface-panel);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-panel);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 100;
+  
+  /* Hidden by default with smooth overlay scale transition */
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.92);
+  transform-origin: center bottom;
+  transition: all 0.22s cubic-bezier(0.34, 1.45, 0.64, 1);
+  pointer-events: none;
+}
+
+.author-sidebar-wrapper:hover .author-floating-card {
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.author-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.author-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #13cef0 0%, #f70fba 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(19, 206, 240, 0.15);
+}
+
+.author-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.author-name-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.author-name {
+  font-size: 12px;
+  font-weight: 750;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.author-badge {
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  padding: 0.5px 4px;
+  border-radius: 3px;
+  border: 1px solid rgba(18, 132, 216, 0.12);
+}
+
+.author-title {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.author-contact-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface-muted);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.author-contact-row:hover {
+  background: rgba(19, 206, 240, 0.05);
+  border-color: rgba(19, 206, 240, 0.2);
+  color: var(--accent-strong);
+}
+
+.author-contact-value {
+  font-weight: 700;
+  font-family: 'JetBrains Mono', Consolas, Monaco, monospace;
+}
+
+.author-copy-hint {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 1px;
+  border-top: 1px dashed var(--border-subtle);
+  padding-top: 4px;
+  pointer-events: none;
+}
+
+.author-copy-toast {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(19, 206, 240, 0.96);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  z-index: 1000;
+  border-radius: 11px;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+[data-appearance="dark"] .author-copy-toast {
+  background: rgba(86, 168, 255, 0.96);
+}
+
+[data-appearance="dark"] .author-floating-card {
+  border-color: var(--border-strong);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+[data-appearance="pink"] .author-floating-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+[data-appearance="glass-light"] .author-floating-card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+

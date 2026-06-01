@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, type ReactNode } from 'react';
+import React, { useEffect, useState, useRef, type ReactNode } from 'react';
 import {
   BookOpen,
   Brain,
@@ -24,7 +24,8 @@ import {
   FileText,
   AlertTriangle,
   Download,
-  Upload
+  Upload,
+  User
 } from 'lucide-react';
 import ModelsView from './ModelsView';
 import StylesView from './StylesView';
@@ -453,6 +454,24 @@ function useAppearance(): [Appearance, (appearance: Appearance) => void] {
 export default function App() {
   const [appearance, setAppearance] = useAppearance();
   const [confirmConfig, setConfirmConfig] = useState<ConfirmConfig | null>(null);
+  const [showAuthorCopied, setShowAuthorCopied] = useState(false);
+
+  const handleCopyAuthorWeChat = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const wechatId = 'zhihao779';
+      const facade = getFacade();
+      if (facade.copyText) {
+        await facade.copyText(wechatId);
+      } else {
+        await navigator.clipboard?.writeText?.(wechatId);
+      }
+      setShowAuthorCopied(true);
+      setTimeout(() => setShowAuthorCopied(false), 1500);
+    } catch (err) {
+      console.error('Failed to copy developer WeChat ID', err);
+    }
+  };
 
   const showConfirm = (config: ConfirmConfig) => {
     setConfirmConfig(config);
@@ -747,6 +766,42 @@ export default function App() {
           <NavButton active={view === 'models'} icon={<Brain size={18} />} label="模型" onClick={() => setView('models')} />
           <NavButton active={view === 'styles'} icon={<Sparkles size={18} />} label="风格" onClick={() => setView('styles')} />
           <NavButton active={view === 'settings'} icon={<Settings size={18} />} label="设置" onClick={() => setView('settings')} />
+
+          {/* 底部作者反馈入口（悬停覆盖） */}
+          <div className="author-sidebar-wrapper">
+            <div className="author-avatar-trigger" onClick={handleCopyAuthorWeChat} title="点击复制微信">
+              <div className="author-trigger-avatar">
+                <User size={13} />
+              </div>
+              <span className="author-trigger-text">反馈</span>
+            </div>
+
+            <div className="author-floating-card" onClick={handleCopyAuthorWeChat}>
+              {showAuthorCopied && (
+                <div className="author-copy-toast">
+                  <Check size={14} />
+                  <span>微信已复制</span>
+                </div>
+              )}
+              <div className="author-card-header">
+                <div className="author-avatar">
+                  <User size={14} />
+                </div>
+                <div className="author-meta">
+                  <div className="author-name-container">
+                    <span className="author-name">LIU-ZHIHAO</span>
+                    <span className="author-badge">作者</span>
+                  </div>
+                  <span className="author-title">软件开发者</span>
+                </div>
+              </div>
+              <div className="author-contact-row">
+                <span>微信</span>
+                <span className="author-contact-value">zhihao779</span>
+              </div>
+              <div className="author-copy-hint">点击可复制微信号</div>
+            </div>
+          </div>
         </aside>
 
         <div className="main-layout">

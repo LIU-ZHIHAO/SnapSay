@@ -253,7 +253,6 @@ function localAsrReadiness(settings: ReturnType<SettingsStore['getSettings']>): 
       message: `本地语音模型目录不存在。请打开「模型」页面配置 SenseVoice 模型路径：${modelPath}`
     };
   }
-
   return { ok: true };
 }
 
