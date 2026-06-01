@@ -719,7 +719,7 @@ export default function App() {
       return;
     }
     setRecordsTransferStatus(result.ok
-      ? `已导出 ${result.count ?? 0} 条记录，${result.wordbookCount ?? 0} 个词库词`
+      ? `已导出全部数据：${result.count ?? 0} 条记录，${result.wordbookCount ?? 0} 个词库词`
       : (result.message ?? '导出失败'));
   };
 
@@ -736,7 +736,7 @@ export default function App() {
     }
     setRecordsTransferStatus(
       result.ok
-        ? `已导入 ${result.imported ?? 0} 条，更新 ${result.updated ?? 0} 条，跳过 ${result.skipped ?? 0} 条，词库 ${result.wordbookImported ?? 0} 个`
+        ? `已导入全部数据：新增 ${result.imported ?? 0} 条，更新 ${result.updated ?? 0} 条，跳过 ${result.skipped ?? 0} 条，词库 ${result.wordbookImported ?? 0} 个`
         : (result.message ?? '导入失败')
     );
   };
@@ -2077,18 +2077,18 @@ function SettingsView(props: {
         <div className="panel-header">
           <h2>
             <FileText size={18} />
-            记录数据
+            全部数据
           </h2>
           <span className="record-count-label">{props.records.length} 条记录</span>
         </div>
         <div className="records-transfer-actions">
           <button onClick={props.onExportRecords} type="button">
             <Download size={16} />
-            导出记录
+            导出全部数据
           </button>
           <button onClick={props.onImportRecords} type="button">
             <Upload size={16} />
-            导入记录
+            导入全部数据
           </button>
         </div>
         {props.recordsTransferStatus && (

@@ -723,7 +723,7 @@ function installIpcHandlers(): void {
     }
     const today = new Date().toISOString().slice(0, 10);
     const result = await dialog.showSaveDialog(mainWindow, {
-      title: '导出记录',
+      title: '导出全部数据',
       defaultPath: join(DATA_DIR, `snapsay-records-${today}.json`),
       filters: [{ name: 'JSON', extensions: ['json'] }]
     });
@@ -741,7 +741,7 @@ function installIpcHandlers(): void {
       return { ok: false, message: '窗口或记录存储不可用' };
     }
     const result = await dialog.showOpenDialog(mainWindow, {
-      title: '导入记录',
+      title: '导入全部数据',
       properties: ['openFile'],
       filters: [{ name: 'JSON', extensions: ['json'] }]
     });
