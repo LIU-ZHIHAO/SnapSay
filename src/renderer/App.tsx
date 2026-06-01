@@ -757,10 +757,13 @@ export default function App() {
           <NavButton active={view === 'styles'} icon={<Sparkles size={18} />} label="风格" onClick={() => setView('styles')} />
           <NavButton active={view === 'settings'} icon={<Settings size={18} />} label="设置" onClick={() => setView('settings')} />
 
-          {/* 底部作者头像与悬浮卡片 */}
+          {/* 底部作者反馈入口（悬停覆盖） */}
           <div className="author-sidebar-wrapper">
             <div className="author-avatar-trigger" onClick={handleCopyAuthorWeChat} title="点击复制微信">
-              <User size={15} />
+              <div className="author-trigger-avatar">
+                <User size={13} />
+              </div>
+              <span className="author-trigger-text">反馈</span>
             </div>
             
             <div className="author-floating-card" onClick={handleCopyAuthorWeChat}>
@@ -772,7 +775,7 @@ export default function App() {
               )}
               <div className="author-card-header">
                 <div className="author-avatar">
-                  <User size={15} />
+                  <User size={14} />
                 </div>
                 <div className="author-meta">
                   <div className="author-name-container">
@@ -786,7 +789,7 @@ export default function App() {
                 <span>微信</span>
                 <span className="author-contact-value">zhihao779</span>
               </div>
-              <div className="author-copy-hint">点击头像或卡片可直接复制微信</div>
+              <div className="author-copy-hint">点击可复制微信号</div>
             </div>
           </div>
         </aside>
