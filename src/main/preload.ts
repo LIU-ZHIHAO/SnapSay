@@ -19,6 +19,8 @@ contextBridge.exposeInMainWorld('snapsay', {
   saveWordbook: (wordbook: unknown) => ipcRenderer.invoke('snapsay:save-wordbook', wordbook),
   extractWordPairs: (id: string) => ipcRenderer.invoke('snapsay:extract-word-pairs', id),
   getLocalModelStatus: () => ipcRenderer.invoke('snapsay:get-local-model-status'),
+  getLocalAsrNotice: () => ipcRenderer.invoke('snapsay:get-local-asr-notice'),
+  clearLocalAsrNotice: () => ipcRenderer.invoke('snapsay:clear-local-asr-notice'),
   downloadLocalModel: () => ipcRenderer.invoke('snapsay:download-local-model'),
   openLocalModelDir: () => ipcRenderer.invoke('snapsay:open-local-model-dir'),
   windowControl: (action: 'minimize' | 'toggle-maximize' | 'close') =>

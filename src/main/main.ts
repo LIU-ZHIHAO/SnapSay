@@ -105,6 +105,7 @@ let asrDaemonPort: number | undefined;
 let asrDaemonEngine: 'sensevoice' | 'sensevoice-onnx' | undefined;
 let asrDaemonStartupPromise: Promise<void> | undefined;
 let localModelDownloadPromise: Promise<unknown> | undefined;
+let pendingLocalAsrNotice: { message: string; createdAt: number } | undefined;
 const execFileAsync = promisify(execFile);
 const LONG_PRESS_MS = 350;
 const ASR_PORT_FILE_SV = join(DATA_DIR, 'asr-daemon.port');
@@ -229,6 +230,8 @@ function localAsrReadiness(settings: ReturnType<SettingsStore['getSettings']>): 
 }
 
 function notifyLocalAsrRequired(message: string): void {
+  isRecording = false;
+  pendingLocalAsrNotice = { message, createdAt: Date.now() };
   mainWindow?.webContents.send('snapsay:local-asr-required', { message });
   updateFloatingState({
     visible: true,
@@ -236,6 +239,12 @@ function notifyLocalAsrRequired(message: string): void {
     status: 'failed',
     error: message
   });
+  const generation = recordingGeneration;
+  setTimeout(() => {
+    if (!isRecording && recordingGeneration === generation) {
+      updateFloatingState({ visible: false, recording: false });
+    }
+  }, 1800);
 }
 
 function warmupLocalAsr(settings: ReturnType<SettingsStore['getSettings']>): Promise<void> | undefined {
@@ -371,7 +380,8 @@ async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>
           resolve();
         }
       } catch { /* not ready yet */ }
-      if (Date.now() - start > 30_000) {
+      if (Date.now() - start > 180_000) {
+        console.error('[ASR daemon] Startup timed out before port file became ready.');
         clearInterval(poll);
         resolve();
       }
@@ -569,7 +579,7 @@ function installIpcHandlers(): void {
     if (!readiness.ok) {
       updateProcessingFloatingState({ status: 'failed', error: readiness.message }, submittedGeneration);
       if (readiness.message) {
-        mainWindow?.webContents.send('snapsay:local-asr-required', { message: readiness.message });
+        notifyLocalAsrRequired(readiness.message);
       }
       return { ok: false, message: readiness.message };
     }
@@ -852,6 +862,13 @@ function installIpcHandlers(): void {
     return getLocalModelStatus(modelDir);
   });
 
+  ipcMain.handle('snapsay:get-local-asr-notice', () => pendingLocalAsrNotice);
+
+  ipcMain.handle('snapsay:clear-local-asr-notice', () => {
+    pendingLocalAsrNotice = undefined;
+    return { ok: true };
+  });
+
   ipcMain.handle('snapsay:download-local-model', async () => {
     const settings = settingsStore?.getSettings();
     const modelDir = settings?.input.senseVoiceModelPath ?? join(MODELS_DIR, 'sensevoice', 'SenseVoiceSmall');
@@ -860,7 +877,8 @@ function installIpcHandlers(): void {
         .then(async (result) => {
           const settingsAfterDownload = settingsStore?.getSettings();
           if (settingsAfterDownload && isOnnxExperimentMode() && !asrDaemonPort) {
-            await warmupLocalAsr(settingsAfterDownload);
+            pendingLocalAsrNotice = undefined;
+            void warmupLocalAsr(settingsAfterDownload);
           }
           return result;
         })

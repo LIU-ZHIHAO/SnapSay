@@ -299,6 +299,8 @@ type SnapSayFacade = {
   saveWordbook?: (wordbook: WordbookEntry[]) => Promise<{ ok: boolean }>;
   extractWordPairs?: (id: string) => Promise<{ ok: boolean; pairs: WordPair[] }>;
   getLocalModelStatus?: () => Promise<LocalModelStatus>;
+  getLocalAsrNotice?: () => Promise<{ message?: string } | undefined>;
+  clearLocalAsrNotice?: () => Promise<{ ok: boolean }>;
   downloadLocalModel?: () => Promise<LocalModelStatus & { ok: boolean; message: string }>;
   openLocalModelDir?: () => Promise<{ ok: boolean }>;
   windowControl?: (action: 'minimize' | 'toggle-maximize' | 'close') => Promise<boolean>;
@@ -467,12 +469,33 @@ export default function App() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const pendingStopRef = useRef(false);
 
+  const showLocalAsrNotice = (message?: string) => {
+    const notice = message || '请先在模型页下载或配置本地语音识别模型';
+    setView('models');
+    showConfirm({
+      title: '需要配置语音模型',
+      message: notice,
+      type: 'warning',
+      confirmText: '去下载模型',
+      cancelText: '稍后处理',
+      onConfirm: () => {
+        setView('models');
+        void getFacade().clearLocalAsrNotice?.();
+      }
+    });
+  };
+
   useEffect(() => {
     getFacade()
       .getDashboard?.()
       .then((dashboard) => {
         setSettings(dashboard.settings);
         setRecords(dashboard.records.map(normalizeRecordItem));
+        void getFacade().getLocalAsrNotice?.().then((notice) => {
+          if (notice?.message) {
+            showLocalAsrNotice(notice.message);
+          }
+        });
       })
       .catch(() => undefined);
   }, []);
@@ -495,8 +518,8 @@ export default function App() {
     const offRecordsSynced = facade.onRecordsSynced?.((records) => {
       setRecords(records.map(normalizeRecordItem));
     });
-    const offLocalAsrRequired = facade.onLocalAsrRequired?.(() => {
-      setView('models');
+    const offLocalAsrRequired = facade.onLocalAsrRequired?.((payload) => {
+      showLocalAsrNotice(payload?.message);
     });
     return () => {
       offRecordAdded?.();
