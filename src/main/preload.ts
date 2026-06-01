@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld('snapsay', {
   clearDiagnosticLogs: () => ipcRenderer.invoke('snapsay:clear-diagnostic-logs'),
   exportRecords: () => ipcRenderer.invoke('snapsay:export-records'),
   importRecords: () => ipcRenderer.invoke('snapsay:import-records'),
+  exportWordbook: () => ipcRenderer.invoke('snapsay:export-wordbook'),
+  importWordbook: () => ipcRenderer.invoke('snapsay:import-wordbook'),
   testRewriteApi: (settings: unknown) => ipcRenderer.invoke('snapsay:test-rewrite-api', settings),
   saveCorrection: (id: string, text: string) => ipcRenderer.invoke('snapsay:save-correction', id, text),
   saveWordbook: (wordbook: unknown) => ipcRenderer.invoke('snapsay:save-wordbook', wordbook),
