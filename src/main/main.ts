@@ -330,11 +330,14 @@ async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>
     });
   } else if (useOnnxDaemon) {
     const scriptPath = join(PROJECT_ROOT, 'scripts', 'asr-daemon-onnx.py');
-    const pythonPath = resolvePythonExecutable({
-      configuredPath: settings.input.pythonPath,
-      projectRoot: PROJECT_ROOT,
-      exists: existsSync
-    });
+    const projectVenvPython = join(PROJECT_ROOT, '.venv', 'Scripts', 'python.exe');
+    const pythonPath = existsSync(projectVenvPython)
+      ? projectVenvPython
+      : resolvePythonExecutable({
+        configuredPath: settings.input.pythonPath,
+        projectRoot: PROJECT_ROOT,
+        exists: existsSync
+      });
     if (!pythonPath) {
       console.error(`[ASR daemon] Python not found at ${settings.input.pythonPath}, skipping ONNX ASR daemon startup.`);
       return;

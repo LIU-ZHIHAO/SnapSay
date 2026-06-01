@@ -41,69 +41,51 @@ def load_audio(path: str, target_sr: int = 16000) -> np.ndarray:
 
 # ── Feature extraction ─────────────────────────────────────────────
 
-def hz_to_mel(hz: float) -> float:
-    return 2595.0 * np.log10(1.0 + hz / 700.0)
-
-def mel_to_hz(mel: float) -> float:
-    return 700.0 * (10.0 ** (mel / 2595.0) - 1.0)
-
-def compute_mel_filterbank(n_mels: int, n_fft: int, sr: int) -> np.ndarray:
-    low_mel = hz_to_mel(0)
-    high_mel = hz_to_mel(sr / 2)
-    mel_points = np.linspace(low_mel, high_mel, n_mels + 2)
-    hz_points = mel_to_hz(mel_points)
-    bin_points = np.round(hz_points / (sr / n_fft)).astype(int)
-    filters = np.zeros((n_mels, n_fft // 2 + 1))
-    for m in range(n_mels):
-        left = bin_points[m]
-        center = bin_points[m + 1]
-        right = bin_points[m + 2]
-        for k in range(left, center):
-            if center != left:
-                filters[m, k] = (k - left) / (center - left)
-        for k in range(center, right):
-            if right != center:
-                filters[m, k] = (right - k) / (right - center)
-    return filters
-
 def extract_fbank(audio: np.ndarray, sr: int = 16000, n_mels: int = 80,
                   frame_length: float = 0.025, frame_shift: float = 0.01) -> np.ndarray:
-    """Extract mel filterbank features."""
-    n_fft = int(sr * frame_length)
-    hop_length = int(sr * frame_shift)
-    win_length = n_fft
+    """Extract Kaldi-compatible fbank features expected by SenseVoice ONNX."""
+    import kaldi_native_fbank as knf
+    opts = knf.FbankOptions()
+    opts.frame_opts.samp_freq = sr
+    opts.frame_opts.dither = 0
+    opts.frame_opts.window_type = "hamming"
+    opts.frame_opts.frame_shift_ms = frame_shift * 1000
+    opts.frame_opts.frame_length_ms = frame_length * 1000
+    opts.frame_opts.snip_edges = True
+    opts.mel_opts.num_bins = n_mels
+    opts.energy_floor = 0
+    opts.mel_opts.debug_mel = False
 
-    # Pad audio
-    pad_len = n_fft - len(audio) % hop_length
-    audio = np.pad(audio, (0, pad_len))
-
-    # Framing
-    n_frames = 1 + (len(audio) - n_fft) // hop_length
-    indices = np.arange(n_fft)[None, :] + np.arange(n_frames)[:, None] * hop_length
-    frames = audio[indices]
-
-    # Window + FFT
-    window = np.hamming(n_fft)
-    frames = frames * window
-    fft_result = np.fft.rfft(frames, n=n_fft)
-    power_spectrum = (np.abs(fft_result) ** 2) / n_fft
-
-    # Mel filterbank
-    mel_filters = compute_mel_filterbank(n_mels, n_fft, sr)
-    mel_energies = power_spectrum @ mel_filters.T
-    log_mel = np.log(np.maximum(mel_energies, 1e-10))
-    return log_mel.astype(np.float32)
+    fbank = knf.OnlineFbank(opts)
+    fbank.accept_waveform(sr, (audio * (1 << 15)).tolist())
+    frames = fbank.num_frames_ready
+    feat = np.empty([frames, n_mels], dtype=np.float32)
+    for i in range(frames):
+        feat[i, :] = fbank.get_frame(i)
+    return feat
 
 def apply_lfr(feat: np.ndarray, lfr_m: int = 7, lfr_n: int = 6) -> np.ndarray:
     """Low Frame Rate: merge lfr_m frames with step lfr_n."""
     n_frames = feat.shape[0]
-    feat_dim = feat.shape[1]
-    out_frames = (n_frames - lfr_m) // lfr_n + 1
-    lfr_feat = np.zeros((out_frames, feat_dim * lfr_m), dtype=np.float32)
+    if n_frames == 0:
+        return np.zeros((0, feat.shape[1] * lfr_m), dtype=np.float32)
+
+    left_padding = np.tile(feat[0], ((lfr_m - 1) // 2, 1))
+    feat = np.vstack((left_padding, feat))
+    padded_frames = n_frames + (lfr_m - 1) // 2
+    out_frames = int(np.ceil(n_frames / lfr_n))
+    lfr_feat = []
     for i in range(out_frames):
         start = i * lfr_n
-        lfr_feat[i] = feat[start:start + lfr_m].reshape(-1)
-    return lfr_feat
+        if lfr_m <= padded_frames - start:
+            lfr_feat.append(feat[start:start + lfr_m].reshape(1, -1))
+        else:
+            frame = feat[start:].reshape(-1)
+            pad_count = lfr_m - (padded_frames - start)
+            for _ in range(pad_count):
+                frame = np.hstack((frame, feat[-1]))
+            lfr_feat.append(frame.reshape(1, -1))
+    return np.vstack(lfr_feat).astype(np.float32)
 
 # ── CMVN ───────────────────────────────────────────────────────────
 
@@ -149,7 +131,7 @@ class SenseVoiceONNX:
         self.cmvn_scale = scale
         # Embedding indices (from SenseVoice config)
         self.lid_dict = {"zh": 3, "en": 4, "ja": 5, "ko": 6, "yue": 7}
-        self.textnorm_dict = {"withitn": 12, "woitn": 13}
+        self.textnorm_dict = {"withitn": 14, "woitn": 15}
 
     def _create_session(self, ort, onnx_path: str):
         available = set(ort.get_available_providers())

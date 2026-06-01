@@ -22,7 +22,7 @@ if (-not (Test-Path -LiteralPath $python)) {
 }
 
 & $python -m pip install --upgrade pip
-& $python -m pip install --upgrade numpy av onnxruntime-directml
+& $python -m pip install --upgrade numpy av kaldi-native-fbank onnxruntime-directml
 
 & $python -c "import onnxruntime as ort; print('onnxruntime providers: ' + ', '.join(ort.get_available_providers()))"
 

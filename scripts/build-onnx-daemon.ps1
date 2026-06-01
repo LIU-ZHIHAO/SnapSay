@@ -29,7 +29,7 @@ if (-not (Test-Path -LiteralPath $python)) {
   $python = "python"
 }
 
-& $python -m pip install --upgrade pyinstaller numpy av onnxruntime-directml
+& $python -m pip install --upgrade pyinstaller numpy av kaldi-native-fbank onnxruntime-directml
 
 if (Test-Path -LiteralPath $daemonDist) {
   Remove-Item -LiteralPath $daemonDist -Recurse -Force
@@ -45,6 +45,7 @@ New-Item -ItemType Directory -Force -Path $daemonDist | Out-Null
   --workpath $buildRoot `
   --specpath $buildRoot `
   --collect-all av `
+  --collect-all kaldi_native_fbank `
   --collect-all onnxruntime `
   --hidden-import numpy `
   --exclude-module funasr `

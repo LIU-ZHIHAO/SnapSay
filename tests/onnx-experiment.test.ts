@@ -48,6 +48,8 @@ describe('SenseVoice ONNX experiment', () => {
 
     expect(daemonSource).toContain('DmlExecutionProvider');
     expect(daemonSource).toContain('CPUExecutionProvider');
+    expect(daemonSource).toContain('kaldi_native_fbank');
+    expect(daemonSource).toContain('"withitn": 14');
     expect(daemonSource).toContain('get_available_providers');
     expect(daemonSource).toContain('Execution providers');
     expect(daemonSource).toContain('DirectML inference failed, retrying CPU');
@@ -60,6 +62,7 @@ describe('SenseVoice ONNX experiment', () => {
     const setupSource = readFileSync(join(process.cwd(), 'scripts', 'setup-onnx-asr.ps1'), 'utf8');
 
     expect(setupSource).toContain('onnxruntime-directml');
+    expect(setupSource).toContain('kaldi-native-fbank');
     expect(setupSource).toContain('PIP_CACHE_DIR');
     expect(setupSource).toContain('get_available_providers');
   });
