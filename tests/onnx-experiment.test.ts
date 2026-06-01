@@ -24,11 +24,11 @@ describe('SenseVoice ONNX experiment', () => {
     expect(script).not.toContain('electron:onnx*');
   });
 
-  it('starts the ONNX daemon in dev mode only when requested by environment', () => {
+  it('starts the ONNX daemon by default in dev mode', () => {
     const mainSource = readFileSync(join(process.cwd(), 'src', 'main', 'main.ts'), 'utf8');
 
     expect(mainSource).toContain('SNAPSAY_ASR_ENGINE');
-    expect(mainSource).toContain('sensevoice-onnx');
+    expect(mainSource).toContain("SNAPSAY_ASR_ENGINE !== 'sensevoice-funasr'");
     expect(mainSource).toContain('asr-daemon-onnx.py');
     expect(mainSource).toContain("ASR_ONNX_PROVIDER: 'auto'");
   });

@@ -68,7 +68,7 @@ describe('ONNX Windows distribution packaging', () => {
     expect(mainSource).toContain('join(dirname(INSTALL_ROOT), `${basename(INSTALL_ROOT)}Data`)');
     expect(mainSource).toContain('migrateInstallLocalRuntimeData');
     expect(mainSource).toContain('process.env.SNAPSAY_ROOT = RUNTIME_ROOT');
-    expect(mainSource).toContain('return app.isPackaged || process.env.SNAPSAY_ASR_ENGINE');
+    expect(mainSource).toContain("return process.env.SNAPSAY_ASR_ENGINE !== 'sensevoice-funasr'");
     expect(mainSource).toContain("join(process.resourcesPath, 'asr-daemon-onnx', 'asr-daemon-onnx.exe')");
     expect(mainSource).toContain('SNAPSAY_ROOT: RUNTIME_ROOT');
     expect(mainSource).toContain('MODELSCOPE_CACHE');

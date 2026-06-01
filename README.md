@@ -2,7 +2,7 @@
 
 SnapSay is a Windows desktop voice input assistant. It records from your microphone, transcribes speech with local SenseVoice or a cloud ASR provider, optionally rewrites the transcript with an OpenAI-compatible LLM API, and pastes the final text into the current cursor position.
 
-The project is built with Electron, React, TypeScript, Vite, SQLite, and Python-based local ASR.
+The project is built with Electron, React, TypeScript, Vite, SQLite, and an ONNX Runtime local ASR daemon.
 
 ## Interface
 
@@ -25,7 +25,7 @@ SnapSay includes four main views:
 
 - Global keyboard trigger and mouse trigger support.
 - Floating recording indicator.
-- Local SenseVoiceSmall ASR with GPU-first execution and CPU fallback.
+- Local SenseVoiceSmall ONNX ASR with GPU-first execution and CPU fallback.
 - OpenAI-compatible text cleanup providers.
 - Clipboard paste into the active application.
 - Local SQLite history database.
@@ -41,9 +41,8 @@ Recommended environment:
 - Git.
 - Node.js 22 or newer. Node 24 works.
 - npm 10 or newer.
-- Python 3.10 for local ASR.
-- FFmpeg available in `PATH` for local ASR smoke tests and non-WAV audio fallback.
-- NVIDIA GPU with CUDA support is recommended for local SenseVoice. CPU fallback is available but slower.
+- Python 3.10 for local ASR development and daemon packaging.
+- DirectML-compatible GPU is recommended for local SenseVoice ONNX. CPU fallback is available but slower.
 
 Native dependency notes:
 
@@ -69,13 +68,13 @@ One-command Windows setup:
 .\scripts\setup-windows.ps1
 ```
 
-To also install local SenseVoice ASR dependencies and download the model:
+To also install local SenseVoice ONNX runtime dependencies:
 
 ```powershell
 .\scripts\setup-windows.ps1 -WithLocalAsr
 ```
 
-The local ASR setup can be large because it installs CUDA-enabled PyTorch and downloads `SenseVoiceSmall`.
+The app can download the ONNX model from the Models page. The model and runtime data stay in project or configured non-C-drive data directories.
 
 ## Development
 
@@ -97,7 +96,7 @@ Run tests:
 npm test
 ```
 
-Launch the production-built Electron app:
+Launch the production-built Electron app with the default ONNX local ASR chain:
 
 ```powershell
 npm run electron
@@ -111,40 +110,55 @@ SnapSay-Dev-Start.cmd
 
 The launcher runs from the repository root, installs npm dependencies if `node_modules` is missing, builds the app, and starts Electron.
 
+## ASR Runtime Decision
+
+SnapSay uses the ONNX SenseVoice chain as the primary local ASR runtime in both development and packaged distribution.
+
+Measured on 2026-06-01:
+
+- PyTorch/FunASR hot-loaded daemon: about 3.6-3.8 GB working set in the Python ASR process.
+- ONNX hot-loaded daemon: about 150 MB in the Python ONNX ASR process, and about 0.9 GB for the full SnapSay process group.
+
+Decision:
+
+- Keep hot loading for first-recording responsiveness.
+- Do not use the PyTorch/FunASR daemon as the default local ASR chain.
+- Use ONNX Runtime with DirectML/GPU-first execution and CPU fallback for main development and packaged distribution.
+- Keep the legacy PyTorch/FunASR scripts only as non-default fallback/debug assets unless explicitly needed.
+
 ## Branch Maintenance
 
 SnapSay currently maintains two practical lines:
 
-- `master`: main development version. Keep the original local SenseVoice/FunASR development workflow here. This line is used for daily development and should preserve the best current product experience.
-- `codex/sensevoice-onnx-experiment`: ONNX packaging and distribution version. Keep user-facing code and UI behavior aligned with `master` as much as possible, but use the lightweight ONNX runtime chain for packaged Windows distribution.
+- `master`: main development version and source of truth. It now uses the ONNX local ASR chain by default.
+- `codex/sensevoice-onnx-experiment`: packaging/distribution line used to validate installer and packaged runtime behavior while we finish folding distribution work back into `master`.
 
 Maintenance rules:
 
-- User-facing fixes and UI changes should land in `master` first.
+- User-facing fixes, ASR runtime changes, and UI changes should land in `master` first.
 - After `master` changes, merge or cherry-pick them into `codex/sensevoice-onnx-experiment`.
 - Rebuild the ONNX installer after syncing `master` into the packaging branch.
-- Packaging-specific scripts, bundled daemon logic, model download flow, and installer data-preservation logic should stay on the ONNX branch unless they are also needed by the main development version.
+- Packaging-specific installer behavior can remain on the packaging branch until it is ready for normal release work, but ASR runtime behavior should stay aligned with `master`.
 - Do not store runtime data, logs, caches, databases, downloaded models, or temporary files under the Windows user profile by default.
 
 ## Local ASR Setup
 
-Install Python dependencies and download SenseVoiceSmall:
+Install ONNX runtime dependencies:
 
 ```powershell
-.\scripts\setup-python-asr.ps1
+.\scripts\setup-onnx-asr.ps1
 ```
 
-Smoke test the local ASR:
-
-```powershell
-.\scripts\test-local-asr.ps1
-```
-
-The setup script creates:
+The setup script creates or uses:
 
 - `.venv\` for Python dependencies.
-- `models\sensevoice\SenseVoiceSmall\` for the model.
-- `cache\` for pip, Hugging Face, ModelScope, and Torch caches.
+- `cache\` for pip and ONNX runtime caches.
+
+The ONNX model is downloaded from the Models page and stored under:
+
+```text
+models\sensevoice\SenseVoiceSmall\
+```
 
 No model, cache, log, database, or runtime data is intentionally written to the Windows user profile by the project scripts.
 
@@ -200,20 +214,20 @@ Check whether the daemon is running:
 Test-Path .\data\asr-daemon.port
 ```
 
-If the port file does not exist, reinstall local ASR dependencies:
+If the port file does not exist, reinstall local ONNX ASR dependencies:
 
 ```powershell
-.\scripts\setup-python-asr.ps1
+.\scripts\setup-onnx-asr.ps1
 ```
 
 Then restart the app.
 
 ### `ModuleNotFoundError: No module named 'av'`
 
-Install local ASR dependencies again:
+Install local ONNX ASR dependencies again:
 
 ```powershell
-.\scripts\setup-python-asr.ps1
+.\scripts\setup-onnx-asr.ps1
 ```
 
 ### Python, model, or FFmpeg path issues
@@ -227,15 +241,13 @@ Cache:  cache\
 Temp:   tmp\
 ```
 
-Install FFmpeg and make sure `ffmpeg.exe` is available in `PATH`.
-
 ## Repository Layout
 
 ```text
 src\main\       Electron main process, IPC, providers, settings, SQLite records
 src\renderer\   React UI and floating recorder UI
 src\shared\     Shared defaults, types, validation, cleanup policy
-scripts\        Windows setup, local ASR setup, local ASR smoke test
+scripts\        Windows setup, ONNX ASR setup, daemon packaging, distribution scripts
 tests\          Vitest coverage for renderer, providers, settings, records, validation
 docs\           Product specs and AI setup guide
 mockups\        UI mockups used in documentation
@@ -246,7 +258,7 @@ mockups\        UI mockups used in documentation
 If you want another AI coding tool to set up this repository, give it this file plus `docs/ai-setup-guide.md`. The short instruction is:
 
 ```text
-Set up SnapSay on Windows. Keep all runtime data, models, logs, and caches inside the project directory. Install npm dependencies, rebuild Electron native modules, optionally run scripts/setup-python-asr.ps1 for local SenseVoice ASR, then verify with npm test and npm run build.
+Set up SnapSay on Windows. Keep all runtime data, models, logs, and caches inside the project directory. Install npm dependencies, rebuild Electron native modules, optionally run scripts/setup-onnx-asr.ps1 for local SenseVoice ONNX ASR, then verify with npm test and npm run build.
 ```
 
 ## License

@@ -14,7 +14,7 @@
     "typecheck": "npx tsc --noEmit && npx tsc -p tsconfig.electron.json --noEmit",
     "rebuild:native": "electron-rebuild -f -o better-sqlite3 --types prod",
     "postinstall": "npm run rebuild:native",
-    "electron": "npm run build && electron .",
+    "electron": "powershell -ExecutionPolicy Bypass -File scripts/start-electron-onnx.ps1",
     "electron:onnx": "powershell -ExecutionPolicy Bypass -File scripts/start-electron-onnx.ps1",
     "patch:nsis-install-dir": "powershell -ExecutionPolicy Bypass -File scripts/patch-nsis-install-dir.ps1",
     "dist:onnx-daemon": "powershell -ExecutionPolicy Bypass -File scripts/build-onnx-daemon.ps1",

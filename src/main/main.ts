@@ -210,7 +210,7 @@ function readImportRecordsPayload(filePath: string): TranscriptionRecord[] {
 }
 
 function isOnnxExperimentMode(): boolean {
-  return app.isPackaged || process.env.SNAPSAY_ASR_ENGINE === 'sensevoice-onnx';
+  return process.env.SNAPSAY_ASR_ENGINE !== 'sensevoice-funasr';
 }
 
 function activeAsrProfile(settings: ReturnType<SettingsStore['getSettings']>): AsrProfileConfig | undefined {
@@ -1288,7 +1288,7 @@ function resolveOnnxDaemonNotReadyMessage(settings: ReturnType<SettingsStore['ge
   if (app.isPackaged) {
     return '本地语音识别服务还没有启动成功。请重启 SnapSay；如果仍失败，请在「模型」页面重新下载模型。';
   }
-  return 'SenseVoice ONNX daemon is not ready. Restart with npm run electron:onnx and wait for the ONNX port file.';
+  return 'SenseVoice ONNX daemon is not ready. Restart with npm run electron and wait for the ONNX port file.';
 }
 
 async function pressSystemPasteShortcut(): Promise<void> {

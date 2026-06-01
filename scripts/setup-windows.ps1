@@ -54,10 +54,10 @@ Write-Output "Installing npm dependencies..."
 Invoke-Checked "npm" @("install")
 
 if ($WithLocalAsr) {
-  Write-Output "Installing local SenseVoice ASR dependencies and model..."
-  & (Join-Path $Root "scripts\setup-python-asr.ps1") -Root $Root
+  Write-Output "Installing local SenseVoice ONNX ASR runtime dependencies..."
+  & (Join-Path $Root "scripts\setup-onnx-asr.ps1") -Root $Root
 } else {
-  Write-Output "Skipping local ASR setup. Run with -WithLocalAsr to install SenseVoice dependencies and model."
+  Write-Output "Skipping local ASR setup. Run with -WithLocalAsr to install SenseVoice ONNX runtime dependencies."
 }
 
 if (-not $SkipBuild) {
