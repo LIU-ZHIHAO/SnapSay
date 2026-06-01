@@ -941,10 +941,11 @@ async function registerLowLevelTriggers(labels: string[], recordMode?: string): 
     uIOhook.on('keyup', onUp);
     uIOhook.start();
     stopLowLevelTrigger = () => {
-      uIOhook.off('mousedown', onDown);
-      uIOhook.off('mouseup', onUp);
-      uIOhook.off('keydown', onDown);
-      uIOhook.off('keyup', onUp);
+      try { uIOhook.off('mousedown', onDown); } catch { /* ignore hook cleanup errors */ }
+      try { uIOhook.off('mouseup', onUp); } catch { /* ignore hook cleanup errors */ }
+      try { uIOhook.off('keydown', onDown); } catch { /* ignore hook cleanup errors */ }
+      try { uIOhook.off('keyup', onUp); } catch { /* ignore hook cleanup errors */ }
+      try { uIOhook.stop(); } catch { /* ignore hook cleanup errors */ }
     };
     return true;
   } catch (error) {
@@ -1161,5 +1162,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('will-quit', () => {
+  stopLowLevelTrigger?.();
+  stopLowLevelTrigger = undefined;
   globalShortcut.unregisterAll();
 });
