@@ -131,11 +131,13 @@ let stopLowLevelTrigger: (() => void) | undefined;
 let asrDaemonPort: number | undefined;
 let asrDaemonEngine: 'sensevoice' | 'sensevoice-onnx' | undefined;
 let asrDaemonStartupPromise: Promise<void> | undefined;
+let asrDaemonProcessPid: number | undefined;
 let localModelDownloadPromise: Promise<unknown> | undefined;
 let pendingLocalAsrNotice: { message: string; createdAt: number } | undefined;
 const execFileAsync = promisify(execFile);
 const LONG_PRESS_MS = 350;
 const ASR_PORT_FILE_SV = join(DATA_DIR, 'asr-daemon.port');
+const ASR_LOCK_FILE_SV = join(DATA_DIR, 'asr-daemon.lock');
 const SYSTEM_FFMPEG_COMMAND = 'ffmpeg';
 const RECORDS_DB_FILE = join(DATA_DIR, 'snapsay.db');
 
@@ -152,6 +154,17 @@ try {
   app.setPath('sessionData', join(CACHE_DIR, 'electron-session'));
 } catch {
   // Older Electron versions may not expose sessionData; userData/logs are still moved off C:.
+}
+
+const singleInstanceLock = app.requestSingleInstanceLock();
+if (!singleInstanceLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (!mainWindow) return;
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  });
 }
 
 function rendererUrl(page: 'index.html' | 'floating.html'): string {
@@ -292,6 +305,137 @@ function warmupLocalAsr(settings: ReturnType<SettingsStore['getSettings']>): Pro
   return asrDaemonStartupPromise;
 }
 
+async function stopExistingLocalAsrDaemons(): Promise<void> {
+  if (process.platform !== 'win32') return;
+
+  const command = `
+$projectRoot = $env:SNAPSAY_KILL_PROJECT_ROOT
+$runtimeRoot = $env:SNAPSAY_KILL_RUNTIME_ROOT
+Get-CimInstance Win32_Process |
+  Where-Object {
+    ($_.Name -eq "python.exe" -and (
+      $_.CommandLine -like "*$projectRoot*asr-daemon-onnx.py*" -or
+      $_.CommandLine -like "*$projectRoot*asr-daemon.py*"
+    )) -or
+    ($_.Name -eq "asr-daemon-onnx.exe" -and $_.ExecutablePath -like "$runtimeRoot*")
+  } |
+  ForEach-Object {
+    Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+  }
+`;
+
+  try {
+    await execFileAsync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command], {
+      env: {
+        ...process.env,
+        SNAPSAY_KILL_PROJECT_ROOT: PROJECT_ROOT,
+        SNAPSAY_KILL_RUNTIME_ROOT: RUNTIME_ROOT
+      }
+    });
+  } catch (error) {
+    console.warn('[ASR daemon] Failed to clean existing daemon processes:', error instanceof Error ? error.message : String(error));
+  }
+}
+
+async function resolveListeningPortOwner(port: number): Promise<number | undefined> {
+  if (process.platform !== 'win32') return undefined;
+  const command = `
+$port = [int]$env:SNAPSAY_PORT_OWNER_PORT
+$conn = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+if ($conn) { Write-Output $conn.OwningProcess }
+`;
+  try {
+    const { stdout } = await execFileAsync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command], {
+      env: {
+        ...process.env,
+        SNAPSAY_PORT_OWNER_PORT: String(port)
+      }
+    });
+    const owner = parseInt(stdout.trim(), 10);
+    return Number.isFinite(owner) && owner > 0 ? owner : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function resolveProcessCommandLine(pid: number): Promise<string | undefined> {
+  if (process.platform !== 'win32') return undefined;
+  const command = `
+$processId = [int]$env:SNAPSAY_PROCESS_COMMAND_PID
+$process = Get-CimInstance Win32_Process -Filter "ProcessId = $processId" -ErrorAction SilentlyContinue
+if ($process) { Write-Output $process.CommandLine }
+`;
+  try {
+    const { stdout } = await execFileAsync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command], {
+      env: {
+        ...process.env,
+        SNAPSAY_PROCESS_COMMAND_PID: String(pid)
+      }
+    });
+    return stdout.trim() || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function isCurrentProjectAsrDaemonCommand(commandLine: string | undefined): boolean {
+  if (!commandLine) return false;
+  return commandLine.includes(PROJECT_ROOT) &&
+    (commandLine.includes('asr-daemon-onnx.py') || commandLine.includes('asr-daemon.py'));
+}
+
+async function stopProcessByPid(pid: number): Promise<void> {
+  if (process.platform !== 'win32') return;
+  try {
+    await execFileAsync('powershell.exe', [
+      '-NoProfile',
+      '-ExecutionPolicy',
+      'Bypass',
+      '-Command',
+      'Stop-Process -Id ([int]$env:SNAPSAY_STOP_PID) -Force -ErrorAction SilentlyContinue'
+    ], {
+      env: {
+        ...process.env,
+        SNAPSAY_STOP_PID: String(pid)
+      }
+    });
+  } catch {
+    // Best-effort cleanup for stale daemon processes.
+  }
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function resolveOnnxDaemonPython(settings: ReturnType<SettingsStore['getSettings']>): { executable: string; pythonPath?: string } | undefined {
+  const venvRoot = join(PROJECT_ROOT, '.venv');
+  const venvPython = join(venvRoot, 'Scripts', 'python.exe');
+  const venvSitePackages = join(venvRoot, 'Lib', 'site-packages');
+  const pyvenvConfig = join(venvRoot, 'pyvenv.cfg');
+  if (existsSync(pyvenvConfig) && existsSync(venvSitePackages)) {
+    const home = readFileSync(pyvenvConfig, 'utf-8')
+      .split(/\r?\n/)
+      .map((line) => line.match(/^home\s*=\s*(.+)$/i)?.[1]?.trim())
+      .find((value): value is string => Boolean(value));
+    if (home) {
+      const basePython = join(home, 'python.exe');
+      if (existsSync(basePython)) {
+        return { executable: basePython, pythonPath: venvSitePackages };
+      }
+    }
+  }
+  if (existsSync(venvPython)) {
+    return { executable: venvPython };
+  }
+  const fallback = resolvePythonExecutable({
+    configuredPath: settings.input.pythonPath,
+    projectRoot: PROJECT_ROOT,
+    exists: existsSync
+  });
+  return fallback ? { executable: fallback } : undefined;
+}
+
 async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>): Promise<void> {
   if (!isLocalSenseVoiceAsr(settings)) return;
   const useOnnxDaemon = isOnnxExperimentMode();
@@ -303,6 +447,10 @@ async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>
     return;
   }
 
+  asrDaemonPort = undefined;
+  asrDaemonEngine = undefined;
+  asrDaemonProcessPid = undefined;
+  await stopExistingLocalAsrDaemons();
   try { unlinkSync(portFile); } catch { /* ignore */ }
 
   let daemon;
@@ -316,6 +464,7 @@ async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>
         SNAPSAY_ROOT: RUNTIME_ROOT,
         ASR_MODEL_PATH: modelPath,
         ASR_PORT_FILE: portFile,
+        ASR_LOCK_FILE: ASR_LOCK_FILE_SV,
         ASR_TMP_DIR: TMP_DIR,
         ASR_ONNX_PROVIDER: 'auto',
         XDG_CACHE_HOME: CACHE_DIR,
@@ -330,27 +479,22 @@ async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>
     });
   } else if (useOnnxDaemon) {
     const scriptPath = join(PROJECT_ROOT, 'scripts', 'asr-daemon-onnx.py');
-    const projectVenvPython = join(PROJECT_ROOT, '.venv', 'Scripts', 'python.exe');
-    const pythonPath = existsSync(projectVenvPython)
-      ? projectVenvPython
-      : resolvePythonExecutable({
-        configuredPath: settings.input.pythonPath,
-        projectRoot: PROJECT_ROOT,
-        exists: existsSync
-      });
-    if (!pythonPath) {
+    const pythonRuntime = resolveOnnxDaemonPython(settings);
+    if (!pythonRuntime) {
       console.error(`[ASR daemon] Python not found at ${settings.input.pythonPath}, skipping ONNX ASR daemon startup.`);
       return;
     }
     console.log(`[ASR daemon] Starting SenseVoice ONNX daemon: ${scriptPath}`);
-    daemon = spawn(pythonPath, [scriptPath], {
+    daemon = spawn(pythonRuntime.executable, [scriptPath], {
       cwd: PROJECT_ROOT,
       env: {
         ...process.env,
         ASR_MODEL_PATH: modelPath,
         ASR_PORT_FILE: portFile,
+        ASR_LOCK_FILE: ASR_LOCK_FILE_SV,
         ASR_TMP_DIR: TMP_DIR,
         ASR_ONNX_PROVIDER: 'auto',
+        PYTHONPATH: [pythonRuntime.pythonPath, process.env.PYTHONPATH].filter(Boolean).join(';'),
         XDG_CACHE_HOME: CACHE_DIR
       },
       windowsHide: true,
@@ -391,6 +535,15 @@ async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>
     console.error('[ASR daemon] Failed to start:', err.message);
   });
 
+  asrDaemonProcessPid = daemon.pid;
+  daemon.on('exit', () => {
+    if (asrDaemonProcessPid === daemon.pid) {
+      asrDaemonPort = undefined;
+      asrDaemonEngine = undefined;
+      asrDaemonProcessPid = undefined;
+    }
+  });
+
   daemon.unref();
 
   app.on('will-quit', () => {
@@ -398,25 +551,27 @@ async function startAsrDaemon(settings: ReturnType<SettingsStore['getSettings']>
     try { unlinkSync(portFile); } catch { /* ignore */ }
   });
 
-  await new Promise<void>((resolve) => {
-    const start = Date.now();
-    const poll = setInterval(() => {
-      try {
-        const port = parseInt(readFileSync(portFile, 'utf-8').trim(), 10);
-        if (port > 0) {
+  const start = Date.now();
+  while (Date.now() - start <= 180_000) {
+    try {
+      const port = parseInt(readFileSync(portFile, 'utf-8').trim(), 10);
+      if (port > 0) {
+        const owner = await resolveListeningPortOwner(port);
+        const ownerCommandLine = owner && owner !== daemon.pid ? await resolveProcessCommandLine(owner) : undefined;
+        if (!daemon.pid || !owner || owner === daemon.pid || isCurrentProjectAsrDaemonCommand(ownerCommandLine)) {
           asrDaemonPort = port;
           asrDaemonEngine = useOnnxDaemon ? 'sensevoice-onnx' : 'sensevoice';
-          clearInterval(poll);
-          resolve();
+          asrDaemonProcessPid = owner || daemon.pid;
+          return;
         }
-      } catch { /* not ready yet */ }
-      if (Date.now() - start > 180_000) {
-        console.error('[ASR daemon] Startup timed out before port file became ready.');
-        clearInterval(poll);
-        resolve();
+        console.warn(`[ASR daemon] Ignoring stale port ${port} owned by process ${owner}; expected ${daemon.pid}.`);
+        await stopProcessByPid(owner);
+        try { unlinkSync(portFile); } catch { /* ignore */ }
       }
-    }, 100);
-  });
+    } catch { /* not ready yet */ }
+    await delay(100);
+  }
+  console.error('[ASR daemon] Startup timed out before port file became ready.');
 }
 
 async function createMainWindow(): Promise<void> {
@@ -1309,6 +1464,7 @@ async function pressSystemPasteShortcut(): Promise<void> {
   ]);
 }
 
+if (singleInstanceLock) {
 app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
   const settingsAdapter = await createElectronStoreAdapter({
@@ -1341,6 +1497,7 @@ app.whenReady().then(async () => {
     }
   });
 });
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

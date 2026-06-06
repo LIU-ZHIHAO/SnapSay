@@ -18,6 +18,31 @@ MODEL_DIR = os.environ.get("ASR_MODEL_PATH", str(PROJECT_ROOT / "models" / "sens
 PORT_FILE = os.environ.get("ASR_PORT_FILE", str(PROJECT_ROOT / "data" / "asr-daemon.port"))
 TMP_DIR = Path(os.environ.get("ASR_TMP_DIR", str(PROJECT_ROOT / "tmp")))
 PREFERRED_PROVIDER = os.environ.get("ASR_ONNX_PROVIDER", "auto").lower()
+LOCK_FILE = os.environ.get("ASR_LOCK_FILE", str(PROJECT_ROOT / "data" / "asr-daemon.lock"))
+LOCK_HANDLE = None
+
+def acquire_daemon_lock() -> bool:
+    """Keep one ASR daemon per runtime root, even during repeated app launches."""
+    global LOCK_HANDLE
+    lock_path = Path(LOCK_FILE)
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    LOCK_HANDLE = open(lock_path, "a+b")
+    try:
+        if os.name == "nt":
+            import msvcrt
+            LOCK_HANDLE.seek(0)
+            msvcrt.locking(LOCK_HANDLE.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(LOCK_HANDLE.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        return False
+
+    LOCK_HANDLE.seek(0)
+    LOCK_HANDLE.truncate()
+    LOCK_HANDLE.write(str(os.getpid()).encode("utf-8"))
+    LOCK_HANDLE.flush()
+    return True
 
 # ── Audio helpers ──────────────────────────────────────────────────
 
@@ -282,6 +307,10 @@ def handle_client(conn: socket.socket, model: SenseVoiceONNX):
         conn.close()
 
 def main():
+    if not acquire_daemon_lock():
+        print(f"[ASR-ONNX] Another daemon already holds lock: {LOCK_FILE}", flush=True)
+        return
+
     print(f"[ASR-ONNX] Loading model from {MODEL_DIR} ...", flush=True)
     model = SenseVoiceONNX(MODEL_DIR)
     print(f"[ASR-ONNX] Model loaded. Tokens: {len(model.tokens)}", flush=True)

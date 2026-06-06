@@ -14,13 +14,12 @@ describe('SenseVoice ONNX experiment', () => {
     expect(packageJson.scripts?.['setup:onnx']).toContain('setup-onnx-asr.ps1');
   });
 
-  it('cleans stale experiment app processes before starting ONNX mode', () => {
+  it('does not kill an existing app instance before starting ONNX mode', () => {
     const script = readFileSync(join(process.cwd(), 'scripts', 'start-electron-onnx.ps1'), 'utf8');
 
-    expect(script).toContain('Stop-ExistingExperimentProcesses');
-    expect(script).toContain('asr-daemon-onnx.py');
-    expect(script).toContain('node_modules\\electron');
-    expect(script).toContain('$_.Name -eq "python.exe"');
+    expect(script).not.toContain('Stop-ExistingExperimentProcesses');
+    expect(script).not.toContain('asr-daemon-onnx.py');
+    expect(script).not.toContain('Remove-Item -LiteralPath (Join-Path $Root "data\\asr-daemon.port")');
     expect(script).not.toContain('electron:onnx*');
   });
 
