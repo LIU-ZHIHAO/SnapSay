@@ -17,6 +17,14 @@ describe('custom window chrome', () => {
     expect(mainSource).toContain('Menu.setApplicationMenu(null)');
   });
 
+  it('does not access a destroyed main window when a second instance starts', () => {
+    const mainSource = readFileSync(join(process.cwd(), 'src', 'main', 'main.ts'), 'utf8');
+
+    expect(mainSource).toContain("app.on('second-instance'");
+    expect(mainSource).toContain('mainWindow.isDestroyed()');
+    expect(mainSource).toMatch(/mainWindow\.isDestroyed\(\)[\s\S]*void createMainWindow\(\)/);
+  });
+
   it('exposes window control actions through the preload bridge', () => {
     const preloadSource = readFileSync(join(process.cwd(), 'src', 'main', 'preload.ts'), 'utf8');
 

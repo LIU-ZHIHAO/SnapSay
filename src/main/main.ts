@@ -161,7 +161,11 @@ if (!singleInstanceLock) {
   app.quit();
 } else {
   app.on('second-instance', () => {
-    if (!mainWindow) return;
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      mainWindow = undefined;
+      void createMainWindow();
+      return;
+    }
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.focus();
   });
