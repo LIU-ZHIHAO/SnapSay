@@ -332,6 +332,11 @@ export default function ModelsView(props: {
   };
 
   const downloadLocalModel = async () => {
+    if (localModelStatus?.installed) {
+      await refreshLocalModelStatus();
+      setLocalModelMessage('模型已就绪，无需下载');
+      return;
+    }
     setIsDownloadingModel(true);
     setLocalModelMessage('正在下载模型…');
     try {
@@ -466,7 +471,7 @@ export default function ModelsView(props: {
                 type="button"
               >
                 <Download size={14} />
-                {isDownloadingModel ? '下载中' : localModelStatus?.installed ? '重新下载' : '下载模型'}
+                {isDownloadingModel ? '下载中' : localModelStatus?.installed ? '检查模型' : '下载模型'}
               </button>
               <button
                 className="provider-config-link secondary"

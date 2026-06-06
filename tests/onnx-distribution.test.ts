@@ -85,6 +85,8 @@ describe('ONNX Windows distribution packaging', () => {
 
     expect(mainSource).toContain('snapsay:get-local-model-status');
     expect(mainSource).toContain('snapsay:download-local-model');
+    expect(mainSource).toContain('currentStatus.installed');
+    expect(mainSource).toContain('模型已就绪，无需下载');
     expect(mainSource).toContain('snapsay:open-local-model-dir');
     expect(mainSource).toContain('snapsay:get-local-asr-notice');
     expect(mainSource).toContain('snapsay:clear-local-asr-notice');
@@ -104,6 +106,8 @@ describe('ONNX Windows distribution packaging', () => {
     expect(modelManagerSource).toContain('https://www.modelscope.cn/models/iic/SenseVoiceSmall-onnx/resolve/master/model_quant.onnx');
     expect(modelManagerSource).toContain("targetName: 'model.onnx'");
     expect(modelsViewSource).toContain('下载模型');
+    expect(modelsViewSource).toContain('检查模型');
+    expect(modelsViewSource).toContain('localModelStatus?.installed');
     expect(modelsViewSource).toContain('打开目录');
   });
 

@@ -1106,6 +1106,14 @@ function installIpcHandlers(): void {
   ipcMain.handle('snapsay:download-local-model', async () => {
     const settings = settingsStore?.getSettings();
     const modelDir = settings?.input.senseVoiceModelPath ?? join(MODELS_DIR, 'sensevoice', 'SenseVoiceSmall');
+    const currentStatus = getLocalModelStatus(modelDir);
+    if (currentStatus.installed) {
+      return {
+        ...currentStatus,
+        ok: true,
+        message: '模型已就绪，无需下载'
+      };
+    }
     if (!localModelDownloadPromise) {
       localModelDownloadPromise = downloadSenseVoiceOnnxModel(modelDir)
         .then(async (result) => {
