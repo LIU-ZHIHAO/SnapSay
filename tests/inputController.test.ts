@@ -258,6 +258,27 @@ describe('recorderCoordinator', () => {
     expect(store.listRecords()).toEqual([record]);
   });
 
+  it('does not paste or save a completed record when ASR returns empty text', async () => {
+    const store = createSettingsStore({ store: createMemoryStore() });
+    const paste = vi.fn().mockResolvedValue({ status: 'pasted' });
+
+    const record = await runRecordingPipeline({
+      audio: new ArrayBuffer(0),
+      durationMs: 500,
+      asrProvider: createMockAsrProvider('   '),
+      cleanupText: vi.fn(),
+      pasteText: paste,
+      settingsStore: store,
+      shouldCleanupText: shouldCleanupTranscript
+    });
+
+    expect(record.status).toBe('failed');
+    expect(record.error).toContain('语音识别结果为空');
+    expect(record.pasteSucceeded).toBe(false);
+    expect(paste).not.toHaveBeenCalled();
+    expect(store.listRecords()[0]).toEqual(record);
+  });
+
   it('strips trailing punctuation before pasting short transcripts that skip cleanup', async () => {
     const store = createSettingsStore({ store: createMemoryStore() });
     const cleanup = vi.fn().mockResolvedValue({ text: 'clean text', totalTokens: undefined });

@@ -23,4 +23,11 @@ describe('local ASR readiness guard', () => {
     expect(appSource).toContain("setView('models')");
     expect(appSource).toContain('需要配置语音模型');
   });
+
+  it('allows recording to start while the installed local ASR daemon is still warming up', () => {
+    const mainSource = readFileSync(join(process.cwd(), 'src', 'main', 'main.ts'), 'utf8');
+
+    expect(mainSource).toContain('!readiness.ok && !readiness.loading');
+    expect(mainSource).toContain('await waitForLocalAsrReadiness(settings)');
+  });
 });

@@ -35,6 +35,9 @@ export async function runRecordingPipeline(
     console.log(`[ASR] Transcribe completed. Cost: ${asrDurationMs}ms, Audio physical duration: ${options.durationMs}ms`);
     const rawTranscript = options.applyWordbook ? options.applyWordbook(asr.text) : asr.text;
     transcript = stripTerminalPunctuation(rawTranscript);
+    if (!transcript.trim()) {
+      throw new Error('语音识别结果为空，请检查麦克风或重新录音');
+    }
 
     const shouldCleanup = options.shouldCleanupText?.(transcript) ?? true;
     if (shouldCleanup) {

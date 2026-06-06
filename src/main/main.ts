@@ -309,6 +309,17 @@ function warmupLocalAsr(settings: ReturnType<SettingsStore['getSettings']>): Pro
   return asrDaemonStartupPromise;
 }
 
+async function waitForLocalAsrReadiness(
+  settings: ReturnType<SettingsStore['getSettings']>
+): Promise<{ ok: boolean; loading?: boolean; message?: string }> {
+  const readiness = localAsrReadiness(settings);
+  if (!readiness.loading) {
+    return readiness;
+  }
+  await warmupLocalAsr(settings);
+  return localAsrReadiness(settings);
+}
+
 async function stopExistingLocalAsrDaemons(): Promise<void> {
   if (process.platform !== 'win32') return;
 
@@ -764,7 +775,10 @@ function installIpcHandlers(): void {
     if (!settingsStore || !settings) {
       return { ok: false, message: '设置存储不可用' };
     }
-    const readiness = localAsrReadiness(settings);
+    let readiness = localAsrReadiness(settings);
+    if (readiness.loading) {
+      readiness = await waitForLocalAsrReadiness(settings);
+    }
     if (!readiness.ok) {
       updateProcessingFloatingState({ status: 'failed', error: readiness.message }, submittedGeneration);
       if (readiness.message) {
@@ -1160,7 +1174,7 @@ function setRecording(next: boolean): void {
     const settings = settingsStore?.getSettings();
     if (settings) {
       const readiness = localAsrReadiness(settings);
-      if (!readiness.ok) {
+      if (!readiness.ok && !readiness.loading) {
         if (readiness.message) {
           notifyLocalAsrRequired(readiness.message);
         }
