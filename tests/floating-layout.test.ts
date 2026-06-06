@@ -17,4 +17,12 @@ describe('floating capsule layout styles', () => {
     expect(css).toMatch(/body\.floating-page\s*\{[^}]*background:\s*transparent/s);
     expect(css).toMatch(/html\.floating-page\s+body\.floating-page\s+#root\s*\{[^}]*background:\s*transparent/s);
   });
+
+  it('clamps restored floating window position into the current display work area', () => {
+    const mainSource = readFileSync(join(process.cwd(), 'src', 'main', 'main.ts'), 'utf8');
+
+    expect(mainSource).toContain('clampFloatingPosition');
+    expect(mainSource).toContain('display.workArea');
+    expect(mainSource).toContain('Math.min(Math.max');
+  });
 });

@@ -121,6 +121,24 @@ function saveFloatingPosition(x: number, y: number): void {
   }, 500);
 }
 
+function clampFloatingPosition(
+  position: { x: number; y: number } | undefined,
+  workArea: { x: number; y: number; width: number; height: number },
+  size: { width: number; height: number }
+): { x: number; y: number } {
+  const fallback = {
+    x: Math.round(workArea.x + (workArea.width - size.width) / 2),
+    y: Math.round(workArea.y + workArea.height - size.height - 36)
+  };
+  const candidate = position ?? fallback;
+  const maxX = workArea.x + Math.max(0, workArea.width - size.width);
+  const maxY = workArea.y + Math.max(0, workArea.height - size.height);
+  return {
+    x: Math.min(Math.max(candidate.x, workArea.x), maxX),
+    y: Math.min(Math.max(candidate.y, workArea.y), maxY)
+  };
+}
+
 
 let mainWindow: BrowserWindow | undefined;
 let settingsStore: SettingsStore | undefined;
@@ -613,9 +631,9 @@ async function createMainWindow(): Promise<void> {
 async function createFloating(): Promise<void> {
   const display = screen.getPrimaryDisplay();
   const size = { width: 120, height: 30 };
-  const savedPos = loadFloatingPosition();
-  const x = savedPos?.x ?? Math.round(display.workArea.x + (display.workArea.width - size.width) / 2);
-  const y = savedPos?.y ?? Math.round(display.workArea.y + display.workArea.height - size.height - 36);
+  const savedPos = clampFloatingPosition(loadFloatingPosition(), display.workArea, size);
+  const x = savedPos.x;
+  const y = savedPos.y;
 
   let floatingBrowserWindow: BrowserWindow | undefined;
 

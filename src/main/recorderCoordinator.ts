@@ -2,6 +2,7 @@ import type { AsrProvider, CleanupResult } from './providers';
 import type { SettingsStore, TranscriptionRecord } from './settingsStore';
 
 const TERMINAL_PUNCTUATION_RE = /[。．，、！？!?.,：:；;]+$/u;
+const MIN_RECORDING_DURATION_MS = 350;
 
 export type RecordingPipelineOptions = {
   audio: ArrayBuffer;
@@ -29,6 +30,10 @@ export async function runRecordingPipeline(
   let totalTokens: number | undefined;
 
   try {
+    if (options.durationMs < MIN_RECORDING_DURATION_MS) {
+      throw new Error('录音时间过短，请按住后再开始说话');
+    }
+
     const asrStart = Date.now();
     const asr = await options.asrProvider.transcribe(options.audio);
     asrDurationMs = Date.now() - asrStart;

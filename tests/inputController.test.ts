@@ -279,6 +279,29 @@ describe('recorderCoordinator', () => {
     expect(store.listRecords()[0]).toEqual(record);
   });
 
+  it('rejects very short recordings before calling ASR', async () => {
+    const store = createSettingsStore({ store: createMemoryStore() });
+    const transcribe = vi.fn().mockResolvedValue({ text: 'raw text', provider: 'mock' });
+    const paste = vi.fn().mockResolvedValue({ status: 'pasted' });
+
+    const record = await runRecordingPipeline({
+      audio: new ArrayBuffer(0),
+      durationMs: 180,
+      asrProvider: { name: 'mock', transcribe },
+      cleanupText: vi.fn(),
+      pasteText: paste,
+      settingsStore: store,
+      shouldCleanupText: shouldCleanupTranscript
+    });
+
+    expect(record.status).toBe('failed');
+    expect(record.error).toContain('录音时间过短');
+    expect(record.pasteSucceeded).toBe(false);
+    expect(transcribe).not.toHaveBeenCalled();
+    expect(paste).not.toHaveBeenCalled();
+    expect(store.listRecords()[0]).toEqual(record);
+  });
+
   it('strips trailing punctuation before pasting short transcripts that skip cleanup', async () => {
     const store = createSettingsStore({ store: createMemoryStore() });
     const cleanup = vi.fn().mockResolvedValue({ text: 'clean text', totalTokens: undefined });
