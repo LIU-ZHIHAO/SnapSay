@@ -32,3 +32,4 @@ asr-daemon-onnx.spec
 !.env.example
 
 src-tauri/target/
+native-macos/.build/
