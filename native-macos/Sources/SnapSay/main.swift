@@ -272,6 +272,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     appMenu.addItem(quitItem)
     appMenuItem.submenu = appMenu
     mainMenu.addItem(appMenuItem)
+    mainMenu.addItem(standardEditMenuItem())
     NSApp.mainMenu = mainMenu
   }
 
@@ -649,6 +650,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   }
 }
 
+func standardEditMenuItem() -> NSMenuItem {
+  let editMenuItem = NSMenuItem()
+  let editMenu = NSMenu(title: "编辑")
+  editMenu.addItem(NSMenuItem(title: "撤销", action: Selector(("undo:")), keyEquivalent: "z"))
+  editMenu.addItem(NSMenuItem(title: "重做", action: Selector(("redo:")), keyEquivalent: "Z"))
+  editMenu.addItem(.separator())
+  editMenu.addItem(NSMenuItem(title: "剪切", action: #selector(NSText.cut(_:)), keyEquivalent: "x"))
+  editMenu.addItem(NSMenuItem(title: "复制", action: #selector(NSText.copy(_:)), keyEquivalent: "c"))
+  editMenu.addItem(NSMenuItem(title: "粘贴", action: #selector(NSText.paste(_:)), keyEquivalent: "v"))
+  editMenu.addItem(NSMenuItem(title: "全选", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a"))
+  editMenuItem.submenu = editMenu
+  return editMenuItem
+}
+
 func transcribeWithLocalRecovery(audio: Data, daemon: ASRDaemonManager, asrClient: ASRDaemonClient) async throws -> String {
   do {
     return try await asrClient.transcribe(audio: audio)
@@ -919,6 +934,9 @@ struct SnapSayMain {
     case "--self-test-ui-bundle":
       runUiBundleSelfTest()
       return true
+    case "--self-test-edit-menu":
+      runEditMenuSelfTest()
+      return true
     case "--self-test-json":
       runJsonSelfTest()
       return true
@@ -1060,6 +1078,15 @@ struct SnapSayMain {
       print("ui-bundle-index-snapsay=\(index.contains("snapsay-main.js") && index.contains("snapsay-main.css"))")
       print("ui-bundle-index-module=\(index.contains("type=\"module\""))")
     }
+  }
+
+  private static func runEditMenuSelfTest() {
+    let editMenu = standardEditMenuItem().submenu
+    let actions = editMenu?.items.compactMap { item in item.action.map(NSStringFromSelector) } ?? []
+    print("edit-menu-title=\(editMenu?.title ?? "none")")
+    print("edit-menu-actions=\(actions.joined(separator: ","))")
+    print("edit-menu-has-paste=\(actions.contains("paste:"))")
+    print("edit-menu-has-select-all=\(actions.contains("selectAll:"))")
   }
 
   private static func runJsonSelfTest() {
