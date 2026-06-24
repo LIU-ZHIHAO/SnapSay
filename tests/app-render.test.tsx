@@ -6,7 +6,7 @@ import { DEFAULT_CLEANUP_PROMPT } from '../src/shared/cleanupPolicy';
 function demoDashboardSettings() {
   return {
     triggerKey: 'Ctrl + Alt + Space',
-    recordMode: '按住说话',
+    recordMode: '点击开始/停止',
     asr: 'SenseVoice',
     asrAcceleration: 'GPU 优先',
     localModelDir: 'D:\\Antigravity\\SnapSay\\models',
@@ -64,9 +64,9 @@ describe('SnapSay main renderer', () => {
     expect(screen.getByText('时长')).toBeInTheDocument();
     expect(screen.getByText('8秒')).toBeInTheDocument();
     expect(screen.getByText('字数')).toBeInTheDocument();
-    expect(screen.getByText('77 字')).toBeInTheDocument();
+    expect(screen.getByText('76 字')).toBeInTheDocument();
     expect(screen.getByText('语速')).toBeInTheDocument();
-    expect(screen.getByText('563 字/分钟')).toBeInTheDocument();
+    expect(screen.getByText('556 字/分钟')).toBeInTheDocument();
     expect(screen.getByText('改写风格')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /改写风格/ })).toHaveTextContent('日常聊天');
 
@@ -139,6 +139,7 @@ describe('SnapSay main renderer', () => {
 
     expect(screen.getByRole('heading', { name: '设置' })).toBeInTheDocument();
     expect(screen.getByLabelText('键盘快捷键')).toHaveValue('Ctrl + Alt + Space');
+    expect(screen.getByLabelText('启用鼠标触发')).toBeChecked();
     expect(screen.getByRole('button', { name: '鼠标快捷键' })).toHaveTextContent('鼠标中键');
     expect(screen.getByLabelText('短按动作')).toHaveValue('语音输入');
     expect(screen.getByLabelText('长按动作')).toHaveValue('语音助手');
@@ -167,6 +168,22 @@ describe('SnapSay main renderer', () => {
       expect(saveSettings).toHaveBeenCalledWith(expect.objectContaining({ mouseTrigger: 'Mouse Side 1' }));
     });
     expect(screen.getByLabelText('鼠标快捷键值')).toHaveValue('Mouse Side 1');
+  });
+
+  it('allows disabling mouse trigger capture from settings', async () => {
+    const saveSettings = vi.fn().mockResolvedValue(undefined);
+    window.snapsay = { saveSettings };
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: '设置' }));
+
+    fireEvent.click(screen.getByLabelText('启用鼠标触发'));
+
+    await waitFor(() => {
+      expect(saveSettings).toHaveBeenCalledWith(expect.objectContaining({ smartMouseMode: false }));
+    });
+    expect(screen.getByRole('button', { name: '鼠标快捷键' })).toHaveTextContent('已关闭');
+    expect(screen.getByRole('button', { name: '鼠标快捷键' })).toBeDisabled();
   });
 
   it('lists microphones in settings and saves the selected device', async () => {
@@ -685,9 +702,10 @@ describe('SnapSay main renderer', () => {
       pasteSucceeded: true
     });
 
-    expect(await screen.findByText('Claude code')).toBeInTheDocument();
+    expect(await screen.findByText('cloud cold')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '展开记录' }));
     expect(await screen.findByText('原始提取')).toBeInTheDocument();
+    expect(await screen.findByText('Claude code')).toBeInTheDocument();
     expect(screen.getByRole('region', { name: '最近记录' })).toBeInTheDocument();
   });
 
@@ -914,7 +932,7 @@ describe('SnapSay main renderer', () => {
       getDashboard: async () => ({
         settings: {
           triggerKey: 'Ctrl + Alt + Space',
-          recordMode: '按住说话',
+          recordMode: '点击开始/停止',
           asr: 'SenseVoice',
           asrAcceleration: 'GPU 优先',
           localModelDir: 'D:\\Antigravity\\SnapSay\\models',
@@ -1009,7 +1027,7 @@ describe('SnapSay main renderer', () => {
       getDashboard: async () => ({
         settings: {
           triggerKey: 'Ctrl + Alt + Space',
-          recordMode: '按住说话',
+          recordMode: '点击开始/停止',
           asr: 'SenseVoice',
           asrAcceleration: 'GPU 优先',
           localModelDir: 'D:\\Antigravity\\SnapSay\\models',

@@ -1,5 +1,6 @@
 import { DEFAULT_CLEANUP_PROMPT } from '../shared/cleanupPolicy.js';
 import { basename, dirname, join } from 'node:path';
+import { homedir } from 'node:os';
 import {
   createMemoryRecordStore,
   type ImportRecordsResult,
@@ -23,6 +24,9 @@ function defaultProjectRoot(): string {
     return process.env.SNAPSAY_ROOT;
   }
   if (process.versions.electron && !electronProcess.defaultApp) {
+    if (process.platform === 'darwin') {
+      return join(homedir(), 'Library', 'Application Support', 'SnapSay');
+    }
     const installRoot = dirname(process.execPath);
     return join(dirname(installRoot), `${basename(installRoot)}Data`);
   }
@@ -30,6 +34,16 @@ function defaultProjectRoot(): string {
 }
 
 const PROJECT_ROOT = defaultProjectRoot();
+
+function runtimePath(...parts: string[]): string {
+  return join(PROJECT_ROOT, ...parts);
+}
+
+function defaultPythonPath(): string {
+  return process.platform === 'win32'
+    ? runtimePath('.venv', 'Scripts', 'python.exe')
+    : runtimePath('.venv', 'bin', 'python');
+}
 
 export type CleanupProviderConfig = {
   type: 'openai-compatible';
@@ -149,18 +163,18 @@ export const defaultSettings: AppSettings = {
       modifiers: []
     },
     triggerLabel: 'F8',
-    recordMode: '按住说话',
+    recordMode: '点击开始/停止',
     asr: 'SenseVoice',
     asrAcceleration: 'GPU 优先',
-    localModelDir: `${PROJECT_ROOT}\\models`,
-    senseVoiceModelPath: `${PROJECT_ROOT}\\models\\sensevoice\\SenseVoiceSmall`,
-    pythonPath: `${PROJECT_ROOT}\\.venv\\Scripts\\python.exe`,
+    localModelDir: runtimePath('models'),
+    senseVoiceModelPath: runtimePath('models', 'sensevoice', 'SenseVoiceSmall'),
+    pythonPath: defaultPythonPath(),
     outputMode: '粘贴到当前光标',
-    dataDir: `${PROJECT_ROOT}\\data`,
+    dataDir: runtimePath('data'),
     microphoneDeviceId: '',
     shortPressAction: '语音输入',
     longPressAction: '语音助手',
-    smartMouseMode: true,
+    smartMouseMode: process.platform !== 'darwin',
     wordbook: [],
     asrProfiles: defaultAsrProfiles(),
     activeAsrProfileId: 'local-sensevoice',
@@ -330,9 +344,11 @@ function mergeInputSettings(settings?: Partial<AppSettings['input']>): AppSettin
     ? settings.activeAsrProfileId
     : activeAsrProfileFromLegacy(settings?.asr) ?? settings?.activeAsrProfileId ?? defaultSettings.input.activeAsrProfileId;
   const activeProfile = asrProfiles.find((profile) => profile.id === activeAsrProfileId) ?? asrProfiles[0];
+  const migratedPaths = migrateInputRuntimePaths(settings);
   return {
     ...defaultSettings.input,
     ...settings,
+    ...migratedPaths,
     trigger: {
       ...defaultSettings.input.trigger,
       ...settings?.trigger
@@ -341,6 +357,40 @@ function mergeInputSettings(settings?: Partial<AppSettings['input']>): AppSettin
     activeAsrProfileId: activeProfile.id,
     asr: activeProfile.engine
   };
+}
+
+function migrateInputRuntimePaths(settings?: Partial<AppSettings['input']>): Partial<AppSettings['input']> {
+  if (process.platform !== 'darwin') {
+    return {};
+  }
+  const localModelDir = migrateMacRuntimePath(settings?.localModelDir);
+  const senseVoiceModelPath = migrateMacRuntimePath(settings?.senseVoiceModelPath);
+  const dataDir = migrateMacRuntimePath(settings?.dataDir);
+  const pythonPath = shouldResetMacPythonPath(settings?.pythonPath)
+    ? defaultSettings.input.pythonPath
+    : migrateMacRuntimePath(settings?.pythonPath);
+
+  return {
+    ...(localModelDir ? { localModelDir } : {}),
+    ...(senseVoiceModelPath ? { senseVoiceModelPath } : {}),
+    ...(dataDir ? { dataDir } : {}),
+    ...(pythonPath ? { pythonPath } : {})
+  };
+}
+
+function migrateMacRuntimePath(path: string | undefined): string | undefined {
+  if (!path) {
+    return undefined;
+  }
+  const legacyMatch = path.match(/^(.+?SnapSay\.app\/Contents\/MacOSData)(\/.*)?$/);
+  if (legacyMatch) {
+    return `${PROJECT_ROOT}${legacyMatch[2] ?? ''}`;
+  }
+  return path;
+}
+
+function shouldResetMacPythonPath(path: string | undefined): boolean {
+  return !path || /SnapSay\.app\/Contents\/MacOSData\/\.venv\/bin\/python$/.test(path) || /app\.asar\/\.venv\/bin\/python$/.test(path);
 }
 
 function mergeLlmProviders(

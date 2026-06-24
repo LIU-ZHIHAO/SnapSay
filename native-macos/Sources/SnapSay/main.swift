@@ -541,7 +541,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
   private func shouldHandleMouseTrigger(type: CGEventType, event: CGEvent) -> Bool {
-    guard let trigger = settingsStore.load().mouseTrigger else { return false }
+    let settings = settingsStore.load()
+    guard settings.smartMouseMode, let trigger = settings.mouseTrigger else { return false }
     let button = Int(event.getIntegerValueField(.mouseEventButtonNumber))
     switch type {
     case .leftMouseDown:
@@ -2647,7 +2648,7 @@ func defaultSettingsRoot() -> [String: Any] {
         "microphoneDeviceId": "",
         "shortPressAction": "语音输入",
         "longPressAction": "语音助手",
-        "smartMouseMode": true,
+        "smartMouseMode": false,
         "mouseTrigger": "Mouse Middle",
         "activeAsrProfileId": "local-sensevoice",
         "asrProfiles": [
@@ -2690,7 +2691,7 @@ final class SnapSaySettingsStore: @unchecked Sendable {
     let microphoneDeviceId = nonEmptyString(input?["microphoneDeviceId"]) ?? ""
     let shortPressAction = nonEmptyString(input?["shortPressAction"]) ?? "语音输入"
     let longPressAction = nonEmptyString(input?["longPressAction"]) ?? "语音助手"
-    let smartMouseMode = input?["smartMouseMode"] as? Bool ?? true
+    let smartMouseMode = input?["smartMouseMode"] as? Bool ?? false
     let mouseTriggerLabel = nonEmptyString(input?["mouseTrigger"]) ?? "Mouse Middle"
     let mouseTrigger = MouseTriggerParser.parse(label: mouseTriggerLabel)
     appLog("settings loaded cleanupEnabled=\(cleanupEnabled) cleanupProvider=\(provider?.displayName ?? "none") wordbook=\(wordbook.count) hotkey=\(hotKey.label) mouse=\(mouseTriggerLabel) smartMouse=\(smartMouseMode) mic=\(microphoneDeviceId.isEmpty ? "default" : microphoneDeviceId) asr=\(asrProfile.id) outputMode=\(outputMode)")
@@ -3044,7 +3045,7 @@ final class SnapSayDashboardStore: @unchecked Sendable {
     input["microphoneDeviceId"] = string(renderer["microphoneDeviceId"], fallback: "")
     input["shortPressAction"] = string(renderer["shortPressAction"], fallback: "语音输入")
     input["longPressAction"] = string(renderer["longPressAction"], fallback: "语音助手")
-    input["smartMouseMode"] = renderer["smartMouseMode"] as? Bool ?? true
+    input["smartMouseMode"] = renderer["smartMouseMode"] as? Bool ?? false
     input["mouseTrigger"] = string(renderer["mouseTrigger"], fallback: "Mouse Middle")
     input["asrProfiles"] = renderer["asrProfiles"] as? [[String: Any]] ?? input["asrProfiles"]
     input["activeAsrProfileId"] = string(renderer["activeAsrProfileId"], fallback: "local-sensevoice")
@@ -3470,7 +3471,7 @@ final class SnapSayDashboardStore: @unchecked Sendable {
       "microphoneDeviceId": string(input["microphoneDeviceId"], fallback: ""),
       "shortPressAction": string(input["shortPressAction"], fallback: "语音输入"),
       "longPressAction": string(input["longPressAction"], fallback: "语音助手"),
-      "smartMouseMode": input["smartMouseMode"] as? Bool ?? true,
+      "smartMouseMode": input["smartMouseMode"] as? Bool ?? false,
       "mouseTrigger": string(input["mouseTrigger"], fallback: "Mouse Middle"),
       "cloudAsrType": string(cloudAsr["type"], fallback: "openai-whisper"),
       "cloudAsrBaseUrl": string(cloudAsr["baseUrl"], fallback: ""),

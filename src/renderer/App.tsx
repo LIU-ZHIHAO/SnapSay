@@ -314,6 +314,7 @@ type SnapSayFacade = {
   downloadLocalModel?: () => Promise<LocalModelStatus & { ok: boolean; message: string }>;
   openLocalModelDir?: () => Promise<{ ok: boolean }>;
   windowControl?: (action: 'minimize' | 'toggle-maximize' | 'close') => Promise<boolean>;
+  reportMicrophonePermissionResult?: (result: unknown) => Promise<{ ok: boolean }>;
   onRecordingStart?: (callback: () => void) => () => void;
   onRecordingStop?: (callback: () => void) => () => void;
   onRecordAdded?: (callback: (record: RecordItem) => void) => () => void;
@@ -322,6 +323,7 @@ type SnapSayFacade = {
   onRecordsCleared?: (callback: () => void) => () => void;
   onRecordsSynced?: (callback: (records: RecordItem[]) => void) => () => void;
   onLocalAsrRequired?: (callback: (payload: { message?: string }) => void) => () => void;
+  onRequestMicrophoneAccess?: (callback: () => void) => () => void;
 };
 
 declare global {
@@ -332,7 +334,7 @@ declare global {
 
 const demoSettings: SettingsState = {
   triggerKey: 'Ctrl + Alt + Space',
-  recordMode: '按住说话',
+  recordMode: '点击开始/停止',
   asr: 'SenseVoice',
   asrAcceleration: 'GPU 优先',
   localModelDir: 'D:\\Antigravity\\SnapSay\\models',
@@ -443,6 +445,10 @@ function dedupeMicrophoneDevices(devices: MicrophoneDevice[]): MicrophoneDevice[
   return Array.from(byKey.values()).filter((device) => !MICROPHONE_ALIAS_IDS.has(device.deviceId));
 }
 
+function isMacPlatform(): boolean {
+  return /Mac|iPhone|iPad|iPod/i.test(navigator.platform);
+}
+
 function getFacade(): SnapSayFacade {
   return window.snapsay ?? {};
 }
@@ -515,18 +521,53 @@ export default function App() {
   };
 
   useEffect(() => {
-    getFacade()
-      .getDashboard?.()
-      .then((dashboard) => {
-        setSettings(dashboard.settings);
-        setRecords(dashboard.records.map(normalizeRecordItem));
-        void getFacade().getLocalAsrNotice?.().then((notice) => {
-          if (notice?.message) {
-            showLocalAsrNotice(notice.message);
+    let disposed = false;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let attempts = 0;
+
+    const loadDashboard = () => {
+      const facade = getFacade();
+      if (!facade.getDashboard) {
+        if (attempts < 40) {
+          attempts += 1;
+          retryTimer = setTimeout(loadDashboard, 50);
+        }
+        return;
+      }
+
+      facade
+        .getDashboard()
+        .then((dashboard) => {
+          if (disposed) {
+            return;
+          }
+          if (!dashboard?.settings || !Array.isArray(dashboard.records)) {
+            throw new Error('Invalid dashboard payload');
+          }
+          setSettings(dashboard.settings);
+          setRecords(dashboard.records.map(normalizeRecordItem));
+          void getFacade().getLocalAsrNotice?.().then((notice) => {
+            if (!disposed && notice?.message) {
+              showLocalAsrNotice(notice.message);
+            }
+          });
+        })
+        .catch(() => {
+          if (!disposed && attempts < 40) {
+            attempts += 1;
+            retryTimer = setTimeout(loadDashboard, 100);
           }
         });
-      })
-      .catch(() => undefined);
+    };
+
+    loadDashboard();
+
+    return () => {
+      disposed = true;
+      if (retryTimer) {
+        clearTimeout(retryTimer);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -582,9 +623,35 @@ export default function App() {
         }
       }
     };
+    const requestMicrophoneAccess = async () => {
+      try {
+        const stream = await navigator.mediaDevices?.getUserMedia?.({ audio: true });
+        stream?.getTracks().forEach((track) => track.stop());
+        void getFacade().reportMicrophonePermissionResult?.({
+          ok: Boolean(stream),
+          trackCount: stream?.getTracks().length ?? 0
+        });
+        if (!disposed) {
+          await enumerateMicrophones();
+        }
+      } catch (error) {
+        void getFacade().reportMicrophonePermissionResult?.({
+          ok: false,
+          name: error instanceof DOMException ? error.name : undefined,
+          message: error instanceof Error ? error.message : String(error)
+        });
+        if (!disposed) {
+          await enumerateMicrophones();
+        }
+      }
+    };
+    const offRequestMicrophoneAccess = getFacade().onRequestMicrophoneAccess?.(() => {
+      void requestMicrophoneAccess();
+    });
     void enumerateMicrophones();
     return () => {
       disposed = true;
+      offRequestMicrophoneAccess?.();
     };
   }, []);
 
@@ -997,10 +1064,8 @@ function Dashboard(props: {
   const allPresets = multiPrompt.presets;
   const activeId = multiPrompt.activeStyle;
 
-  // Calculate recording statistics
-  const totalDurationMs = props.records.reduce((acc, r) => acc + (r.durationMs || 0), 0);
-  const totalChars = props.records.reduce((acc, r) => acc + (r.original || '').length, 0);
-  const avgSpeechRate = totalDurationMs > 0 ? Math.round((totalChars * 60000) / totalDurationMs) : 0;
+  // Keep dashboard stats aligned with the text the user actually sees in history cards.
+  const { totalDurationMs, totalChars, avgSpeechRate } = getDashboardStats(props.records);
 
   // Format statistics
   let durationStr = '0秒';
@@ -1163,7 +1228,18 @@ function firstFilledText(...values: (string | undefined | null)[]): string {
 }
 
 function getRecordDisplayText(record: RecordItem): string {
+  return firstFilledText(record.refined, record.original, record.userCorrection);
+}
+
+function getCorrectionDraftText(record: RecordItem): string {
   return firstFilledText(record.userCorrection, record.refined, record.original);
+}
+
+function getDashboardStats(records: RecordItem[]) {
+  const totalDurationMs = records.reduce((acc, record) => acc + (record.durationMs || 0), 0);
+  const totalChars = records.reduce((acc, record) => acc + getRecordDisplayText(record).length, 0);
+  const avgSpeechRate = totalDurationMs > 0 ? Math.round((totalChars * 60000) / totalDurationMs) : 0;
+  return { totalDurationMs, totalChars, avgSpeechRate };
 }
 
 function normalizeRecordItem(record: RecordItem | Record<string, unknown>): RecordItem {
@@ -1195,7 +1271,12 @@ function normalizeRecordItem(record: RecordItem | Record<string, unknown>): Reco
         })
       : '';
   const rawStatus = (record as { status?: unknown }).status;
-  const status = rawStatus === 'completed' ? '已输入' : rawStatus === 'failed' ? '失败' : String(rawStatus ?? '已输入');
+  const pasteSucceeded = (record as { pasteSucceeded?: unknown }).pasteSucceeded;
+  const status = rawStatus === 'completed'
+    ? pasteSucceeded === false ? '已复制' : '已输入'
+    : rawStatus === 'failed'
+      ? '失败'
+      : String(rawStatus ?? '已输入');
 
   return {
     ...item,
@@ -1247,7 +1328,7 @@ function FullRecordList(props: {
 
   const openCorrection = (record: RecordItem) => {
     setExpandedCorrectionId(record.id);
-    setCorrectionDraft(getRecordDisplayText(record));
+    setCorrectionDraft(getCorrectionDraftText(record));
     setCorrectionStatus('');
   };
 
@@ -1774,9 +1855,10 @@ function SettingsView(props: {
 
       const parts: string[] = [];
       if (event.ctrlKey) parts.push('Ctrl');
-      if (event.altKey) parts.push('Alt');
+      if (event.altKey) parts.push(isMacPlatform() ? 'Option' : 'Alt');
       if (event.shiftKey) parts.push('Shift');
-      if (event.metaKey) parts.push('Win');
+      if (event.metaKey) parts.push(isMacPlatform() ? 'Command' : 'Win');
+      if (event.getModifierState?.('Fn')) parts.push('Fn');
 
       const keyName = event.key;
 
@@ -1785,7 +1867,7 @@ function SettingsView(props: {
         return;
       }
 
-      const isModifier = ['Control', 'Alt', 'Shift', 'Meta'].includes(keyName);
+      const isModifier = ['Control', 'Alt', 'Shift', 'Meta', 'Fn'].includes(keyName);
 
       if (isModifier) {
         if (parts.length > 0) {
@@ -1831,9 +1913,10 @@ function SettingsView(props: {
 
       const parts: string[] = [];
       if (event.ctrlKey) parts.push('Ctrl');
-      if (event.altKey) parts.push('Alt');
+      if (event.altKey) parts.push(isMacPlatform() ? 'Option' : 'Alt');
       if (event.shiftKey) parts.push('Shift');
-      if (event.metaKey) parts.push('Win');
+      if (event.metaKey) parts.push(isMacPlatform() ? 'Command' : 'Win');
+      if (event.getModifierState?.('Fn')) parts.push('Fn');
 
       if (parts.length > 0) {
         setCaptureDisplay(`${parts.join(' + ')} + ...`);
@@ -1852,7 +1935,7 @@ function SettingsView(props: {
   }, [isCapturing, onUpdate]);
 
   useEffect(() => {
-    if (!isCapturingMouse) return;
+    if (!isCapturingMouse || !settings.smartMouseMode) return;
 
     const handleMouseDown = (event: MouseEvent) => {
       event.preventDefault();
@@ -1884,7 +1967,14 @@ function SettingsView(props: {
       window.removeEventListener('keydown', handleKeyDown, true);
       window.removeEventListener('contextmenu', preventCaptureContextMenu, true);
     };
-  }, [isCapturingMouse, onUpdate]);
+  }, [isCapturingMouse, onUpdate, settings.smartMouseMode]);
+
+  useEffect(() => {
+    if (!settings.smartMouseMode && isCapturingMouse) {
+      setIsCapturingMouse(false);
+      setMouseCaptureDisplay('请按下鼠标按键');
+    }
+  }, [isCapturingMouse, settings.smartMouseMode]);
 
   const addWordbookEntry = () => {
     const target = newTarget.trim();
@@ -1952,21 +2042,41 @@ function SettingsView(props: {
 
           {/* 右栏：鼠标快捷键 */}
           <div className="shortcut-config" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)' }}>鼠标快捷键</span>
+            <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)' }}>
+              <span>鼠标快捷键</span>
+              <span className="switch-control">
+                <input
+                  aria-label="启用鼠标触发"
+                  checked={settings.smartMouseMode}
+                  onChange={(event) => {
+                    onUpdate('smartMouseMode', event.target.checked);
+                    if (!event.target.checked) {
+                      setIsCapturingMouse(false);
+                    }
+                  }}
+                  type="checkbox"
+                />
+                <span aria-hidden="true" />
+              </span>
+            </label>
             <button
               aria-label="鼠标快捷键"
               className={`shortcut-capture mouse-capture ${isCapturingMouse ? 'active' : ''}`}
+              disabled={!settings.smartMouseMode}
               onClick={() => {
+                if (!settings.smartMouseMode) return;
                 setIsCapturingMouse(true);
                 setMouseCaptureDisplay('请按下鼠标按键');
               }}
               style={{ width: '100%', boxSizing: 'border-box' }}
               type="button"
             >
-              <span>{isCapturingMouse ? mouseCaptureDisplay : mouseTriggerDisplay(settings.mouseTrigger)}</span>
+              <span>{settings.smartMouseMode ? (isCapturingMouse ? mouseCaptureDisplay : mouseTriggerDisplay(settings.mouseTrigger)) : '已关闭'}</span>
             </button>
             <div className="shortcut-help" style={{ width: '100%', boxSizing: 'border-box', justifyContent: 'center', color: 'var(--text-secondary)' }}>
-              {isCapturingMouse ? '正在录制中，请点击鼠标按键（Esc 键取消）' : '点击上方卡片开始识别鼠标按键'}
+              {settings.smartMouseMode
+                ? (isCapturingMouse ? '正在录制中，请点击鼠标按键（Esc 键取消）' : '点击上方卡片开始识别鼠标按键')
+                : '已关闭鼠标触发，避免误点左键或触控板触发录音'}
             </div>
             <input
               type="text"
