@@ -2042,7 +2042,7 @@ function SettingsView(props: {
 
           {/* 右栏：鼠标快捷键 */}
           <div className="shortcut-config" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)' }}>
+            <label style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: '12px', fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)' }}>
               <span>鼠标快捷键</span>
               <span className="switch-control">
                 <input
