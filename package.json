@@ -2,91 +2,37 @@
   "name": "snapsay",
   "version": "0.1.0",
   "private": true,
-  "description": "SnapSay Windows voice input assistant",
+  "description": "SnapSay native macOS voice input assistant",
   "author": "SnapSay",
   "license": "PolyForm-Noncommercial-1.0.0",
-  "main": "dist-electron/main/main.js",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 14231",
-    "build": "npm run typecheck && vite build && npx tsc -p tsconfig.electron.json",
-    "test": "node scripts/run-tests-with-native-rebuild.cjs",
+    "build": "npm run typecheck && vite build && npm run native:mac",
+    "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "npx tsc --noEmit && npx tsc -p tsconfig.electron.json --noEmit",
-    "rebuild:native": "electron-rebuild -f -o better-sqlite3 --types prod",
-    "postinstall": "npm run rebuild:native",
-    "electron": "powershell -ExecutionPolicy Bypass -File scripts/start-electron-onnx.ps1",
-    "electron:onnx": "powershell -ExecutionPolicy Bypass -File scripts/start-electron-onnx.ps1",
-    "patch:nsis-install-dir": "powershell -ExecutionPolicy Bypass -File scripts/patch-nsis-install-dir.ps1",
-    "dist:onnx-daemon": "powershell -ExecutionPolicy Bypass -File scripts/build-onnx-daemon.ps1",
-    "dist:win": "npm run patch:nsis-install-dir && electron-builder --win nsis portable",
-    "dist:onnx": "powershell -ExecutionPolicy Bypass -File scripts/prepare-dist.ps1",
-    "setup:onnx": "powershell -ExecutionPolicy Bypass -File scripts/setup-onnx-asr.ps1",
-    "setup:windows": "powershell -ExecutionPolicy Bypass -File scripts/setup-windows.ps1",
+    "typecheck": "npx tsc --noEmit",
+    "native:mac": "bash scripts/build-native-macos.sh",
+    "dist:mac": "npm run build",
+    "setup:onnx:macos": "bash scripts/setup-onnx-asr-macos.sh",
     "watch-commit": "chokidar \"src/**/*\" -c \"git add . && git commit -m 'auto: code change detected' --allow-empty\""
-  },
-  "build": {
-    "appId": "cn.snapsay.desktop",
-    "productName": "SnapSay",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "dist-electron/**/*",
-      "package.json"
-    ],
-    "extraResources": [
-      {
-        "from": "release/asr-daemon-onnx",
-        "to": "asr-daemon-onnx",
-        "filter": [
-          "**/*"
-        ]
-      }
-    ],
-    "asar": true,
-    "npmRebuild": false,
-    "win": {
-      "target": [
-        "nsis",
-        "portable"
-      ]
-    },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "SnapSay"
-    }
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.1.1",
-    "better-sqlite3": "^12.10.0",
-    "electron-store": "^10.1.0",
     "lucide-react": "^0.561.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
   },
   "devDependencies": {
-    "@electron/rebuild": "^4.0.4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^24.10.2",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@vitest/ui": "^4.0.15",
     "chokidar-cli": "^3.0.0",
-    "electron": "^39.2.7",
-    "electron-builder": "^26.8.1",
     "jsdom": "^27.3.0",
     "typescript": "^5.9.3",
     "vite": "^7.2.7",
     "vitest": "^4.0.15"
-  },
-  "optionalDependencies": {
-    "uiohook-napi": "^1.5.4"
   }
 }

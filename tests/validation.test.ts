@@ -22,11 +22,19 @@ describe('shared validation helpers', () => {
   });
 
   it('rejects C drive storage paths and accepts D drive storage paths', () => {
-    expect(validateStoragePath('C:\\Users\\lzh\\AppData\\SnapSay')).toEqual({
+    expect(validateStoragePath('C:\\Users\\lzh\\AppData\\SnapSay', 'win32')).toEqual({
       valid: false,
       reason: 'Storage paths must not default to the C drive or user profile.'
     });
-    expect(validateStoragePath('D:\\Antigravity\\SnapSay\\data')).toEqual({ valid: true });
+    expect(validateStoragePath('D:\\Antigravity\\SnapSay\\data', 'win32')).toEqual({ valid: true });
+  });
+
+  it('accepts absolute Unix storage paths on macOS and Linux', () => {
+    expect(validateStoragePath('/Users/Admin/Data/AiCode/SnapSay/data', 'darwin')).toEqual({ valid: true });
+    expect(validateStoragePath('relative/data', 'darwin')).toEqual({
+      valid: false,
+      reason: 'Storage paths must be absolute paths.'
+    });
   });
 
   it('masks API keys by exposing only the last four characters', () => {

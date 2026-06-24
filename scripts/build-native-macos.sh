@@ -5,12 +5,11 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 NATIVE_DIR="$ROOT_DIR/native-macos"
 OUT_DIR="$ROOT_DIR/release/native-macos"
 APP_DIR="$OUT_DIR/SnapSay.app"
-LEGACY_APP_DIR="$OUT_DIR/SnapSay Native.app"
 
 cd "$NATIVE_DIR"
 swift build -c release
 
-rm -rf "$APP_DIR" "$LEGACY_APP_DIR"
+rm -rf "$APP_DIR"
 mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 cp ".build/release/SnapSay" "$APP_DIR/Contents/MacOS/SnapSay"
 cp "$NATIVE_DIR/Resources/Info.plist" "$APP_DIR/Contents/Info.plist"

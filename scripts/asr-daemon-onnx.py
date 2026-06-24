@@ -20,6 +20,7 @@ TMP_DIR = Path(os.environ.get("ASR_TMP_DIR", str(PROJECT_ROOT / "tmp")))
 PREFERRED_PROVIDER = os.environ.get("ASR_ONNX_PROVIDER", "auto").lower()
 LOCK_FILE = os.environ.get("ASR_LOCK_FILE", str(PROJECT_ROOT / "data" / "asr-daemon.lock"))
 LOCK_HANDLE = None
+GPU_PROVIDER_NAMES = {"CoreMLExecutionProvider", "DmlExecutionProvider"}
 
 def acquire_daemon_lock() -> bool:
     """Keep one ASR daemon per runtime root, even during repeated app launches."""
@@ -161,6 +162,9 @@ class SenseVoiceONNX:
     def _create_session(self, ort, onnx_path: str):
         available = set(ort.get_available_providers())
         provider_candidates = []
+        if PREFERRED_PROVIDER in ("auto", "gpu", "coreml"):
+            if "CoreMLExecutionProvider" in available:
+                provider_candidates.append(["CoreMLExecutionProvider", "CPUExecutionProvider"])
         if PREFERRED_PROVIDER in ("auto", "gpu", "directml", "dml"):
             if "DmlExecutionProvider" in available:
                 provider_candidates.append(["DmlExecutionProvider", "CPUExecutionProvider"])
@@ -235,9 +239,9 @@ class SenseVoiceONNX:
         try:
             ctc_logits, encoder_out_lens = self.session.run(None, inputs)
         except Exception as exc:
-            if "DmlExecutionProvider" not in self.execution_providers:
+            if not GPU_PROVIDER_NAMES.intersection(self.execution_providers):
                 raise
-            print(f"[ASR-ONNX] DirectML inference failed, retrying CPU: {exc}", flush=True)
+            print(f"[ASR-ONNX] GPU inference failed, retrying CPU: {exc}", flush=True)
             ctc_logits, encoder_out_lens = self._get_cpu_session().run(None, inputs)
 
         # 7. CTC greedy decode

@@ -33,7 +33,7 @@ export function sanitizeDigitInput(value: string): string {
 
 export type StoragePathValidationResult = { valid: true } | { valid: false; reason: string };
 
-export function validateStoragePath(path: string): StoragePathValidationResult {
+export function validateStoragePath(path: string, platform = typeof process === 'undefined' ? 'win32' : process.platform): StoragePathValidationResult {
   const normalized = path.trim();
 
   if (/^c:\\/i.test(normalized) || /^%userprofile%/i.test(normalized) || /^~[\\/]/.test(normalized)) {
@@ -41,6 +41,16 @@ export function validateStoragePath(path: string): StoragePathValidationResult {
       valid: false,
       reason: 'Storage paths must not default to the C drive or user profile.'
     };
+  }
+
+  if (platform === 'darwin' || platform === 'linux') {
+    if (!normalized.startsWith('/')) {
+      return {
+        valid: false,
+        reason: 'Storage paths must be absolute paths.'
+      };
+    }
+    return { valid: true };
   }
 
   if (!/^[a-z]:\\/i.test(normalized)) {

@@ -2,14 +2,23 @@ import type { AppSettings, StoragePaths } from './types';
 import { DEFAULT_CLEANUP_PROMPT } from './cleanupPolicy';
 export { DEFAULT_CLEANUP_PROMPT } from './cleanupPolicy';
 
-export const PROJECT_ROOT = 'D:\\Antigravity\\SnapSay';
+const isWindows = typeof process === 'undefined' || process.platform === 'win32';
+const separator = isWindows ? '\\' : '/';
+
+export const PROJECT_ROOT = isWindows
+  ? 'D:\\Antigravity\\SnapSay'
+  : (typeof process !== 'undefined' && (process.env.SNAPSAY_ROOT || process.cwd?.())) || '/Users/Admin/Data/AiCode/SnapSay';
+
+function projectPath(...parts: string[]): string {
+  return [PROJECT_ROOT, ...parts].join(separator);
+}
 
 export const DEFAULT_STORAGE_PATHS: StoragePaths = {
-  dataDir: `${PROJECT_ROOT}\\data`,
-  logsDir: `${PROJECT_ROOT}\\logs`,
-  cacheDir: `${PROJECT_ROOT}\\cache`,
-  modelsDir: `${PROJECT_ROOT}\\models`,
-  tmpDir: `${PROJECT_ROOT}\\tmp`
+  dataDir: projectPath('data'),
+  logsDir: projectPath('logs'),
+  cacheDir: projectPath('cache'),
+  modelsDir: projectPath('models'),
+  tmpDir: projectPath('tmp')
 };
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
@@ -21,7 +30,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
     type: 'local',
     displayName: 'Local SenseVoice',
     model: 'SenseVoiceSmall',
-    localModelPath: `${DEFAULT_STORAGE_PATHS.modelsDir}\\sensevoice`,
+    localModelPath: projectPath('models', 'sensevoice'),
     timeoutMs: 60_000
   },
   cleanupProvider: {
