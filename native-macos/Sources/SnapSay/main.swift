@@ -187,10 +187,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     requestAccessibilityIfNeeded()
     registerInputTriggers()
     NotificationCenter.default.addObserver(self, selector: #selector(settingsChanged), name: snapsaySettingsChangedNotification, object: nil)
-    if settingsStore.load().asrProfile.kind == .local {
-      daemon.reset()
-      daemon.startIfNeeded()
-    }
+    syncAsrDaemonForCurrentSettings()
     DispatchQueue.main.async { [weak self] in
       self?.openMainWindow()
     }
@@ -224,11 +221,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
   @objc private func settingsChanged() {
     registerInputTriggers()
+    syncAsrDaemonForCurrentSettings()
   }
 
   private func registerInputTriggers() {
     registerHotKey()
     registerMouseTrigger()
+  }
+
+  private func syncAsrDaemonForCurrentSettings() {
+    if settingsStore.load().asrProfile.kind == .local {
+      daemon.startIfNeeded()
+    } else {
+      daemon.reset()
+      SnapSayLocalAsrNoticeStore.shared.clear()
+      appLog("local ASR daemon stopped because active ASR profile is cloud")
+    }
   }
 
   private func createRuntimeDirectories() {
@@ -3364,6 +3372,10 @@ final class SnapSayDashboardStore: @unchecked Sendable {
   }
 
   func localAsrNotice() -> [String: Any]? {
+    guard SnapSaySettingsStore().load().asrProfile.kind == .local else {
+      SnapSayLocalAsrNoticeStore.shared.clear()
+      return nil
+    }
     let status = localModelStatus()
     if (status["installed"] as? Bool) != true {
       let missing = status["missingFiles"] as? [String] ?? []
