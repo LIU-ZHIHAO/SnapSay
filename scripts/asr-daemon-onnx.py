@@ -25,6 +25,7 @@ GPU_PROVIDER_NAMES = {"CoreMLExecutionProvider", "DmlExecutionProvider"}
 PARENT_PID = int(os.environ.get("ASR_PARENT_PID", "0") or "0")
 IDLE_TIMEOUT_SECONDS = float(os.environ.get("ASR_IDLE_TIMEOUT_SECONDS", "600") or "600")
 activity_lock = threading.Lock()
+inference_lock = threading.Lock()
 active_clients = 0
 last_activity_at = time.monotonic()
 
@@ -91,17 +92,19 @@ def load_audio(path: str, target_sr: int = 16000) -> np.ndarray:
     """Load audio file and return mono float32 samples at target_sr."""
     import av
     container = av.open(path)
-    stream = container.streams.audio[0]
-    resampler = av.audio.resampler.AudioResampler(
-        format="s16", layout="mono", rate=target_sr
-    )
-    chunks = []
-    for frame in container.decode(audio=0):
-        resampled = resampler.resample(frame)
-        chunks.extend(resampled)
-    # Flush
-    chunks.extend(resampler.resample(None))
-    container.close()
+    try:
+        stream = container.streams.audio[0]
+        resampler = av.audio.resampler.AudioResampler(
+            format="s16", layout="mono", rate=target_sr
+        )
+        chunks = []
+        for frame in container.decode(audio=0):
+            resampled = resampler.resample(frame)
+            chunks.extend(resampled)
+        # Flush
+        chunks.extend(resampler.resample(None))
+    finally:
+        container.close()
     samples = b"".join(frame.planes[0] for frame in chunks)
     return np.frombuffer(samples, dtype=np.int16).astype(np.float32) / 32768.0
 
@@ -204,7 +207,12 @@ class SenseVoiceONNX:
         provider_candidates = []
         if PREFERRED_PROVIDER in ("auto", "gpu", "coreml"):
             if "CoreMLExecutionProvider" in available:
-                provider_candidates.append(["CoreMLExecutionProvider", "CPUExecutionProvider"])
+                coreml_options = {
+                    "ModelFormat": "NeuralNetwork",
+                    "MLComputeUnits": "CPUAndNeuralEngine",
+                    "RequireStaticInputShapes": "1",
+                }
+                provider_candidates.append([("CoreMLExecutionProvider", coreml_options), "CPUExecutionProvider"])
         if PREFERRED_PROVIDER in ("auto", "gpu", "directml", "dml"):
             if "DmlExecutionProvider" in available:
                 provider_candidates.append(["DmlExecutionProvider", "CPUExecutionProvider"])
@@ -335,7 +343,8 @@ def handle_client(conn: socket.socket, model: SenseVoiceONNX):
         tmp.close()
 
         try:
-            text = model.transcribe(tmp.name, language="zh", use_itn=True)
+            with inference_lock:
+                text = model.transcribe(tmp.name, language="zh", use_itn=True)
         finally:
             os.unlink(tmp.name)
 

@@ -231,7 +231,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
   private func syncAsrDaemonForCurrentSettings() {
     if settingsStore.load().asrProfile.kind == .local {
-      appLog("local ASR profile active; daemon will start lazily on first local transcription")
+      daemon.startIfNeeded()
     } else {
       daemon.reset()
       SnapSayLocalAsrNoticeStore.shared.clear()
@@ -1524,7 +1524,9 @@ final class ASRDaemonManager {
       "ASR_PORT_FILE": portFile.path,
       "ASR_TMP_DIR": tempDir.path,
       "ASR_LOCK_FILE": lockFile.path,
-      "ASR_ONNX_PROVIDER": "auto",
+      // CoreML EP currently exits after the first SenseVoice inference on this model.
+      // Keep ONNX hot-loaded through the stable CPU EP until CoreML is proven stable.
+      "ASR_ONNX_PROVIDER": "cpu",
       "ASR_PARENT_PID": "\(getpid())",
       "ASR_IDLE_TIMEOUT_SECONDS": "600",
       "HF_HOME": runtimeRoot.appendingPathComponent("cache/huggingface").path,
