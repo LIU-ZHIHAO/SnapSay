@@ -718,7 +718,7 @@ final class SystemSpeechClient: @unchecked Sendable {
     defer { try? FileManager.default.removeItem(at: url) }
 
     let request = SFSpeechURLRecognitionRequest(url: url)
-    request.shouldReportPartialResults = false
+    request.shouldReportPartialResults = true
     request.taskHint = .dictation
     if recognizer.supportsOnDeviceRecognition {
       request.requiresOnDeviceRecognition = true
@@ -728,6 +728,7 @@ final class SystemSpeechClient: @unchecked Sendable {
       let lock = NSLock()
       var completed = false
       var task: SFSpeechRecognitionTask?
+      var accumulatedText = ""
 
       func finish(_ result: Result<String, Error>) {
         lock.lock()
@@ -757,13 +758,51 @@ final class SystemSpeechClient: @unchecked Sendable {
           finish(.failure(error))
           return
         }
-        guard let result, result.isFinal else {
+        guard let result else {
           return
         }
-        timeout.cancel()
-        finish(.success(result.bestTranscription.formattedString))
+        lock.lock()
+        accumulatedText = SystemSpeechClient.mergeTranscript(accumulatedText, result.bestTranscription.formattedString)
+        let merged = accumulatedText
+        lock.unlock()
+        if result.isFinal {
+          timeout.cancel()
+          finish(.success(merged))
+        }
       }
     }
+  }
+
+  private static func mergeTranscript(_ existing: String, _ candidate: String) -> String {
+    let current = existing.trimmingCharacters(in: .whitespacesAndNewlines)
+    let next = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !next.isEmpty else { return current }
+    guard !current.isEmpty else { return next }
+    if current == next || current.hasSuffix(next) {
+      return current
+    }
+    if next.hasPrefix(current) {
+      return next
+    }
+
+    let currentChars = Array(current)
+    let nextChars = Array(next)
+    let maxOverlap = min(currentChars.count, nextChars.count)
+    if maxOverlap > 0 {
+      for overlap in stride(from: maxOverlap, through: 1, by: -1) {
+        if Array(currentChars.suffix(overlap)) == Array(nextChars.prefix(overlap)) {
+          return current + String(nextChars.dropFirst(overlap))
+        }
+      }
+    }
+
+    let separator = needsSeparator(between: currentChars.last, and: nextChars.first) ? " " : ""
+    return current + separator + next
+  }
+
+  private static func needsSeparator(between lhs: Character?, and rhs: Character?) -> Bool {
+    guard let lhs, let rhs else { return false }
+    return lhs.isASCIIAlphaNumeric && rhs.isASCIIAlphaNumeric
   }
 
   private func ensureAuthorized() async throws {
@@ -1974,6 +2013,16 @@ final class CapsuleView: NSView {
 private extension NSRect {
   func roundedPath(radius: CGFloat) -> NSBezierPath {
     NSBezierPath(roundedRect: self, xRadius: radius, yRadius: radius)
+  }
+}
+
+private extension Character {
+  var isASCIIAlphaNumeric: Bool {
+    unicodeScalars.count == 1 && unicodeScalars.allSatisfy { scalar in
+      (65...90).contains(Int(scalar.value))
+        || (97...122).contains(Int(scalar.value))
+        || (48...57).contains(Int(scalar.value))
+    }
   }
 }
 
