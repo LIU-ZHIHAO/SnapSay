@@ -150,6 +150,20 @@ describe('SnapSay main renderer', () => {
     expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
   });
 
+  it('captures single-key and multi-modifier keyboard shortcuts', () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '设置' }));
+
+    fireEvent.click(screen.getByRole('button', { name: '录制键盘快捷键' }));
+    fireEvent.keyDown(window, { key: 'F8' });
+    expect(screen.getByLabelText('键盘快捷键')).toHaveValue('F8');
+
+    fireEvent.click(screen.getByRole('button', { name: '录制键盘快捷键' }));
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true, shiftKey: true });
+    expect(screen.getByLabelText('键盘快捷键')).toHaveValue('Ctrl + Shift + K');
+  });
+
   it('captures mouse trigger buttons instead of showing a fixed dropdown', async () => {
     const saveSettings = vi.fn().mockResolvedValue(undefined);
     window.snapsay = { saveSettings };

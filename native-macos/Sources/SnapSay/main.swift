@@ -375,24 +375,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let keyCode = config.keyCode
     var registeredHotKey: EventHotKeyRef?
     let hotKeyStatus = RegisterEventHotKey(keyCode, modifiers, EventHotKeyID(signature: hotKeySignature, id: hotKeyID), GetApplicationEventTarget(), 0, &registeredHotKey)
-    guard hotKeyStatus == noErr, let registeredHotKey else {
+    if hotKeyStatus == noErr, let registeredHotKey {
+      hotKeyRef = registeredHotKey
+    } else {
       appLog("hotkey registration failed status=\(hotKeyStatus)")
-      floating.show(status: "快捷键注册失败", kind: .failed)
-      return
     }
-    hotKeyRef = registeredHotKey
 
-    var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
-    let handlerStatus = InstallEventHandler(GetApplicationEventTarget(), { _, event, userData in
-      guard let userData else { return noErr }
-      var hotKey = EventHotKeyID()
-      GetEventParameter(event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID), nil, MemoryLayout<EventHotKeyID>.size, nil, &hotKey)
-      if hotKey.signature == hotKeySignature && hotKey.id == hotKeyID {
-        let app = Unmanaged<AppDelegate>.fromOpaque(userData).takeUnretainedValue()
-        DispatchQueue.main.async { app.toggleRecording() }
-      }
-      return noErr
-    }, 1, &eventType, Unmanaged.passUnretained(self).toOpaque(), &hotKeyHandlerRef)
+    var handlerStatus: OSStatus = noErr
+    if hotKeyRef != nil {
+      var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
+      handlerStatus = InstallEventHandler(GetApplicationEventTarget(), { _, event, userData in
+        guard let userData else { return noErr }
+        var hotKey = EventHotKeyID()
+        GetEventParameter(event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID), nil, MemoryLayout<EventHotKeyID>.size, nil, &hotKey)
+        if hotKey.signature == hotKeySignature && hotKey.id == hotKeyID {
+          let app = Unmanaged<AppDelegate>.fromOpaque(userData).takeUnretainedValue()
+          DispatchQueue.main.async { app.toggleRecording() }
+        }
+        return noErr
+      }, 1, &eventType, Unmanaged.passUnretained(self).toOpaque(), &hotKeyHandlerRef)
+    }
     appLog("hotkey registered label=\(config.label) keyCode=\(keyCode) modifiers=\(modifiers) handlerStatus=\(handlerStatus)")
     if handlerStatus != noErr {
       floating.show(status: "快捷键监听失败", kind: .failed)
@@ -456,7 +458,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return true
       }
       guard keyCode == Int64(activeHotKeyConfig.keyCode),
-            event.flags.satisfy(carbonModifiers: activeHotKeyConfig.modifiers) else {
+            event.flags.match(carbonModifiers: activeHotKeyConfig.modifiers) else {
         return false
       }
       swallowingHotKeyCode = keyCode
@@ -1976,15 +1978,16 @@ private extension NSRect {
 }
 
 private extension CGEventFlags {
-  func satisfy(carbonModifiers: UInt32) -> Bool {
+  func match(carbonModifiers: UInt32) -> Bool {
     let required: [(UInt32, CGEventFlags)] = [
       (UInt32(optionKey), .maskAlternate),
       (UInt32(cmdKey), .maskCommand),
       (UInt32(controlKey), .maskControl),
       (UInt32(shiftKey), .maskShift)
     ]
-    for (carbon, flag) in required where (carbonModifiers & carbon) != 0 {
-      if !contains(flag) {
+    for (carbon, flag) in required {
+      let shouldContain = (carbonModifiers & carbon) != 0
+      if contains(flag) != shouldContain {
         return false
       }
     }
@@ -2611,34 +2614,103 @@ struct AsrProfile: Sendable {
 }
 
 enum HotKeyParser {
+  struct Components {
+    let key: String
+    let modifiers: [String]
+
+    var label: String {
+      (modifiers + [key]).joined(separator: " + ")
+    }
+  }
+
   static func parse(label: String) -> HotKeyConfig? {
-    let parts = label
-      .split(separator: "+")
-      .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
-      .filter { !$0.isEmpty }
-    guard let key = parts.last else { return nil }
+    guard let components = components(from: label) else { return nil }
     var modifiers: UInt32 = 0
-    for part in parts.dropLast() {
-      switch part.lowercased() {
-      case "option", "alt", "左 alt", "右 alt":
+    for part in components.modifiers {
+      switch part {
+      case "Option":
         modifiers |= UInt32(optionKey)
-      case "command", "cmd", "meta", "⌘", "win", "windows", "左 win", "右 win":
+      case "Command":
         modifiers |= UInt32(cmdKey)
-      case "control", "ctrl", "左 ctrl", "右 ctrl":
+      case "Ctrl":
         modifiers |= UInt32(controlKey)
-      case "shift", "左 shift", "右 shift":
+      case "Shift":
         modifiers |= UInt32(shiftKey)
-      case "fn", "function":
+      case "Fn":
         appLog("hotkey Fn modifier ignored because macOS Carbon hotkeys do not expose Fn as a stable modifier")
       default:
         appLog("hotkey modifier unsupported: \(part)")
       }
     }
-    guard let keyCode = keyCode(for: key) else {
-      appLog("hotkey key unsupported: \(key)")
+    guard let keyCode = keyCode(for: components.key) else {
+      appLog("hotkey key unsupported: \(components.key)")
       return nil
     }
-    return HotKeyConfig(label: label, keyCode: keyCode, modifiers: modifiers)
+    return HotKeyConfig(label: components.label, keyCode: keyCode, modifiers: modifiers)
+  }
+
+  static func triggerObject(label: String) -> [String: Any] {
+    guard let components = components(from: label) else {
+      return ["key": label, "modifiers": []]
+    }
+    return ["key": components.key, "modifiers": components.modifiers]
+  }
+
+  static func components(from label: String) -> Components? {
+    let parts = label
+      .split(separator: "+")
+      .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+      .filter { !$0.isEmpty }
+    guard let key = parts.last.flatMap(normalizeKey) else { return nil }
+    var modifiers: [String] = []
+    for part in parts.dropLast() {
+      switch part.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+      case "option", "alt", "左 alt", "右 alt":
+        if !modifiers.contains("Option") { modifiers.append("Option") }
+      case "command", "cmd", "meta", "⌘", "win", "windows", "左 win", "右 win":
+        if !modifiers.contains("Command") { modifiers.append("Command") }
+      case "control", "ctrl", "左 ctrl", "右 ctrl":
+        if !modifiers.contains("Ctrl") { modifiers.append("Ctrl") }
+      case "shift", "左 shift", "右 shift":
+        if !modifiers.contains("Shift") { modifiers.append("Shift") }
+      case "fn", "function":
+        if !modifiers.contains("Fn") { modifiers.append("Fn") }
+      default:
+        appLog("hotkey modifier unsupported: \(part)")
+      }
+    }
+    return Components(key: key, modifiers: modifiers)
+  }
+
+  private static func normalizeKey(_ key: String) -> String? {
+    let normalized = key.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !normalized.isEmpty else { return nil }
+    let lower = normalized.lowercased()
+    switch lower {
+    case "esc": return "Escape"
+    case "return": return "Enter"
+    case "up", "arrowup": return "Up"
+    case "down", "arrowdown": return "Down"
+    case "left", "arrowleft": return "Left"
+    case "right", "arrowright": return "Right"
+    case "pageup", "page up": return "Page Up"
+    case "pagedown", "page down": return "Page Down"
+    case "capslock", "caps lock": return "Caps Lock"
+    case "scrolllock", "scroll lock": return "Scroll Lock"
+    case "numlock", "num lock": return "Num Lock"
+    case "backspace": return "Backspace"
+    case "delete", "del": return "Delete"
+    case "forward delete", "forwarddelete": return "Forward Delete"
+    case "space", "tab", "enter", "escape", "home", "end", "insert": return normalized.prefix(1).uppercased() + normalized.dropFirst().lowercased()
+    default:
+      if lower.range(of: #"^f([1-9]|1[0-9]|20)$"#, options: .regularExpression) != nil {
+        return lower.uppercased()
+      }
+      if normalized.count == 1 {
+        return normalized.uppercased()
+      }
+      return normalized
+    }
   }
 
   private static func keyCode(for key: String) -> UInt32? {
@@ -2679,7 +2751,32 @@ enum HotKeyParser {
     case "x": return UInt32(kVK_ANSI_X)
     case "y": return UInt32(kVK_ANSI_Y)
     case "z": return UInt32(kVK_ANSI_Z)
+    case "-", "minus": return UInt32(kVK_ANSI_Minus)
+    case "=", "equal", "equals": return UInt32(kVK_ANSI_Equal)
+    case "[", "left bracket": return UInt32(kVK_ANSI_LeftBracket)
+    case "]", "right bracket": return UInt32(kVK_ANSI_RightBracket)
+    case "\\", "backslash": return UInt32(kVK_ANSI_Backslash)
+    case ";", "semicolon": return UInt32(kVK_ANSI_Semicolon)
+    case "'", "quote": return UInt32(kVK_ANSI_Quote)
+    case ",", "comma": return UInt32(kVK_ANSI_Comma)
+    case ".", "period": return UInt32(kVK_ANSI_Period)
+    case "/", "slash": return UInt32(kVK_ANSI_Slash)
+    case "`", "grave", "backquote": return UInt32(kVK_ANSI_Grave)
     case "space": return UInt32(kVK_Space)
+    case "enter": return UInt32(kVK_Return)
+    case "tab": return UInt32(kVK_Tab)
+    case "escape": return UInt32(kVK_Escape)
+    case "backspace": return UInt32(kVK_Delete)
+    case "delete", "forward delete": return UInt32(kVK_ForwardDelete)
+    case "home": return UInt32(kVK_Home)
+    case "end": return UInt32(kVK_End)
+    case "page up": return UInt32(kVK_PageUp)
+    case "page down": return UInt32(kVK_PageDown)
+    case "left": return UInt32(kVK_LeftArrow)
+    case "right": return UInt32(kVK_RightArrow)
+    case "up": return UInt32(kVK_UpArrow)
+    case "down": return UInt32(kVK_DownArrow)
+    case "caps lock": return UInt32(kVK_CapsLock)
     case "f1": return UInt32(kVK_F1)
     case "f2": return UInt32(kVK_F2)
     case "f3": return UInt32(kVK_F3)
@@ -2692,6 +2789,14 @@ enum HotKeyParser {
     case "f10": return UInt32(kVK_F10)
     case "f11": return UInt32(kVK_F11)
     case "f12": return UInt32(kVK_F12)
+    case "f13": return UInt32(kVK_F13)
+    case "f14": return UInt32(kVK_F14)
+    case "f15": return UInt32(kVK_F15)
+    case "f16": return UInt32(kVK_F16)
+    case "f17": return UInt32(kVK_F17)
+    case "f18": return UInt32(kVK_F18)
+    case "f19": return UInt32(kVK_F19)
+    case "f20": return UInt32(kVK_F20)
     default: return nil
     }
   }
@@ -3214,8 +3319,11 @@ final class SnapSayDashboardStore: @unchecked Sendable {
     cleanup["prompt"] = string(renderer["prompt"], fallback: defaultCleanupPrompt)
 
     let triggerKey = string(renderer["triggerKey"], fallback: "Option + 2")
-    input["triggerLabel"] = triggerKey
-    input["trigger"] = ["key": triggerKey, "modifiers": []]
+    let trigger = HotKeyParser.triggerObject(label: triggerKey)
+    let triggerModifiers = trigger["modifiers"] as? [String] ?? []
+    let triggerLabel = (triggerModifiers + [string(trigger["key"], fallback: triggerKey)]).joined(separator: " + ")
+    input["triggerLabel"] = triggerLabel
+    input["trigger"] = trigger
     input["recordMode"] = string(renderer["recordMode"], fallback: "点击开始/停止")
     input["asr"] = string(renderer["asr"], fallback: "Apple Speech")
     input["asrAcceleration"] = "CPU"

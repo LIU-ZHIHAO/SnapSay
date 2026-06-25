@@ -1833,7 +1833,7 @@ function SettingsView(props: {
   const [newTarget, setNewTarget] = useState('');
   const [newVariants, setNewVariants] = useState('');
   const [isCapturing, setIsCapturing] = useState(false);
-  const [captureDisplay, setCaptureDisplay] = useState('请按下快捷键组合...');
+  const [captureDisplay, setCaptureDisplay] = useState('请按下快捷键...');
   const [isCapturingMouse, setIsCapturingMouse] = useState(false);
   const [mouseCaptureDisplay, setMouseCaptureDisplay] = useState('请按下鼠标按键');
   const microphoneOptions = [
@@ -1874,7 +1874,7 @@ function SettingsView(props: {
         if (parts.length > 0) {
           setCaptureDisplay(`${parts.join(' + ')} + ...`);
         } else {
-          setCaptureDisplay('请按下快捷键组合...');
+          setCaptureDisplay('请按下快捷键...');
         }
         return;
       }
@@ -1922,7 +1922,7 @@ function SettingsView(props: {
       if (parts.length > 0) {
         setCaptureDisplay(`${parts.join(' + ')} + ...`);
       } else {
-        setCaptureDisplay('请按下快捷键组合...');
+            setCaptureDisplay('请按下快捷键...');
       }
     };
 
@@ -2014,14 +2014,23 @@ function SettingsView(props: {
               className={`shortcut-capture ${isCapturing ? 'active' : ''}`}
               onClick={() => {
                 setIsCapturing(true);
-                setCaptureDisplay('请按下快捷键组合...');
+                setCaptureDisplay('请按下快捷键...');
+              }}
+              role="button"
+              aria-label="录制键盘快捷键"
+              tabIndex={0}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter' && event.key !== ' ') return;
+                event.preventDefault();
+                setIsCapturing(true);
+                setCaptureDisplay('请按下快捷键...');
               }}
               style={{ width: '100%', boxSizing: 'border-box' }}
             >
               <span>{isCapturing ? captureDisplay : settings.triggerKey}</span>
             </div>
             <div className="shortcut-help" style={{ width: '100%', boxSizing: 'border-box', justifyContent: 'center' }}>
-              {isCapturing ? '正在录制中，请按下快捷键组合（支持多键组合或单键，Esc 键取消）' : '点击上方卡片开始自定义录制快捷键'}
+              {isCapturing ? '正在录制中，请按下单键或组合键（Esc 键取消）' : '点击上方卡片开始自定义录制快捷键'}
             </div>
             <input
               type="text"
