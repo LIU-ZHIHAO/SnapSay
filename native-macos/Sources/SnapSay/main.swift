@@ -231,7 +231,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
   private func syncAsrDaemonForCurrentSettings() {
     if settingsStore.load().asrProfile.kind == .local {
-      daemon.startIfNeeded()
+      appLog("local ASR profile active; daemon will start lazily on first local transcription")
     } else {
       daemon.reset()
       SnapSayLocalAsrNoticeStore.shared.clear()
@@ -1525,6 +1525,8 @@ final class ASRDaemonManager {
       "ASR_TMP_DIR": tempDir.path,
       "ASR_LOCK_FILE": lockFile.path,
       "ASR_ONNX_PROVIDER": "auto",
+      "ASR_PARENT_PID": "\(getpid())",
+      "ASR_IDLE_TIMEOUT_SECONDS": "600",
       "HF_HOME": runtimeRoot.appendingPathComponent("cache/huggingface").path,
       "PIP_CACHE_DIR": runtimeRoot.appendingPathComponent("cache/pip").path
     ]) { _, new in new }

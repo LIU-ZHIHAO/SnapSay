@@ -5,6 +5,7 @@ import json
 import struct
 import socket
 import threading
+import time
 from pathlib import Path
 
 import numpy as np
@@ -21,6 +22,45 @@ PREFERRED_PROVIDER = os.environ.get("ASR_ONNX_PROVIDER", "auto").lower()
 LOCK_FILE = os.environ.get("ASR_LOCK_FILE", str(PROJECT_ROOT / "data" / "asr-daemon.lock"))
 LOCK_HANDLE = None
 GPU_PROVIDER_NAMES = {"CoreMLExecutionProvider", "DmlExecutionProvider"}
+PARENT_PID = int(os.environ.get("ASR_PARENT_PID", "0") or "0")
+IDLE_TIMEOUT_SECONDS = float(os.environ.get("ASR_IDLE_TIMEOUT_SECONDS", "600") or "600")
+activity_lock = threading.Lock()
+active_clients = 0
+last_activity_at = time.monotonic()
+
+def mark_activity() -> None:
+    global last_activity_at
+    with activity_lock:
+        last_activity_at = time.monotonic()
+
+def client_started() -> None:
+    global active_clients, last_activity_at
+    with activity_lock:
+        active_clients += 1
+        last_activity_at = time.monotonic()
+
+def client_finished() -> None:
+    global active_clients, last_activity_at
+    with activity_lock:
+        active_clients = max(0, active_clients - 1)
+        last_activity_at = time.monotonic()
+
+def should_exit_for_idle() -> bool:
+    if IDLE_TIMEOUT_SECONDS <= 0:
+        return False
+    with activity_lock:
+        return active_clients == 0 and (time.monotonic() - last_activity_at) >= IDLE_TIMEOUT_SECONDS
+
+def parent_is_alive() -> bool:
+    if PARENT_PID <= 0:
+        return True
+    if os.getppid() == 1:
+        return False
+    try:
+        os.kill(PARENT_PID, 0)
+        return True
+    except OSError:
+        return False
 
 def acquire_daemon_lock() -> bool:
     """Keep one ASR daemon per runtime root, even during repeated app launches."""
@@ -268,6 +308,7 @@ class SenseVoiceONNX:
 # ── Socket server ──────────────────────────────────────────────────
 
 def handle_client(conn: socket.socket, model: SenseVoiceONNX):
+    client_started()
     try:
         # Read 4-byte big-endian length header
         header = b""
@@ -309,6 +350,7 @@ def handle_client(conn: socket.socket, model: SenseVoiceONNX):
             pass
     finally:
         conn.close()
+        client_finished()
 
 def main():
     if not acquire_daemon_lock():
@@ -325,6 +367,7 @@ def main():
     server.bind(("127.0.0.1", 0))
     port = server.getsockname()[1]
     server.listen(5)
+    server.settimeout(1.0)
 
     # Write port file
     Path(PORT_FILE).write_text(str(port))
@@ -332,7 +375,17 @@ def main():
 
     try:
         while True:
-            conn, addr = server.accept()
+            if not parent_is_alive():
+                print("[ASR-ONNX] Parent process exited; stopping daemon.", flush=True)
+                break
+            if should_exit_for_idle():
+                print(f"[ASR-ONNX] Idle for {IDLE_TIMEOUT_SECONDS:.0f}s; stopping daemon.", flush=True)
+                break
+            try:
+                conn, addr = server.accept()
+            except socket.timeout:
+                continue
+            mark_activity()
             t = threading.Thread(target=handle_client, args=(conn, model), daemon=True)
             t.start()
     except KeyboardInterrupt:
@@ -341,6 +394,10 @@ def main():
         server.close()
         try:
             os.unlink(PORT_FILE)
+        except Exception:
+            pass
+        try:
+            os.unlink(LOCK_FILE)
         except Exception:
             pass
 
