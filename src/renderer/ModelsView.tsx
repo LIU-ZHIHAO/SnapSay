@@ -419,18 +419,10 @@ export default function ModelsView(props: {
               )}
             </div>
           </label>
-          {!isCloudAsr && (
+          {activeAsrProfile.kind === 'local' && (
             <label>
-              加速策略
-              <CustomSelect
-                ariaLabel="加速策略"
-                onChange={(val) => onUpdate('asrAcceleration', val)}
-                options={[
-                  { value: 'GPU 优先', label: 'GPU 优先' },
-                  { value: 'CPU', label: 'CPU' }
-                ]}
-                value={settings.asrAcceleration}
-              />
+              本地执行
+              <input readOnly type="text" value="ONNX CPU" />
             </label>
           )}
         </div>
@@ -458,7 +450,7 @@ export default function ModelsView(props: {
                 <Cpu size={22} style={{ color: '#10b981' }} />
               </div>
               <div>
-                <h3>本地 SenseVoice ONNX</h3>
+                <h3>本地 SenseVoice ONNX CPU</h3>
                 <span>{localModelStatus?.installed ? '模型已就绪' : '需要下载模型'}</span>
                 <small title={localModelStatus?.modelDir ?? settings.senseVoiceModelPath}>
                   {localModelStatus?.modelDir ?? settings.senseVoiceModelPath}

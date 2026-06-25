@@ -7,8 +7,8 @@ function demoDashboardSettings() {
   return {
     triggerKey: 'Ctrl + Alt + Space',
     recordMode: '点击开始/停止',
-    asr: 'SenseVoice',
-    asrAcceleration: 'GPU 优先',
+    asr: 'Apple Speech',
+    asrAcceleration: 'CPU',
     localModelDir: 'D:\\Antigravity\\SnapSay\\models',
     senseVoiceModelPath: 'D:\\Antigravity\\SnapSay\\models\\sensevoice\\SenseVoiceSmall',
     pythonPath: 'D:\\Antigravity\\SnapSay\\.venv\\Scripts\\python.exe',
@@ -33,7 +33,7 @@ function demoDashboardSettings() {
     cloudAsrApiKey: '',
     cloudAsrModel: 'whisper-1',
     asrProfiles: [],
-    activeAsrProfileId: 'local-sensevoice'
+    activeAsrProfileId: 'system-speech'
   };
 }
 
@@ -59,7 +59,7 @@ describe('SnapSay main renderer', () => {
     expect(screen.getByRole('button', { name: '设置' })).toBeInTheDocument();
     expect(screen.queryByLabelText('切换主题')).not.toBeInTheDocument();
     expect(screen.getByText('Ctrl + Alt + Space')).toBeInTheDocument();
-    expect(screen.getByText('SenseVoice')).toBeInTheDocument();
+    expect(screen.getByText('Apple Speech')).toBeInTheDocument();
     expect(screen.getByText('GPT-4.1')).toBeInTheDocument();
     expect(screen.getByText('时长')).toBeInTheDocument();
     expect(screen.getByText('8秒')).toBeInTheDocument();
@@ -460,13 +460,14 @@ describe('SnapSay main renderer', () => {
 
     expect(screen.getByRole('heading', { name: '模型' })).toBeInTheDocument();
     const asrProfileSelect = screen.getByRole('button', { name: '当前 ASR 档案' });
-    expect(asrProfileSelect).toHaveTextContent('本地 SenseVoice');
+    expect(asrProfileSelect).toHaveTextContent('系统语音识别');
     fireEvent.click(asrProfileSelect);
     expect(screen.getAllByText('本地 SenseVoice').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('系统语音识别').length).toBeGreaterThan(0);
     expect(screen.getAllByText('云端上传转写 API').length).toBeGreaterThan(0);
     expect(screen.getAllByText('云端流式转写 API').length).toBeGreaterThan(0);
-    expect(screen.getByLabelText('ASR 引擎')).toHaveValue('SenseVoice');
-    expect(screen.getByRole('button', { name: '加速策略' })).toHaveTextContent('GPU 优先');
+    expect(screen.getByLabelText('ASR 引擎')).toHaveValue('Apple Speech');
+    expect(screen.queryByRole('button', { name: '加速策略' })).not.toBeInTheDocument();
     expect(screen.queryByLabelText('云端上传转写 API Base URL')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('云端上传转写 API Model')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('云端上传转写 API API Key')).not.toBeInTheDocument();
@@ -934,7 +935,7 @@ describe('SnapSay main renderer', () => {
           triggerKey: 'Ctrl + Alt + Space',
           recordMode: '点击开始/停止',
           asr: 'SenseVoice',
-          asrAcceleration: 'GPU 优先',
+          asrAcceleration: 'CPU',
           localModelDir: 'D:\\Antigravity\\SnapSay\\models',
                                   senseVoiceModelPath: 'D:\\Antigravity\\SnapSay\\models\\sensevoice\\SenseVoiceSmall',
           pythonPath: 'D:\\Antigravity\\SnapSay\\.venv\\Scripts\\python.exe',
@@ -1029,7 +1030,7 @@ describe('SnapSay main renderer', () => {
           triggerKey: 'Ctrl + Alt + Space',
           recordMode: '点击开始/停止',
           asr: 'SenseVoice',
-          asrAcceleration: 'GPU 优先',
+          asrAcceleration: 'CPU',
           localModelDir: 'D:\\Antigravity\\SnapSay\\models',
                                   senseVoiceModelPath: 'D:\\Antigravity\\SnapSay\\models\\sensevoice\\SenseVoiceSmall',
           pythonPath: 'D:\\Antigravity\\SnapSay\\.venv\\Scripts\\python.exe',

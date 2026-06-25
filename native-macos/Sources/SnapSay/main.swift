@@ -1625,9 +1625,6 @@ final class ASRDaemonManager {
       "ASR_PORT_FILE": portFile.path,
       "ASR_TMP_DIR": tempDir.path,
       "ASR_LOCK_FILE": lockFile.path,
-      // CoreML EP currently exits after the first SenseVoice inference on this model.
-      // Keep ONNX hot-loaded through the stable CPU EP until CoreML is proven stable.
-      "ASR_ONNX_PROVIDER": "cpu",
       "ASR_PARENT_PID": "\(getpid())",
       "ASR_IDLE_TIMEOUT_SECONDS": "600",
       "HF_HOME": runtimeRoot.appendingPathComponent("cache/huggingface").path,
@@ -2785,8 +2782,8 @@ func defaultSettingsRoot() -> [String: Any] {
         "triggerLabel": "Option + 2",
         "trigger": ["key": "Option + 2", "modifiers": []],
         "recordMode": "点击开始/停止",
-        "asr": "SenseVoice",
-        "asrAcceleration": "GPU 优先",
+        "asr": "Apple Speech",
+        "asrAcceleration": "CPU",
         "localModelDir": runtimeRoot.appendingPathComponent("models").path,
         "senseVoiceModelPath": modelDir.path,
         "pythonPath": pythonPath.path,
@@ -2797,7 +2794,8 @@ func defaultSettingsRoot() -> [String: Any] {
         "longPressAction": "语音助手",
         "smartMouseMode": false,
         "mouseTrigger": "Mouse Middle",
-        "activeAsrProfileId": "local-sensevoice",
+        "activeAsrProfileId": "system-speech",
+        "defaultSystemAsrMigrated": true,
         "asrProfiles": defaultAsrProfilesRoot(),
         "wordbook": []
       ]
@@ -2805,20 +2803,58 @@ func defaultSettingsRoot() -> [String: Any] {
   ]
 }
 
+func writeSettingsRootFile(_ root: [String: Any]) throws {
+  try FileManager.default.createDirectory(at: dataDir, withIntermediateDirectories: true)
+  let data = try JSONSerialization.data(withJSONObject: root, options: [.prettyPrinted, .sortedKeys])
+  try data.write(to: settingsFile)
+}
+
+func migratedSettingsRoot() -> [String: Any] {
+  var root: [String: Any]
+  if let data = try? Data(contentsOf: settingsFile),
+     let existingRoot = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+    root = existingRoot
+  } else {
+    root = defaultSettingsRoot()
+    try? writeSettingsRootFile(root)
+    appLog("settings missing, created defaults path=\(settingsFile.path)")
+    return root
+  }
+
+  var changed = false
+  var settings = root["settings"] as? [String: Any] ?? [:]
+  var input = settings["input"] as? [String: Any] ?? [:]
+  let mergedAsrProfiles = mergeAsrProfilesRoot(input["asrProfiles"] as? [[String: Any]])
+  if !areJsonEqual(input["asrProfiles"], mergedAsrProfiles) {
+    input["asrProfiles"] = mergedAsrProfiles
+    changed = true
+  }
+  let activeAsrProfileId = string(input["activeAsrProfileId"], fallback: "")
+  let defaultSystemMigrated = input["defaultSystemAsrMigrated"] as? Bool ?? false
+  if activeAsrProfileId.isEmpty || (activeAsrProfileId == "local-sensevoice" && !defaultSystemMigrated) {
+    input["activeAsrProfileId"] = "system-speech"
+    input["asr"] = "Apple Speech"
+    changed = true
+  }
+  if string(input["asrAcceleration"], fallback: "CPU") != "CPU" {
+    input["asrAcceleration"] = "CPU"
+    changed = true
+  }
+  if !defaultSystemMigrated {
+    changed = true
+  }
+  input["defaultSystemAsrMigrated"] = true
+  settings["input"] = input
+  root["settings"] = settings
+  if changed {
+    try? writeSettingsRootFile(root)
+  }
+  return root
+}
+
 final class SnapSaySettingsStore: @unchecked Sendable {
   func load() -> SnapSaySettings {
-    let root: [String: Any]
-    if let data = try? Data(contentsOf: settingsFile),
-       let existingRoot = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-      root = existingRoot
-    } else {
-      root = defaultSettingsRoot()
-      try? FileManager.default.createDirectory(at: dataDir, withIntermediateDirectories: true)
-      if let data = try? JSONSerialization.data(withJSONObject: root, options: [.prettyPrinted, .sortedKeys]) {
-        try? data.write(to: settingsFile)
-      }
-      appLog("settings missing, created defaults path=\(settingsFile.path)")
-    }
+    let root = migratedSettingsRoot()
     guard let settings = root["settings"] as? [String: Any] else {
       return SnapSaySettings()
     }
@@ -2913,11 +2949,11 @@ final class SnapSaySettingsStore: @unchecked Sendable {
   }
 
   private func readAsrProfile(from input: [String: Any]?) -> AsrProfile {
-    guard let input else { return .local }
-    let activeId = nonEmptyString(input["activeAsrProfileId"]) ?? "local-sensevoice"
+    guard let input else { return .system }
+    let activeId = nonEmptyString(input["activeAsrProfileId"]) ?? "system-speech"
     guard let profiles = input["asrProfiles"] as? [[String: Any]],
           let profile = profiles.first(where: { nonEmptyString($0["id"]) == activeId }) else {
-      return activeId == "local-sensevoice" ? .local : .local
+      return activeId == "local-sensevoice" ? .local : .system
     }
     let kindText = nonEmptyString(profile["kind"]) ?? "local"
     let kind: AsrProfileKind
@@ -3181,8 +3217,8 @@ final class SnapSayDashboardStore: @unchecked Sendable {
     input["triggerLabel"] = triggerKey
     input["trigger"] = ["key": triggerKey, "modifiers": []]
     input["recordMode"] = string(renderer["recordMode"], fallback: "点击开始/停止")
-    input["asr"] = string(renderer["asr"], fallback: "SenseVoice")
-    input["asrAcceleration"] = string(renderer["asrAcceleration"], fallback: "GPU 优先")
+    input["asr"] = string(renderer["asr"], fallback: "Apple Speech")
+    input["asrAcceleration"] = "CPU"
     input["localModelDir"] = string(renderer["localModelDir"], fallback: runtimeRoot.appendingPathComponent("models").path)
     input["senseVoiceModelPath"] = string(renderer["senseVoiceModelPath"], fallback: modelDir.path)
     input["pythonPath"] = string(renderer["pythonPath"], fallback: pythonPath.path)
@@ -3194,7 +3230,7 @@ final class SnapSayDashboardStore: @unchecked Sendable {
     input["smartMouseMode"] = renderer["smartMouseMode"] as? Bool ?? false
     input["mouseTrigger"] = string(renderer["mouseTrigger"], fallback: "Mouse Middle")
     input["asrProfiles"] = renderer["asrProfiles"] as? [[String: Any]] ?? input["asrProfiles"]
-    input["activeAsrProfileId"] = string(renderer["activeAsrProfileId"], fallback: "local-sensevoice")
+    input["activeAsrProfileId"] = string(renderer["activeAsrProfileId"], fallback: "system-speech")
     if let cloudBaseUrl = renderer["cloudAsrBaseUrl"] as? String, !cloudBaseUrl.isEmpty {
       input["cloudAsr"] = [
         "type": string(renderer["cloudAsrType"], fallback: "openai-whisper"),
@@ -3603,8 +3639,8 @@ final class SnapSayDashboardStore: @unchecked Sendable {
     return [
       "triggerKey": string(input["triggerLabel"], fallback: "Option + 2"),
       "recordMode": string(input["recordMode"], fallback: "点击开始/停止"),
-      "asr": string(input["asr"], fallback: "SenseVoice"),
-      "asrAcceleration": string(input["asrAcceleration"], fallback: "GPU 优先"),
+      "asr": string(input["asr"], fallback: "Apple Speech"),
+      "asrAcceleration": "CPU",
       "localModelDir": string(input["localModelDir"], fallback: runtimeRoot.appendingPathComponent("models").path),
       "senseVoiceModelPath": string(input["senseVoiceModelPath"], fallback: modelDir.path),
       "pythonPath": string(input["pythonPath"], fallback: pythonPath.path),
@@ -3628,7 +3664,7 @@ final class SnapSayDashboardStore: @unchecked Sendable {
       "cloudAsrApiKey": string(cloudAsr["apiKey"], fallback: ""),
       "cloudAsrModel": string(cloudAsr["model"], fallback: "whisper-1"),
       "asrProfiles": input["asrProfiles"] as? [[String: Any]] ?? [],
-      "activeAsrProfileId": string(input["activeAsrProfileId"], fallback: "local-sensevoice"),
+      "activeAsrProfileId": string(input["activeAsrProfileId"], fallback: "system-speech"),
       "wordbook": input["wordbook"] as? [[String: Any]] ?? []
     ]
   }
@@ -3772,26 +3808,7 @@ final class SnapSayDashboardStore: @unchecked Sendable {
   }
 
   private func settingsRoot() -> [String: Any] {
-    guard let data = try? Data(contentsOf: settingsFile),
-          var root = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-      let root = defaultSettingsRoot()
-      try? writeSettingsRoot(root)
-      return root
-    }
-    var changed = false
-    var settings = root["settings"] as? [String: Any] ?? [:]
-    var input = settings["input"] as? [String: Any] ?? [:]
-    let mergedAsrProfiles = mergeAsrProfilesRoot(input["asrProfiles"] as? [[String: Any]])
-    if !areJsonEqual(input["asrProfiles"], mergedAsrProfiles) {
-      input["asrProfiles"] = mergedAsrProfiles
-      changed = true
-    }
-    settings["input"] = input
-    root["settings"] = settings
-    if changed {
-      try? writeSettingsRoot(root)
-    }
-    return root
+    migratedSettingsRoot()
   }
 
   private func ensureRecordSchema() throws {
@@ -3821,9 +3838,7 @@ final class SnapSayDashboardStore: @unchecked Sendable {
   }
 
   private func writeSettingsRoot(_ root: [String: Any]) throws {
-    try FileManager.default.createDirectory(at: dataDir, withIntermediateDirectories: true)
-    let data = try JSONSerialization.data(withJSONObject: root, options: [.prettyPrinted, .sortedKeys])
-    try data.write(to: settingsFile)
+    try writeSettingsRootFile(root)
   }
 
   private func runSql(_ sql: String) throws {

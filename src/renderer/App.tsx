@@ -335,8 +335,8 @@ declare global {
 const demoSettings: SettingsState = {
   triggerKey: 'Ctrl + Alt + Space',
   recordMode: '点击开始/停止',
-  asr: 'SenseVoice',
-  asrAcceleration: 'GPU 优先',
+  asr: 'Apple Speech',
+  asrAcceleration: 'CPU',
   localModelDir: 'D:\\Antigravity\\SnapSay\\models',
   senseVoiceModelPath: 'D:\\Antigravity\\SnapSay\\models\\sensevoice\\SenseVoiceSmall',
   pythonPath: 'D:\\Antigravity\\SnapSay\\.venv\\Scripts\\python.exe',
@@ -379,7 +379,7 @@ const demoSettings: SettingsState = {
     { id: 'cloud-upload-openai', kind: 'cloud-upload', displayName: '云端上传转写 API', engine: 'openai-whisper', enabled: false, baseUrl: 'https://api.openai.com', apiKey: '', model: 'whisper-1' },
     { id: 'cloud-streaming-custom', kind: 'cloud-streaming', displayName: '云端流式转写 API', engine: 'streaming-compatible', enabled: false, baseUrl: '', apiKey: '', model: '' }
   ],
-  activeAsrProfileId: 'local-sensevoice'
+  activeAsrProfileId: 'system-speech'
 };
 
 const demoRecords: RecordItem[] = [
@@ -390,7 +390,7 @@ const demoRecords: RecordItem[] = [
       '请帮我整理今天会议关于登录体验、首屏性能和快捷键冲突处理的讨论，保留结论、负责人和下次跟进时间。',
     refined: '会议结论：优化登录体验与首屏性能，排查快捷键冲突。负责人分别跟进，下次例会同步结果。',
     status: '已输入',
-    asr: '本地 SenseVoice',
+    asr: '系统语音识别',
     cleanup: 'OpenAI Compatible / gpt-4.1-mini',
     durationMs: 8200,
     asrDurationMs: 3200,

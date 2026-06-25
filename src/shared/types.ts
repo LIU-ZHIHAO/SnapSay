@@ -11,12 +11,12 @@ export type TriggerBinding =
 
 export type RecordingMode = 'toggle' | 'pressToTalk';
 
-export type ProviderType = 'local' | 'cloud' | 'openai-compatible';
+export type ProviderType = 'local' | 'system' | 'cloud' | 'openai-compatible';
 
 export interface AsrProviderConfig {
   id: string;
   enabled: boolean;
-  type: Extract<ProviderType, 'local' | 'cloud'>;
+  type: Extract<ProviderType, 'local' | 'system' | 'cloud'>;
   displayName: string;
   model: string;
   baseUrl?: string;

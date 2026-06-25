@@ -25,11 +25,11 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   trigger: { type: 'keyboard', key: 'F8', modifiers: [] },
   recordingMode: 'pressToTalk',
   asrProvider: {
-    id: 'local-sensevoice',
+    id: 'system-speech',
     enabled: true,
-    type: 'local',
-    displayName: 'Local SenseVoice',
-    model: 'SenseVoiceSmall',
+    type: 'system',
+    displayName: 'Apple Speech',
+    model: 'zh_CN',
     localModelPath: projectPath('models', 'sensevoice'),
     timeoutMs: 60_000
   },

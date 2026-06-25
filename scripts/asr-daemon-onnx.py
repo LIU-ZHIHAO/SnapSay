@@ -18,10 +18,8 @@ else:
 MODEL_DIR = os.environ.get("ASR_MODEL_PATH", str(PROJECT_ROOT / "models" / "sensevoice" / "SenseVoiceSmall"))
 PORT_FILE = os.environ.get("ASR_PORT_FILE", str(PROJECT_ROOT / "data" / "asr-daemon.port"))
 TMP_DIR = Path(os.environ.get("ASR_TMP_DIR", str(PROJECT_ROOT / "tmp")))
-PREFERRED_PROVIDER = os.environ.get("ASR_ONNX_PROVIDER", "auto").lower()
 LOCK_FILE = os.environ.get("ASR_LOCK_FILE", str(PROJECT_ROOT / "data" / "asr-daemon.lock"))
 LOCK_HANDLE = None
-GPU_PROVIDER_NAMES = {"CoreMLExecutionProvider", "DmlExecutionProvider"}
 PARENT_PID = int(os.environ.get("ASR_PARENT_PID", "0") or "0")
 IDLE_TIMEOUT_SECONDS = float(os.environ.get("ASR_IDLE_TIMEOUT_SECONDS", "600") or "600")
 activity_lock = threading.Lock()
@@ -203,38 +201,10 @@ class SenseVoiceONNX:
         self.textnorm_dict = {"withitn": 14, "woitn": 15}
 
     def _create_session(self, ort, onnx_path: str):
-        available = set(ort.get_available_providers())
-        provider_candidates = []
-        if PREFERRED_PROVIDER in ("auto", "gpu", "coreml"):
-            if "CoreMLExecutionProvider" in available:
-                coreml_options = {
-                    "ModelFormat": "NeuralNetwork",
-                    "MLComputeUnits": "CPUAndNeuralEngine",
-                    "RequireStaticInputShapes": "1",
-                }
-                provider_candidates.append([("CoreMLExecutionProvider", coreml_options), "CPUExecutionProvider"])
-        if PREFERRED_PROVIDER in ("auto", "gpu", "directml", "dml"):
-            if "DmlExecutionProvider" in available:
-                provider_candidates.append(["DmlExecutionProvider", "CPUExecutionProvider"])
-        if PREFERRED_PROVIDER in ("cpu",):
-            provider_candidates.append(["CPUExecutionProvider"])
-        elif not provider_candidates:
-            provider_candidates.append(["CPUExecutionProvider"])
-
-        errors = []
-        for providers in provider_candidates:
-            try:
-                return ort.InferenceSession(onnx_path, providers=providers)
-            except Exception as exc:
-                errors.append(f"{providers}: {exc}")
-
-        if PREFERRED_PROVIDER != "cpu":
-            try:
-                return ort.InferenceSession(onnx_path, providers=["CPUExecutionProvider"])
-            except Exception as exc:
-                errors.append(f"['CPUExecutionProvider']: {exc}")
-
-        raise RuntimeError("Unable to create ONNX Runtime session: " + " | ".join(errors))
+        try:
+            return ort.InferenceSession(onnx_path, providers=["CPUExecutionProvider"])
+        except Exception as exc:
+            raise RuntimeError(f"Unable to create CPU ONNX Runtime session: {exc}") from exc
 
     def _get_cpu_session(self):
         if self.cpu_session is None:
@@ -284,13 +254,7 @@ class SenseVoiceONNX:
             "language": language,
             "textnorm": textnorm,
         }
-        try:
-            ctc_logits, encoder_out_lens = self.session.run(None, inputs)
-        except Exception as exc:
-            if not GPU_PROVIDER_NAMES.intersection(self.execution_providers):
-                raise
-            print(f"[ASR-ONNX] GPU inference failed, retrying CPU: {exc}", flush=True)
-            ctc_logits, encoder_out_lens = self._get_cpu_session().run(None, inputs)
+        ctc_logits, encoder_out_lens = self.session.run(None, inputs)
 
         # 7. CTC greedy decode
         logits = ctc_logits[0]  # (T, vocab)
