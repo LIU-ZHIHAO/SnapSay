@@ -5,6 +5,7 @@ import CoreAudio
 import CoreGraphics
 import Darwin
 import Foundation
+import Speech
 import UniformTypeIdentifiers
 @preconcurrency import WebKit
 
@@ -77,6 +78,19 @@ func jsonLiteral(_ value: Any, fallback: String = "null") -> String {
     appLog("json serialization failed error=\(error.localizedDescription)")
     return fallback
   }
+}
+
+func areJsonEqual(_ lhs: Any?, _ rhs: Any?) -> Bool {
+  guard let lhs, let rhs else { return false }
+  let normalizedLhs = normalizeForJSON(lhs)
+  let normalizedRhs = normalizeForJSON(rhs)
+  guard (JSONSerialization.isValidJSONObject(normalizedLhs) || normalizedLhs is String || normalizedLhs is NSNumber || normalizedLhs is NSNull),
+        (JSONSerialization.isValidJSONObject(normalizedRhs) || normalizedRhs is String || normalizedRhs is NSNumber || normalizedRhs is NSNull),
+        let lhsData = try? JSONSerialization.data(withJSONObject: normalizedLhs, options: [.fragmentsAllowed, .sortedKeys]),
+        let rhsData = try? JSONSerialization.data(withJSONObject: normalizedRhs, options: [.fragmentsAllowed, .sortedKeys]) else {
+    return false
+  }
+  return lhsData == rhsData
 }
 
 func normalizeForJSON(_ value: Any) -> Any {
@@ -156,6 +170,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private let recorder = AudioRecorder()
   private let daemon = ASRDaemonManager()
   private let asrClient = ASRDaemonClient(portFile: portFile)
+  private let systemAsrClient = SystemSpeechClient()
   private let settingsStore = SnapSaySettingsStore()
   private let cleanupClient = CleanupClient()
   private let recordStore = SnapSayRecordStore()
@@ -613,7 +628,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     processingSessionIDs.insert(sessionID)
     floating.show(status: "转写中", kind: .recognizing)
     postAppNotification(snapsayRecordingStopNotification)
-    Task.detached { [weak app = self, daemon, asrClient, cloudAsrClient, settingsStore, cleanupClient, recordStore, paste] in
+    Task.detached { [weak app = self, daemon, asrClient, systemAsrClient, cloudAsrClient, settingsStore, cleanupClient, recordStore, paste] in
       guard let app else { return }
       do {
         let audio = try Data(contentsOf: url)
@@ -621,6 +636,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let result = try await SnapSayRecordingPipeline(
           daemon: daemon,
           asrClient: asrClient,
+          systemAsrClient: systemAsrClient,
           cloudAsrClient: cloudAsrClient,
           settingsStore: settingsStore,
           cleanupClient: cleanupClient,
@@ -684,6 +700,86 @@ func transcribeWithLocalRecovery(audio: Data, daemon: ASRDaemonManager, asrClien
   }
 }
 
+final class SystemSpeechClient: @unchecked Sendable {
+  func transcribe(audio: Data, localeIdentifier: String = "zh_CN") async throws -> String {
+    try await ensureAuthorized()
+    guard let recognizer = SFSpeechRecognizer(locale: Locale(identifier: localeIdentifier)) else {
+      throw NSError(domain: appName, code: 120, userInfo: [NSLocalizedDescriptionKey: "当前系统不支持 \(localeIdentifier) 语音识别"])
+    }
+    guard recognizer.isAvailable else {
+      throw NSError(domain: appName, code: 121, userInfo: [NSLocalizedDescriptionKey: "系统语音识别暂不可用，请稍后重试或切换本地 ONNX"])
+    }
+
+    try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+    let url = tempDir.appendingPathComponent("system-speech-\(UUID().uuidString).wav")
+    try audio.write(to: url, options: .atomic)
+    defer { try? FileManager.default.removeItem(at: url) }
+
+    let request = SFSpeechURLRecognitionRequest(url: url)
+    request.shouldReportPartialResults = false
+    request.taskHint = .dictation
+    if recognizer.supportsOnDeviceRecognition {
+      request.requiresOnDeviceRecognition = true
+    }
+
+    return try await withCheckedThrowingContinuation { continuation in
+      let lock = NSLock()
+      var completed = false
+      var task: SFSpeechRecognitionTask?
+
+      func finish(_ result: Result<String, Error>) {
+        lock.lock()
+        if completed {
+          lock.unlock()
+          return
+        }
+        completed = true
+        lock.unlock()
+        task?.cancel()
+        switch result {
+        case .success(let text):
+          continuation.resume(returning: text)
+        case .failure(let error):
+          continuation.resume(throwing: error)
+        }
+      }
+
+      let timeout = DispatchWorkItem {
+        finish(.failure(NSError(domain: appName, code: 122, userInfo: [NSLocalizedDescriptionKey: "系统语音识别超时"])))
+      }
+      DispatchQueue.global().asyncAfter(deadline: .now() + 60, execute: timeout)
+
+      task = recognizer.recognitionTask(with: request) { result, error in
+        if let error {
+          timeout.cancel()
+          finish(.failure(error))
+          return
+        }
+        guard let result, result.isFinal else {
+          return
+        }
+        timeout.cancel()
+        finish(.success(result.bestTranscription.formattedString))
+      }
+    }
+  }
+
+  private func ensureAuthorized() async throws {
+    let status = SFSpeechRecognizer.authorizationStatus()
+    if status == .authorized {
+      return
+    }
+    let next = await withCheckedContinuation { continuation in
+      SFSpeechRecognizer.requestAuthorization { authorizationStatus in
+        continuation.resume(returning: authorizationStatus)
+      }
+    }
+    guard next == .authorized else {
+      throw NSError(domain: appName, code: 123, userInfo: [NSLocalizedDescriptionKey: "SnapSay 需要「语音识别」权限才能使用系统语音识别"])
+    }
+  }
+}
+
 final class SnapSayLocalAsrNoticeStore: @unchecked Sendable {
   static let shared = SnapSayLocalAsrNoticeStore()
   private let lock = NSLock()
@@ -721,6 +817,7 @@ final class SnapSayLocalAsrNoticeStore: @unchecked Sendable {
 final class SnapSayRecordingPipeline: @unchecked Sendable {
   private let daemon: ASRDaemonManager
   private let asrClient: ASRDaemonClient
+  private let systemAsrClient: SystemSpeechClient
   private let cloudAsrClient: CloudAsrClient
   private let settingsStore: SnapSaySettingsStore
   private let cleanupClient: CleanupClient
@@ -730,6 +827,7 @@ final class SnapSayRecordingPipeline: @unchecked Sendable {
   init(
     daemon: ASRDaemonManager = ASRDaemonManager(),
     asrClient: ASRDaemonClient = ASRDaemonClient(portFile: portFile),
+    systemAsrClient: SystemSpeechClient = SystemSpeechClient(),
     cloudAsrClient: CloudAsrClient = CloudAsrClient(),
     settingsStore: SnapSaySettingsStore = SnapSaySettingsStore(),
     cleanupClient: CleanupClient = CleanupClient(),
@@ -738,6 +836,7 @@ final class SnapSayRecordingPipeline: @unchecked Sendable {
   ) {
     self.daemon = daemon
     self.asrClient = asrClient
+    self.systemAsrClient = systemAsrClient
     self.cloudAsrClient = cloudAsrClient
     self.settingsStore = settingsStore
     self.cleanupClient = cleanupClient
@@ -767,6 +866,8 @@ final class SnapSayRecordingPipeline: @unchecked Sendable {
       if settings.asrProfile.kind == .local {
         try daemon.ensureRunning()
         rawText = try await transcribeWithLocalRecovery(audio: audio, daemon: daemon, asrClient: asrClient).trimmingCharacters(in: .whitespacesAndNewlines)
+      } else if settings.asrProfile.kind == .system {
+        rawText = try await systemAsrClient.transcribe(audio: audio).trimmingCharacters(in: .whitespacesAndNewlines)
       } else {
         rawText = try await cloudAsrClient.transcribe(audio: audio, profile: settings.asrProfile).trimmingCharacters(in: .whitespacesAndNewlines)
       }
@@ -2482,6 +2583,7 @@ enum MouseTriggerParser {
 
 enum AsrProfileKind: String, Sendable {
   case local
+  case system
   case cloudUpload
   case cloudStreaming
 }
@@ -2496,9 +2598,14 @@ struct AsrProfile: Sendable {
   let model: String?
 
   static let local = AsrProfile(id: "local-sensevoice", kind: .local, displayName: "本地 SenseVoice", engine: "SenseVoice", baseUrl: nil, apiKey: nil, model: "SenseVoiceSmall")
+  static let system = AsrProfile(id: "system-speech", kind: .system, displayName: "系统语音识别", engine: "Apple Speech", baseUrl: nil, apiKey: nil, model: "zh_CN")
 
   var recordProvider: String {
-    kind == .local ? "local-sensevoice" : id
+    switch kind {
+    case .local: return "local-sensevoice"
+    case .system: return "system-speech"
+    default: return id
+    }
   }
 
   var recordModel: String {
@@ -2630,6 +2737,34 @@ func mergeLlmProviderSettings(_ savedProviders: [[String: Any]]?) -> [[String: A
   return merged
 }
 
+func defaultAsrProfilesRoot() -> [[String: Any]] {
+  [
+    ["id": "local-sensevoice", "kind": "local", "displayName": "本地 SenseVoice", "engine": "SenseVoice", "enabled": true, "model": "SenseVoiceSmall"],
+    ["id": "system-speech", "kind": "system", "displayName": "系统语音识别", "engine": "Apple Speech", "enabled": true, "model": "zh_CN"],
+    ["id": "cloud-upload-openai", "kind": "cloud-upload", "displayName": "云端上传转写 API", "engine": "openai-whisper", "enabled": false, "baseUrl": "https://api.openai.com", "apiKey": "", "model": "whisper-1"]
+  ]
+}
+
+func mergeAsrProfilesRoot(_ savedProfiles: [[String: Any]]?) -> [[String: Any]] {
+  var merged = defaultAsrProfilesRoot()
+  var indexById: [String: Int] = [:]
+  for (index, profile) in merged.enumerated() {
+    if let id = profile["id"] as? String {
+      indexById[id] = index
+    }
+  }
+  for saved in savedProfiles ?? [] {
+    guard let id = saved["id"] as? String, !id.isEmpty else { continue }
+    if let index = indexById[id] {
+      merged[index].merge(saved) { _, savedValue in savedValue }
+    } else {
+      indexById[id] = merged.count
+      merged.append(saved)
+    }
+  }
+  return merged
+}
+
 func defaultSettingsRoot() -> [String: Any] {
   [
     "settings": [
@@ -2663,10 +2798,7 @@ func defaultSettingsRoot() -> [String: Any] {
         "smartMouseMode": false,
         "mouseTrigger": "Mouse Middle",
         "activeAsrProfileId": "local-sensevoice",
-        "asrProfiles": [
-          ["id": "local-sensevoice", "kind": "local", "displayName": "本地 SenseVoice", "engine": "SenseVoice", "enabled": true, "model": "SenseVoiceSmall"],
-          ["id": "cloud-upload-openai", "kind": "cloud-upload", "displayName": "云端上传转写 API", "engine": "openai-whisper", "enabled": false, "baseUrl": "https://api.openai.com", "apiKey": "", "model": "whisper-1"]
-        ],
+        "asrProfiles": defaultAsrProfilesRoot(),
         "wordbook": []
       ]
     ]
@@ -2790,11 +2922,13 @@ final class SnapSaySettingsStore: @unchecked Sendable {
     let kindText = nonEmptyString(profile["kind"]) ?? "local"
     let kind: AsrProfileKind
     switch kindText {
+    case "system": kind = .system
     case "cloud-upload": kind = .cloudUpload
     case "cloud-streaming": kind = .cloudStreaming
     default: kind = .local
     }
     guard kind != .local else { return .local }
+    guard kind != .system else { return .system }
     return AsrProfile(
       id: activeId,
       kind: kind,
@@ -3639,10 +3773,23 @@ final class SnapSayDashboardStore: @unchecked Sendable {
 
   private func settingsRoot() -> [String: Any] {
     guard let data = try? Data(contentsOf: settingsFile),
-          let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+          var root = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
       let root = defaultSettingsRoot()
       try? writeSettingsRoot(root)
       return root
+    }
+    var changed = false
+    var settings = root["settings"] as? [String: Any] ?? [:]
+    var input = settings["input"] as? [String: Any] ?? [:]
+    let mergedAsrProfiles = mergeAsrProfilesRoot(input["asrProfiles"] as? [[String: Any]])
+    if !areJsonEqual(input["asrProfiles"], mergedAsrProfiles) {
+      input["asrProfiles"] = mergedAsrProfiles
+      changed = true
+    }
+    settings["input"] = input
+    root["settings"] = settings
+    if changed {
+      try? writeSettingsRoot(root)
     }
     return root
   }

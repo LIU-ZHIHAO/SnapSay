@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Brain, Server, PlugZap, X, Cpu, Globe, Zap, ExternalLink, Download, FolderOpen } from 'lucide-react';
+import { Brain, Server, PlugZap, X, Cpu, Globe, Zap, ExternalLink, Download, FolderOpen, Mic2 } from 'lucide-react';
 import { CustomSelect } from './App';
 
 import openaiLogo from './logos/openai.svg';
@@ -152,6 +152,9 @@ function getAsrIcon(profile: { kind: string; engine?: string }): ReactNode {
   if (profile.kind === 'local') {
     return <Cpu size={22} style={{ color: '#10b981' }} />;
   }
+  if (profile.kind === 'system') {
+    return <Mic2 size={22} style={{ color: '#8b5cf6' }} />;
+  }
   if (profile.kind === 'cloud-streaming') {
     return <Zap size={22} style={{ color: '#f59e0b' }} />;
   }
@@ -176,7 +179,7 @@ type LlmProviderConfig = {
 
 type AsrProfileConfig = {
   id: string;
-  kind: 'local' | 'cloud-upload' | 'cloud-streaming';
+  kind: 'local' | 'system' | 'cloud-upload' | 'cloud-streaming';
   displayName: string;
   engine: string;
   enabled: boolean;
@@ -283,7 +286,7 @@ export default function ModelsView(props: {
     const next = settings.asrProfiles.find((profile) => profile.id === id);
     onUpdate('activeAsrProfileId', id);
     if (next) {
-      onUpdate('asr', next.kind === 'local' ? next.engine : '云端 ASR');
+      onUpdate('asr', next.kind === 'local' || next.kind === 'system' ? next.engine : '云端 ASR');
     }
   };
 
@@ -382,7 +385,7 @@ export default function ModelsView(props: {
                 }))}
                 value={settings.activeAsrProfileId}
               />
-              {activeAsrProfile?.kind !== 'local' && (
+              {isCloudAsr && (
                 <button
                   onClick={() => void testCloudAsr(activeAsrProfile)}
                   type="button"
@@ -409,7 +412,7 @@ export default function ModelsView(props: {
                   测试
                 </button>
               )}
-              {activeAsrProfile?.kind !== 'local' && cloudTestStatus && (
+              {isCloudAsr && cloudTestStatus && (
                 <span className={`test-status${cloudTestStatus.includes('成功') ? ' success' : ''}`} style={{ fontSize: '12px', fontWeight: 'bold' }}>
                   {cloudTestStatus}
                 </span>
@@ -496,18 +499,18 @@ export default function ModelsView(props: {
                 </div>
                 <div>
                   <h3>{profile.displayName}</h3>
-                  <span>{profile.kind === 'cloud-upload' ? '云端上传' : '云端流式'}</span>
-                  <small>{profile.model ? `默认模型：${profile.model}` : '未选择模型'}</small>
+                  <span>{profile.kind === 'system' ? 'macOS 系统' : profile.kind === 'cloud-upload' ? '云端上传' : '云端流式'}</span>
+                  <small>{profile.kind === 'system' ? '使用 Apple Speech，本机低资源识别' : profile.model ? `默认模型：${profile.model}` : '未选择模型'}</small>
                 </div>
                 <span aria-label={profile.id === settings.activeAsrProfileId ? '当前默认' : '未启用'} className={profile.id === settings.activeAsrProfileId ? 'provider-status active' : 'provider-status'} />
               </div>
               <button
-                aria-label={`点击配置 ${profile.displayName}`}
+                aria-label={profile.kind === 'system' ? `设为当前 ${profile.displayName}` : `点击配置 ${profile.displayName}`}
                 className="provider-config-link"
-                onClick={() => setConfigAsrProfileId(profile.id)}
+                onClick={() => profile.kind === 'system' ? selectAsrProfile(profile.id) : setConfigAsrProfileId(profile.id)}
                 type="button"
               >
-                点击配置
+                {profile.kind === 'system' ? profile.id === settings.activeAsrProfileId ? '已启用' : '设为当前 ASR' : '点击配置'}
               </button>
             </article>
           ))}
@@ -613,7 +616,7 @@ export default function ModelsView(props: {
       </section>
       </div>
 
-      {configAsrProfile && (
+      {configAsrProfile && configAsrProfile.kind !== 'system' && (
         <div className="modal-backdrop" role="presentation">
           <section aria-modal="true" aria-label={`${configAsrProfile.displayName} 设置`} className="provider-modal" role="dialog">
             <div className="provider-modal-header">

@@ -200,7 +200,7 @@ type LlmProviderConfig = {
 
 type AsrProfileConfig = {
   id: string;
-  kind: 'local' | 'cloud-upload' | 'cloud-streaming';
+  kind: 'local' | 'system' | 'cloud-upload' | 'cloud-streaming';
   displayName: string;
   engine: string;
   enabled: boolean;
@@ -375,6 +375,7 @@ const demoSettings: SettingsState = {
   cloudAsrModel: 'whisper-1',
   asrProfiles: [
     { id: 'local-sensevoice', kind: 'local', displayName: '本地 SenseVoice', engine: 'SenseVoice', enabled: true },
+    { id: 'system-speech', kind: 'system', displayName: '系统语音识别', engine: 'Apple Speech', enabled: true, model: 'zh_CN' },
     { id: 'cloud-upload-openai', kind: 'cloud-upload', displayName: '云端上传转写 API', engine: 'openai-whisper', enabled: false, baseUrl: 'https://api.openai.com', apiKey: '', model: 'whisper-1' },
     { id: 'cloud-streaming-custom', kind: 'cloud-streaming', displayName: '云端流式转写 API', engine: 'streaming-compatible', enabled: false, baseUrl: '', apiKey: '', model: '' }
   ],
